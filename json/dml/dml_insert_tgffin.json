@@ -1,0 +1,17 @@
+{
+    "CODEMP"        : 31,
+    "DESDOBRAMENTO" : 0,
+    "CODPARC"       : 65,
+    "CODTIPOPER"    : 3120,
+    "CODBCO"        : 0,
+    "CODVEND"       : 165,
+    "CODMOEDA"      : 0,
+    "CODTIPTIT"     : 34,
+    "RECDESP"       : 1,
+    "PROVISAO"      : "S",
+    "ORIGEM"        : "E",
+    "TIPMARCCHEQ"   : "I",
+    "CODUSU"        : 0,    
+    "CODNAT"        : 1010101,
+    "TPAGNFCE"      : 17
+}

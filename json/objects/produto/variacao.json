@@ -1,0 +1,28 @@
+{
+   "id": 0,
+   "descricao": "",
+   "sku": "",
+   "gtin": "",
+   "precos": {
+      "preco": 0,
+      "precoPromocional": 0,
+      "precoCusto": 0,
+      "precoCustoMedio": 0
+   },
+   "estoque": {
+      "controlar": false,
+      "sobEncomenda": false,
+      "diasPreparacao": 0,
+      "localizacao": "",
+      "minimo": 0,
+      "maximo": 0,
+      "quantidade": 0,
+      "inicial": 0
+   },
+   "grade": [
+      {
+         "chave": "",
+         "valor": ""
+      }
+   ]
+}

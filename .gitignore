@@ -1,0 +1,6 @@
+__pycache__
+*.ipynb
+notas.txt
+*.log
+keys/*
+*tokens_history.json

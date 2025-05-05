@@ -1,0 +1,7 @@
+PATH_OBJECT_PRODUTO_FORNECEDOR = "json/objects/produto/fornecedor.json"
+PATH_OBJECT_PRODUTO_ANEXO      = "json/objects/produto/anexo.json"
+PATH_OBJECT_PRODUTO_VARIACAO   = "json/objects/produto/variacao.json"
+PATH_OBJECT_PRODUTO_KIT        = "json/objects/produto/kit.json"
+PATH_OBJECT_PRODUTO_PRODUCAO   = "json/objects/produto/producao.json"
+PATH_OBJECT_PRODUTO            = "json/objects/produto/produto.json"
+PATH_LOGS                      = "src/logs/olist.log"
