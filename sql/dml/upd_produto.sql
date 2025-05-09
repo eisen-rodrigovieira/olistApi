@@ -1,0 +1,23 @@
+UPDATE TGFPRO PRO
+SET    PRO.AD_MKP_INTEGRADO = NVL(:INTEGRAR_MKP             ,PRO.AD_MKP_INTEGRADO),
+       PRO.AD_MKP_ID        = NVL(:ID                       ,PRO.AD_MKP_ID),
+       PRO.AD_MKP_NOME      = NVL(:DESCRICAO                ,PRO.AD_MKP_NOME),
+       PRO.AD_MKP_DESCRICAO = NVL(:DESCRICAO_COMPLEMENTAR   ,PRO.AD_MKP_DESCRICAO),
+       PRO.AD_MKP_PROD_PAI  = NVL(:PRODUTO_PAI_ID           ,PRO.AD_MKP_PROD_PAI),
+       PRO.CODVOL           = NVL(:UNIDADE                  ,PRO.CODVOL),
+       PRO.NCM              = NVL(:NCM                      ,PRO.NCM),
+       PRO.REFERENCIA       = NVL(:GTIN                     ,PRO.REFERENCIA),
+       PRO.ORIGPROD         = NVL(:ORIGEM                   ,PRO.ORIGPROD),
+       PRO.CODESPECST       = NVL(:CEST                     ,PRO.CODESPECST),
+       PRO.AD_MKPCATEGORIA  = NVL(:CATEGORIA_NOME           ,PRO.AD_MKPCATEGORIA),
+       PRO.LARGURA          = NVL(:LARGURA                  ,PRO.LARGURA),
+       PRO.ALTURA           = NVL(:ALTURA                   ,PRO.ALTURA),
+       PRO.ESPESSURA        = NVL(:ESPESSURA                ,PRO.ESPESSURA),
+       PRO.PESOLIQ          = NVL(:PESO_LIQUIDO             ,PRO.PESOLIQ),
+       PRO.PESOBRUTO        = NVL(:PESO_BRUTO               ,PRO.PESOBRUTO),
+       PRO.QTDEMB           = NVL(:QUANTIDADE_VOLUMES       ,PRO.QTDEMB),
+       PRO.ESTMIN           = NVL(:ESTOQUE_MINIMO           ,PRO.ESTMIN),
+       PRO.ESTMAX           = NVL(:ESTOQUE_MAXIMO           ,PRO.ESTMAX),
+       PRO.CODPARCFORN      = NVL(:FORNECEDOR_ID            ,PRO.CODPARCFORN),
+       PRO.REFFORN          = NVL(:FORNECEDOR_CODIGO_PRODUTO,PRO.REFFORN)
+WHERE  PRO.CODPROD = :COD
