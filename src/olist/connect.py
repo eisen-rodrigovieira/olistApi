@@ -11,10 +11,14 @@ from selenium.webdriver.support    import expected_conditions as EC
 from urllib.parse                  import urlparse, parse_qs
 from cryptography.fernet           import Fernet
 from keys                          import keys
-from params                        import config, configOlist
+from params                        import config
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename=configOlist.PATH_LOGS, encoding='utf-8', format=config.LOGGER_FORMAT, datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
+logging.basicConfig(filename=config.PATH_LOGS,
+                    encoding='utf-8',
+                    format=config.LOGGER_FORMAT,
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO)
 
 class Connect(object):
     """
@@ -231,10 +235,12 @@ class Connect(object):
                     nest_asyncio.apply()
                     #logger.debug("Rodando busca com novo loginn")
                     new_token = loop.run_until_complete(new_token)     
-                    logger.debug("Retorno da busca com novo login")               
+                    logger.debug("Retorno da busca com novo login") 
+                    return new_token            
                 else:
                     #logger.debug("Rodando busca com novo login 2")
                     new_token = loop.run_until_complete(self.login())
+                    return new_token
         except Exception as e:
             logger.error("Erro ao recuperar ou renovar token: %s",e)
             return ''

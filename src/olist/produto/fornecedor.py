@@ -4,7 +4,11 @@ import logging
 from params import config, configOlist
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename=configOlist.PATH_LOGS, encoding='utf-8', format=config.LOGGER_FORMAT, datefmt='%Y-%m-%d %H:%M:%S', level=logging.INFO)
+logging.basicConfig(filename=config.PATH_LOGS,
+                    encoding='utf-8',
+                    format=config.LOGGER_FORMAT,
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO)
 
 class Fornecedor:
     def __init__(self
@@ -24,7 +28,7 @@ class Fornecedor:
                 self.id                        = payload["id"]
                 self.nome                      = payload["nome"]
                 self.codigoProdutoNoFornecedor = payload["codigoProdutoNoFornecedor"]
-                self.padrao                    = payload["padrao"]
+                # self.padrao                    = payload["padrao"]
             except Exception as e:
                 logger.error("Erro ao extrair dados do payload. ID %s. %s",payload["id"],e)
                 return False
