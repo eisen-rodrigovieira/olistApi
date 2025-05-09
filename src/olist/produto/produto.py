@@ -1,13 +1,15 @@
 import os
+import time
 import json
 import logging
 import requests
+from datetime          import datetime
 from src.olist.connect import Connect
 from src.olist.produto import fornecedor, anexo, kit, variacao, producao
 from params            import config, configOlist
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename=configOlist.PATH_LOGS,
+logging.basicConfig(filename=config.PATH_LOGS,
                     encoding='utf-8',
                     format=config.LOGGER_FORMAT,
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -27,7 +29,7 @@ class Produto:
             ,produtoPai_sku                 :str   = None
             ,produtoPai_descricao           :str   = None
             ,unidade                        :str   = None
-            ,unidadePorCaixa                :str   = None
+            ,unidadePorCaixa                :int   = None
             ,ncm                            :str   = None
             ,gtin                           :str   = None
             ,origem                         :str   = None
@@ -136,14 +138,14 @@ class Produto:
         if payload:
             try:
                 #logger.debug("iniciando decode basico")
-                self.id                                = payload["id"]                   
-                self.sku                               = payload["sku"]                  
+                self.id                                = int(payload["id"] or 0)
+                self.sku                               = payload["sku"]
                 self.descricao                         = payload["descricao"]            
                 self.descricaoComplementar             = payload["descricaoComplementar"]
                 self.tipo                              = payload["tipo"]                 
                 self.situacao                          = payload["situacao"]             
                 if payload["produtoPai"]:                
-                    self.produtoPai_id                 = payload["produtoPai"]["id"]       
+                    self.produtoPai_id                 = int(payload["produtoPai"]["id"] or 0)
                     self.produtoPai_sku                = payload["produtoPai"]["sku"]      
                     self.produtoPai_descricao          = payload["produtoPai"]["descricao"]
                 else:                
@@ -151,15 +153,18 @@ class Produto:
                     self.produtoPai_sku                = None
                     self.produtoPai_descricao          = None
                 self.unidade                           = payload["unidade"]                             
-                self.unidadePorCaixa                   = payload["unidadePorCaixa"]                     
+                self.unidadePorCaixa                   = int(payload["unidadePorCaixa"] or 0)
                 self.ncm                               = payload["ncm"]                                 
                 self.gtin                              = payload["gtin"]                                
-                self.origem                            = payload["origem"]                              
-                self.cest                              = payload["codigoEspecificadorSubstituicaoTributaria"]
+                self.origem                            = int(payload["origem"] or 0)
+                if "codigoEspecificadorSubstituicaoTributaria" in payload.keys():
+                    self.cest                          = payload["codigoEspecificadorSubstituicaoTributaria"]
+                else:
+                    self.cest                          = None
                 self.garantia                          = payload["garantia"]                            
                 self.observacoes                       = payload["observacoes"]                         
                 if payload["categoria"]:
-                    self.categoria_id                  = payload["categoria"]["id"]             
+                    self.categoria_id                  = int(payload["categoria"]["id"] or 0)
                     self.categoria_nome                = payload["categoria"]["nome"]           
                     self.categoria_caminhoCompleto     = payload["categoria"]["caminhoCompleto"]
                 else:
@@ -167,22 +172,22 @@ class Produto:
                     self.categoria_nome                = None
                     self.categoria_caminhoCompleto     = None
                 if payload["marca"]:
-                    self.marca_id                      = payload["marca"]["id"]  
+                    self.marca_id                      = int(payload["marca"]["id"] or 0)
                     self.marca_nome                    = payload["marca"]["nome"]
                 else:
                     self.marca_id                      = None
                     self.marca_nome                    = None
                 if payload["dimensoes"]:
-                    self.dimensoes_embalagem_id        = payload["dimensoes"]["embalagem"]["id"]       
+                    self.dimensoes_embalagem_id        = int(payload["dimensoes"]["embalagem"]["id"] or 0)
                     self.dimensoes_embalagem_tipo      = payload["dimensoes"]["embalagem"]["tipo"]     
                     self.dimensoes_embalagem_descricao = payload["dimensoes"]["embalagem"]["descricao"]
-                    self.dimensoes_largura             = payload["dimensoes"]["largura"]               
-                    self.dimensoes_altura              = payload["dimensoes"]["altura"]                
-                    self.dimensoes_comprimento         = payload["dimensoes"]["comprimento"]           
-                    self.dimensoes_diametro            = payload["dimensoes"]["diametro"]              
-                    self.dimensoes_pesoLiquido         = payload["dimensoes"]["pesoLiquido"]           
-                    self.dimensoes_pesoBruto           = payload["dimensoes"]["pesoBruto"]             
-                    self.dimensoes_quantidadeVolumes   = payload["dimensoes"]["quantidadeVolumes"]     
+                    self.dimensoes_largura             = float(payload["dimensoes"]["largura"] or 0)
+                    self.dimensoes_altura              = float(payload["dimensoes"]["altura"] or 0)
+                    self.dimensoes_comprimento         = float(payload["dimensoes"]["comprimento"] or 0)
+                    self.dimensoes_diametro            = float(payload["dimensoes"]["diametro"] or 0)
+                    self.dimensoes_pesoLiquido         = float(payload["dimensoes"]["pesoLiquido"] or 0)
+                    self.dimensoes_pesoBruto           = float(payload["dimensoes"]["pesoBruto"] or 0)
+                    self.dimensoes_quantidadeVolumes   = int(payload["dimensoes"]["quantidadeVolumes"] or 0)
                 else:
                     self.dimensoes_embalagem_id        = None
                     self.dimensoes_embalagem_tipo      = None
@@ -195,10 +200,10 @@ class Produto:
                     self.dimensoes_pesoBruto           = None
                     self.dimensoes_quantidadeVolumes   = None
                 if payload["precos"]:
-                    self.preco                         = payload["precos"]["preco"]                    
-                    self.precoPromocional              = payload["precos"]["precoPromocional"]         
-                    self.precoCusto                    = payload["precos"]["precoCusto"]               
-                    self.precoCustoMedio               = payload["precos"]["precoCustoMedio"]     
+                    self.preco                         = float(payload["precos"]["preco"] or 0)
+                    self.precoPromocional              = float(payload["precos"]["precoPromocional"] or 0)
+                    self.precoCusto                    = float(payload["precos"]["precoCusto"] or 0)
+                    self.precoCustoMedio               = float(payload["precos"]["precoCustoMedio"] or 0)
                 else:
                     self.preco                         = None
                     self.precoPromocional              = None
@@ -207,12 +212,12 @@ class Produto:
                 if payload["estoque"]:
                     self.estoque_controlar             = payload["estoque"]["controlar"]     
                     self.estoque_sobEncomenda          = payload["estoque"]["sobEncomenda"]  
-                    self.estoque_diasPreparacao        = payload["estoque"]["diasPreparacao"]
+                    self.estoque_diasPreparacao        = int(payload["estoque"]["diasPreparacao"] or 0)
                     self.estoque_localizacao           = payload["estoque"]["localizacao"]   
-                    self.estoque_minimo                = payload["estoque"]["minimo"]        
-                    self.estoque_maximo                = payload["estoque"]["maximo"]        
-                    self.estoque_quantidade            = payload["estoque"]["quantidade"]    
-                    self.estoque_inicial               = payload["estoque"]["inicial"]
+                    self.estoque_minimo                = int(payload["estoque"]["minimo"] or 0)
+                    self.estoque_maximo                = int(payload["estoque"]["maximo"] or 0)
+                    self.estoque_quantidade            = int(payload["estoque"]["quantidade"] or 0)
+                    #self.estoque_inicial               = payload["estoque"]["inicial"]
                 else:
                     self.estoque_controlar             = None
                     self.estoque_sobEncomenda          = None
@@ -221,7 +226,7 @@ class Produto:
                     self.estoque_minimo                = None
                     self.estoque_maximo                = None
                     self.estoque_quantidade            = None
-                    self.estoque_inicial               = None
+                    # self.estoque_inicial               = None
                 if payload["seo"]:
                     self.seo_titulo                    = payload["seo"]["titulo"]            
                     self.seo_descricao                 = payload["seo"]["descricao"]         
@@ -236,7 +241,7 @@ class Produto:
                     self.seo_slug                      = None
                 if payload["tributacao"]:
                     self.tributacao_gtinEmbalagem      = payload["tributacao"]["gtinEmbalagem"] 
-                    self.tributacao_valorIPIFixo       = payload["tributacao"]["valorIPIFixo"]  
+                    self.tributacao_valorIPIFixo       = float(payload["tributacao"]["valorIPIFixo"] or 0)
                     self.tributacao_classeIPI          = payload["tributacao"]["classeIPI"]     
                 else:
                     self.tributacao_gtinEmbalagem      = None
@@ -366,7 +371,7 @@ class Produto:
                 data["fornecedores"]                        = fornecedores_list
                 data["anexos"]                              = anexos_list                       
                 data["variacoes"]                           = variacoes_list                    
-                data["kits"]                                = kits_list
+                data["kit"]                                 = kits_list
                 return data               
         except Exception as e:
             logger.error("Erro ao formatar dict produto: %s",e)
@@ -391,11 +396,14 @@ class Produto:
                 )
                 if get_produto.status_code == 200:
                     #logger.debug("get ok")
-                    if self.decodificar(get_produto.json()):
-                        #logger.debug("decode ok")
-                        return True
+                    if get_produto.json()["tipo"] == 'S':
+                        if self.decodificar(get_produto.json()):
+                            #logger.debug("decode ok")
+                            return True
+                        else:
+                            #logger.debug("decode fail")
+                            return False
                     else:
-                        #logger.debug("decode fail")
                         return False
                 else:                      
                     logger.error("Erro %s: %s", get_produto.status_code, get_produto.json().get("mensagem","Erro desconhecido"))
@@ -405,8 +413,86 @@ class Produto:
                 return False                    
         except Exception as e:
             logger.error("Erro relacionado ao token de acesso. %s",e)
-            return False                    
-    
+            return False     
+
+    async def buscar_alteracoes(self) -> list:
+
+        if not os.path.exists(configOlist.PATH_HISTORICO_PRODUTO):
+            logger.error("Histórico de produtos não encontrado em %s",configOlist.PATH_HISTORICO_PRODUTO)
+            return {"status":"Erro"}
+        else:    
+            with open(configOlist.PATH_HISTORICO_PRODUTO, "r", encoding="utf-8") as f:
+                historico = json.load(f)
+                
+            token = self.con.get_latest_valid_token_or_refresh()
+            status = 200
+            paginacao = {}
+            itens = []
+
+            while status == 200:
+                if paginacao:        
+                    if paginacao["limit"] + paginacao["offset"] < paginacao ["total"]:
+                        offset = paginacao["limit"] + paginacao["offset"]
+                        url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?dataAlteracao={historico["ultima_alteracao"]["data"]}&offset={offset}"
+                    else:
+                        url = None
+                else:
+                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?dataAlteracao={historico["ultima_alteracao"]["data"]}"
+                # print(url)
+                if url:
+                    get_alteracoes = requests.get(url=url,
+                                                  headers={
+                                                      "Authorization":f"Bearer {token}",
+                                                      "Content-Type":"application/json",
+                                                      "Accept":"application/json"
+                                                  })
+                    status=get_alteracoes.status_code
+                    itens += get_alteracoes.json()["itens"]
+                    paginacao = get_alteracoes.json()["paginacao"]
+                    time.sleep(3)
+                else:
+                    status = 0
+                    #print(f"Fim. {len(itens)} produtos encontratos")
+            
+            itens.sort(key=lambda i: i['dataAlteracao'],reverse=True)
+            
+            return [{"id":i["id"],"sku":i["sku"]} for i in itens]
+        
+    async def buscar_todos(self) -> list:
+                
+        token = self.con.get_latest_valid_token_or_refresh()
+        status = 200
+        paginacao = {}
+        itens = []
+
+        while status == 200:
+            if paginacao:        
+                if paginacao["limit"] + paginacao["offset"] < paginacao ["total"]:
+                    offset = paginacao["limit"] + paginacao["offset"]
+                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?offset={offset}"
+                else:
+                    url = None
+            else:
+                url = config.API_URL+config.ENDPOINT_PRODUTOS
+            # print(url)
+            if url:
+                get_alteracoes = requests.get(url=url,
+                                            headers={
+                                                "Authorization":f"Bearer {token}",
+                                                "Content-Type":"application/json",
+                                                "Accept":"application/json"
+                                            })
+                status=get_alteracoes.status_code
+                itens += get_alteracoes.json()["itens"]
+                paginacao = get_alteracoes.json()["paginacao"]
+                print(f"{len(itens)}/{paginacao["total"]}")
+                time.sleep(3)
+            else:
+                status=0
+                print(f"Fim. {len(itens)} produtos encontratos")
+            
+        return itens        
+   
     async def cadastrar(self) -> int:
         pass
             
