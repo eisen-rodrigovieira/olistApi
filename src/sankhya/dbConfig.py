@@ -1,6 +1,15 @@
 from keys import keys
+from params import config, configSankhya
 import oracledb
 import pandas as pd
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig( filename = config.PATH_LOGS,
+                     encoding = 'utf-8',
+                     format   = config.LOGGER_FORMAT,
+                     datefmt  = '%Y-%m-%d %H:%M:%S',
+                     level    = logging.INFO)
 
 class dbConfig(object):
     """
@@ -15,7 +24,7 @@ class dbConfig(object):
         self.pwd = keys.DATABASE_PASSWORD
         self.dns = keys.DATABASE_HOST
 
-    def select(self, query: str, params:str= None) -> tuple[list, list]:
+    def select(self, query: str, params:str= None) -> list:
         """
         Executa uma consulta SQL no banco de dados Oracle.
 
@@ -39,27 +48,38 @@ class dbConfig(object):
                         cursor.execute(query, params)
                     else:
                         cursor.execute(query)
+                    
+                    cols = [col.name.lower() for col in cursor.description]
+                    cursor.rowfactory = lambda *args: dict(zip(cols, args))
                     rows = cursor.fetchall()
-                    cols = cursor.description
-            return rows, cols
+                    for r in rows:
+                        for k in r.keys():
+                            if type(r[k]) == oracledb.LOB:
+                                r[k] = r[k].read()                    
+            return rows
         except oracledb.DatabaseError as e:
             # Exibe erro detalhado caso ocorra uma exceção
             print("Erro ao executar a consulta:", e)
             raise  # Relança a exceção para que o chamador possa lidar com ela
 
-    def insert(self, query: str, params: str) -> int:
+    def dml(self, query: str, params: str) -> tuple[bool,int]:
         try:
             # Estabelece conexão com o banco de dados Oracle
             with oracledb.connect(user=self.usr, password=self.pwd, dsn=self.dns) as connection:
                 with connection.cursor() as cursor:
                     cursor.execute(query, params)
                     registros = cursor.rowcount
-            return registros
+                    if registros:
+                        connection.commit()
+                        return True, registros
+                    else:
+                        connection.rollback()
+                        return False, None            
         except oracledb.DatabaseError as e:
             # Exibe erro detalhado caso ocorra uma exceção
-            print("Erro ao inserir novos registros:", e)
+            print("Erro ao executar script:", e)
             raise  # Relança a exceção para que o chamador possa lidar com ela
-
+    
     def format_dataframe(self, columns: list, rows: list) -> pd.DataFrame:
         """
         Formata os resultados de uma consulta SQL em um DataFrame do Pandas.
@@ -83,7 +103,7 @@ class dbConfig(object):
 
             # Constrói o DataFrame a partir da primeira linha e transpoõe
             data = pd.DataFrame(rows[0]).T
-            data.columns = [col[0] for col in columns]
+            data.columns = [str(col[0]).lower() for col in columns]
             return data
         except Exception as e:
             print("Erro ao formatar os dados em DataFrame:", e)
