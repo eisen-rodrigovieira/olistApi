@@ -32,7 +32,7 @@ class Produto:
             ,unidadePorCaixa                :int   = None
             ,ncm                            :str   = None
             ,gtin                           :str   = None
-            ,origem                         :str   = None
+            ,origem                         :int   = None
             ,cest                           :str   = None
             ,garantia                       :str   = None
             ,observacoes                    :str   = None
@@ -132,20 +132,21 @@ class Produto:
         self.variacoes                     = []
         self.kits                          = []
         self.producao                      = []
+        self.acao = None
         
     def decodificar(self,payload:dict=None) -> bool:
         
         if payload:
             try:
                 #logger.debug("iniciando decode basico")
-                self.id                                = int(payload["id"] or 0)
+                self.id                                = payload["id"]
                 self.sku                               = payload["sku"]
                 self.descricao                         = payload["descricao"]            
                 self.descricaoComplementar             = payload["descricaoComplementar"]
                 self.tipo                              = payload["tipo"]                 
                 self.situacao                          = payload["situacao"]             
                 if payload["produtoPai"]:                
-                    self.produtoPai_id                 = int(payload["produtoPai"]["id"] or 0)
+                    self.produtoPai_id                 = payload["produtoPai"]["id"]
                     self.produtoPai_sku                = payload["produtoPai"]["sku"]      
                     self.produtoPai_descricao          = payload["produtoPai"]["descricao"]
                 else:                
@@ -153,10 +154,10 @@ class Produto:
                     self.produtoPai_sku                = None
                     self.produtoPai_descricao          = None
                 self.unidade                           = payload["unidade"]                             
-                self.unidadePorCaixa                   = int(payload["unidadePorCaixa"] or 0)
+                self.unidadePorCaixa                   = payload["unidadePorCaixa"]
                 self.ncm                               = payload["ncm"]                                 
                 self.gtin                              = payload["gtin"]                                
-                self.origem                            = int(payload["origem"] or 0)
+                self.origem                            = payload["origem"]
                 if "codigoEspecificadorSubstituicaoTributaria" in payload.keys():
                     self.cest                          = payload["codigoEspecificadorSubstituicaoTributaria"]
                 else:
@@ -164,7 +165,7 @@ class Produto:
                 self.garantia                          = payload["garantia"]                            
                 self.observacoes                       = payload["observacoes"]                         
                 if payload["categoria"]:
-                    self.categoria_id                  = int(payload["categoria"]["id"] or 0)
+                    self.categoria_id                  = payload["categoria"]["id"]
                     self.categoria_nome                = payload["categoria"]["nome"]           
                     self.categoria_caminhoCompleto     = payload["categoria"]["caminhoCompleto"]
                 else:
@@ -172,22 +173,22 @@ class Produto:
                     self.categoria_nome                = None
                     self.categoria_caminhoCompleto     = None
                 if payload["marca"]:
-                    self.marca_id                      = int(payload["marca"]["id"] or 0)
+                    self.marca_id                      = payload["marca"]["id"]
                     self.marca_nome                    = payload["marca"]["nome"]
                 else:
                     self.marca_id                      = None
                     self.marca_nome                    = None
                 if payload["dimensoes"]:
-                    self.dimensoes_embalagem_id        = int(payload["dimensoes"]["embalagem"]["id"] or 0)
+                    self.dimensoes_embalagem_id        = payload["dimensoes"]["embalagem"]["id"]
                     self.dimensoes_embalagem_tipo      = payload["dimensoes"]["embalagem"]["tipo"]     
                     self.dimensoes_embalagem_descricao = payload["dimensoes"]["embalagem"]["descricao"]
-                    self.dimensoes_largura             = float(payload["dimensoes"]["largura"] or 0)
-                    self.dimensoes_altura              = float(payload["dimensoes"]["altura"] or 0)
-                    self.dimensoes_comprimento         = float(payload["dimensoes"]["comprimento"] or 0)
-                    self.dimensoes_diametro            = float(payload["dimensoes"]["diametro"] or 0)
-                    self.dimensoes_pesoLiquido         = float(payload["dimensoes"]["pesoLiquido"] or 0)
-                    self.dimensoes_pesoBruto           = float(payload["dimensoes"]["pesoBruto"] or 0)
-                    self.dimensoes_quantidadeVolumes   = int(payload["dimensoes"]["quantidadeVolumes"] or 0)
+                    self.dimensoes_largura             = payload["dimensoes"]["largura"]
+                    self.dimensoes_altura              = payload["dimensoes"]["altura"]
+                    self.dimensoes_comprimento         = payload["dimensoes"]["comprimento"]
+                    self.dimensoes_diametro            = payload["dimensoes"]["diametro"]
+                    self.dimensoes_pesoLiquido         = payload["dimensoes"]["pesoLiquido"]
+                    self.dimensoes_pesoBruto           = payload["dimensoes"]["pesoBruto"]
+                    self.dimensoes_quantidadeVolumes   = payload["dimensoes"]["quantidadeVolumes"]
                 else:
                     self.dimensoes_embalagem_id        = None
                     self.dimensoes_embalagem_tipo      = None
@@ -200,10 +201,10 @@ class Produto:
                     self.dimensoes_pesoBruto           = None
                     self.dimensoes_quantidadeVolumes   = None
                 if payload["precos"]:
-                    self.preco                         = float(payload["precos"]["preco"] or 0)
-                    self.precoPromocional              = float(payload["precos"]["precoPromocional"] or 0)
-                    self.precoCusto                    = float(payload["precos"]["precoCusto"] or 0)
-                    self.precoCustoMedio               = float(payload["precos"]["precoCustoMedio"] or 0)
+                    self.preco                         = payload["precos"]["preco"]
+                    self.precoPromocional              = payload["precos"]["precoPromocional"]
+                    self.precoCusto                    = payload["precos"]["precoCusto"]
+                    self.precoCustoMedio               = payload["precos"]["precoCustoMedio"]
                 else:
                     self.preco                         = None
                     self.precoPromocional              = None
@@ -212,11 +213,11 @@ class Produto:
                 if payload["estoque"]:
                     self.estoque_controlar             = payload["estoque"]["controlar"]     
                     self.estoque_sobEncomenda          = payload["estoque"]["sobEncomenda"]  
-                    self.estoque_diasPreparacao        = int(payload["estoque"]["diasPreparacao"] or 0)
+                    self.estoque_diasPreparacao        = payload["estoque"]["diasPreparacao"]
                     self.estoque_localizacao           = payload["estoque"]["localizacao"]   
-                    self.estoque_minimo                = int(payload["estoque"]["minimo"] or 0)
-                    self.estoque_maximo                = int(payload["estoque"]["maximo"] or 0)
-                    self.estoque_quantidade            = int(payload["estoque"]["quantidade"] or 0)
+                    self.estoque_minimo                = payload["estoque"]["minimo"]
+                    self.estoque_maximo                = payload["estoque"]["maximo"]
+                    self.estoque_quantidade            = payload["estoque"]["quantidade"]
                     #self.estoque_inicial               = payload["estoque"]["inicial"]
                 else:
                     self.estoque_controlar             = None
@@ -230,7 +231,7 @@ class Produto:
                 if payload["seo"]:
                     self.seo_titulo                    = payload["seo"]["titulo"]            
                     self.seo_descricao                 = payload["seo"]["descricao"]         
-                    self.seo_keywords                  = payload["seo"]["keywords"]          
+                    self.seo_keywords                  = payload["seo"]["keywords"] or ["produto"]
                     self.seo_linkVideo                 = payload["seo"]["linkVideo"]         
                     self.seo_slug                      = payload["seo"]["slug"]              
                 else:
@@ -241,7 +242,7 @@ class Produto:
                     self.seo_slug                      = None
                 if payload["tributacao"]:
                     self.tributacao_gtinEmbalagem      = payload["tributacao"]["gtinEmbalagem"] 
-                    self.tributacao_valorIPIFixo       = float(payload["tributacao"]["valorIPIFixo"] or 0)
+                    self.tributacao_valorIPIFixo       = payload["tributacao"]["valorIPIFixo"]
                     self.tributacao_classeIPI          = payload["tributacao"]["classeIPI"]     
                 else:
                     self.tributacao_gtinEmbalagem      = None
@@ -290,15 +291,18 @@ class Produto:
             return False
 
     def encodificar(self) -> dict:
+        obj = {}
         data = {}
-        try:
-            if not os.path.exists(configOlist.PATH_OBJECT_PRODUTO):
-                logger.error("Objeto do produto não encontrado em %s",configOlist.PATH_OBJECT_PRODUTO)
-                return {"status":"Erro"}
-            else:    
-                with open(configOlist.PATH_OBJECT_PRODUTO, "r", encoding="utf-8") as f:
-                    data = json.load(f)
+        if not os.path.exists(configOlist.PATH_OBJECT_PRODUTO):
+            logger.error("Objeto do produto não encontrado em %s",configOlist.PATH_OBJECT_PRODUTO)
+            return {"status":"Erro"}
+        else:    
+            with open(configOlist.PATH_OBJECT_PRODUTO, "r", encoding="utf-8") as f:
+                obj = json.load(f)        
 
+        if self.acao == 'get':
+            try:
+                data = obj[self.acao]
                 data["id"]                                        = self.id                           
                 data["sku"]                                       = self.sku                          
                 data["descricao"]                                 = self.descricao                    
@@ -373,9 +377,62 @@ class Produto:
                 data["variacoes"]                           = variacoes_list                    
                 data["kit"]                                 = kits_list
                 return data               
-        except Exception as e:
-            logger.error("Erro ao formatar dict produto: %s",e)
-            return {"status":"Erro"}
+            except Exception as e:
+                logger.error("Erro ao formatar dict produto: %s",e)
+                return {"status":"Erro"}
+        
+        if self.acao == 'put':
+            try:
+                data = obj[self.acao]
+                data["sku"]                                       = self.sku                       
+                data["descricao"]                                 = self.descricao                 
+                data["descricaoComplementar"]                     = self.descricaoComplementar     
+                data["unidade"]                                   = self.unidade                   
+                data["unidadePorCaixa"]                           = self.unidadePorCaixa           
+                data["ncm"]                                       = self.ncm                       
+                data["gtin"]                                      = self.gtin                      
+                data["origem"]                                    = self.origem                    
+                data["codigoEspecificadorSubstituicaoTributaria"] = self.cest                      
+                data["garantia"]                                  = self.garantia                  
+                data["observacoes"]                               = self.observacoes               
+                data["marca"]["id"]                               = self.marca_id                  
+                data["categoria"]["id"]                           = self.categoria_id              
+                data["precos"]["preco"]                           = self.preco                     
+                data["precos"]["precoPromocional"]                = self.precoPromocional          
+                data["precos"]["precoCusto"]                      = self.precoCusto                
+                data["dimensoes"]["embalagem"]["id"]              = self.dimensoes_embalagem_id    
+                data["dimensoes"]["embalagem"]["tipo"]            = self.dimensoes_embalagem_tipo  
+                data["dimensoes"]["largura"]                      = self.dimensoes_largura         
+                data["dimensoes"]["altura"]                       = self.dimensoes_altura          
+                data["dimensoes"]["comprimento"]                  = self.dimensoes_comprimento     
+                data["dimensoes"]["diametro"]                     = self.dimensoes_diametro        
+                data["dimensoes"]["pesoLiquido"]                  = self.dimensoes_pesoLiquido     
+                data["dimensoes"]["pesoBruto"]                    = self.dimensoes_pesoBruto       
+                data["tributacao"]["gtinEmbalagem"]               = self.tributacao_gtinEmbalagem  
+                data["tributacao"]["valorIPIFixo"]                = self.tributacao_valorIPIFixo   
+                data["tributacao"]["classeIPI"]                   = self.tributacao_classeIPI      
+                data["seo"]["titulo"]                             = self.seo_titulo                
+                data["seo"]["descricao"]                          = self.seo_descricao             
+                data["seo"]["keywords"]                           = self.seo_keywords or ["produto"]
+                data["seo"]["linkVideo"]                          = self.seo_linkVideo             
+                data["seo"]["slug"]                               = self.seo_slug                  
+                data["estoque"]["controlar"]                      = bool(self.estoque_controlar)
+                data["estoque"]["sobEncomenda"]                   = bool(self.estoque_sobEncomenda)
+                data["estoque"]["diasPreparacao"]                 = self.estoque_diasPreparacao    
+                data["estoque"]["localizacao"]                    = self.estoque_localizacao       
+                data["estoque"]["minimo"]                         = self.estoque_minimo            
+                data["estoque"]["maximo"]                         = self.estoque_maximo            
+
+                data["fornecedores"] = [{
+                    "id" : 753240684,
+                    "codigoProdutoNoFornecedor" : self.fornecedores[0].codigoProdutoNoFornecedor,
+                    "padrao" : True
+                }]
+
+                return data               
+            except Exception as e:
+                logger.error("Erro ao formatar dict produto: %s",e)
+                return {"status":"Erro"}            
 
     async def buscar(self) -> bool:
         #logger.debug("start buscar")
@@ -398,6 +455,7 @@ class Produto:
                     #logger.debug("get ok")
                     if get_produto.json()["tipo"] == 'S':
                         if self.decodificar(get_produto.json()):
+                            self.acao = 'get'
                             #logger.debug("decode ok")
                             return True
                         else:
@@ -415,7 +473,7 @@ class Produto:
             logger.error("Erro relacionado ao token de acesso. %s",e)
             return False     
 
-    async def buscar_alteracoes(self) -> list:
+    async def enviar_alteracoes(self) -> list:
 
         if not os.path.exists(configOlist.PATH_HISTORICO_PRODUTO):
             logger.error("Histórico de produtos não encontrado em %s",configOlist.PATH_HISTORICO_PRODUTO)
@@ -433,11 +491,96 @@ class Produto:
                 if paginacao:        
                     if paginacao["limit"] + paginacao["offset"] < paginacao ["total"]:
                         offset = paginacao["limit"] + paginacao["offset"]
-                        url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?dataAlteracao={historico["ultima_alteracao"]["data"]}&offset={offset}"
+                        url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?situacao=A&dataAlteracao={historico["ultima_atualizacao_olist_sankhya"]["data"]}&offset={offset}"
                     else:
                         url = None
                 else:
-                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?dataAlteracao={historico["ultima_alteracao"]["data"]}"
+                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?situacao=A&dataAlteracao={historico["ultima_atualizacao_olist_sankhya"]["data"]}"
+                # print(url)
+                if url:
+                    get_alteracoes = requests.get(url=url,
+                                                  headers={
+                                                      "Authorization":f"Bearer {token}",
+                                                      "Content-Type":"application/json",
+                                                      "Accept":"application/json"
+                                                  })
+                    self.acao = 'get'
+                    status=get_alteracoes.status_code
+                    itens += get_alteracoes.json()["itens"]
+                    paginacao = get_alteracoes.json()["paginacao"]
+                    time.sleep(3)
+                else:
+                    status = 0
+                    #print(f"Fim. {len(itens)} produtos encontratos")
+            
+            itens.sort(key=lambda i: i['dataAlteracao'],reverse=True)
+            
+            return [{"id":i["id"],"sku":i["sku"]} for i in itens]
+
+    async def receber_alteracoes(self) -> bool:
+
+        if not os.path.exists(configOlist.PATH_HISTORICO_PRODUTO):
+            logger.error("Histórico de produtos não encontrado em %s",configOlist.PATH_HISTORICO_PRODUTO)
+            return {"status":"Erro"}
+        else:    
+            with open(configOlist.PATH_HISTORICO_PRODUTO, "r", encoding="utf-8") as f:
+                historico = json.load(f)
+                
+            token = self.con.get_latest_valid_token_or_refresh()
+            payload = self.encodificar()
+
+            if self.acao == 'put':
+                url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.id}"
+                if url:
+                    put_alteracoes = requests.put(url=url,
+                                                  headers={
+                                                      "Authorization":f"Bearer {token}",
+                                                      "Content-Type":"application/json",
+                                                      "Accept":"application/json"
+                                                  },
+                                                  data=json.dumps(payload))
+                    if put_alteracoes.status_code == 204:
+                        with open(configOlist.PATH_HISTORICO_PRODUTO, "r", encoding="utf-8") as f:
+                            historico = json.load(f)  
+                        historico["ultima_atualizacao_sankhya_olist"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        historico["ultima_atualizacao_sankhya_olist"]["id"] = self.id
+                        with open(configOlist.PATH_HISTORICO_PRODUTO, "w", encoding="utf-8") as f:
+                            json.dump(historico, f, indent=4, ensure_ascii=False)                    
+                        print(f"Produto {self.id} atualizado com sucesso")
+                        return True
+                    else:
+                        print(f"Falha ao atualizar produto {self.id}")
+                        logger.error("Erro %s: %s", put_alteracoes.status_code, put_alteracoes.json())
+                        return False
+                else:
+                    print("Falha ao montar URL")
+                    logger.error("Erro: Falha ao montar URL")
+                    return False
+            else:
+                print("Evento não configurado")
+                logger.error("Erro: Evento de atualização não configurado")
+                return False
+
+
+
+
+
+
+
+
+            status = 200
+            paginacao = {}
+            itens = []
+
+            while status == 200:
+                if paginacao:        
+                    if paginacao["limit"] + paginacao["offset"] < paginacao ["total"]:
+                        offset = paginacao["limit"] + paginacao["offset"]
+                        url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?situacao=A&dataAlteracao={historico["ultima_atualizacao_olist_sankhya"]["data"]}&offset={offset}"
+                    else:
+                        url = None
+                else:
+                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?situacao=A&dataAlteracao={historico["ultima_atualizacao_olist_sankhya"]["data"]}"
                 # print(url)
                 if url:
                     get_alteracoes = requests.get(url=url,
@@ -456,8 +599,8 @@ class Produto:
             
             itens.sort(key=lambda i: i['dataAlteracao'],reverse=True)
             
-            return [{"id":i["id"],"sku":i["sku"]} for i in itens]
-        
+            return [{"id":i["id"],"sku":i["sku"]} for i in itens] 
+
     async def buscar_todos(self) -> list:
                 
         token = self.con.get_latest_valid_token_or_refresh()
