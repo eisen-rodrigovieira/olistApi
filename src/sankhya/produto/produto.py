@@ -57,8 +57,7 @@ class Produto:
             ,fornecedor_id                  :int   = None
             ,fornecedor_codigo_produto      :int   = None            
             ,tributacao_gtinEmbalagem       :str   = None            
-        ):  
-        self.db                            = dbConfig()
+        ):          
         self.integrar_mkp                  = integrar_mkp
         self.id                            = id
         self.sku                           = sku
@@ -160,13 +159,14 @@ class Produto:
             #return {"status":"Erro"}
             return pd.DataFrame()
         else:    
+            db = dbConfig()
             with open(configSankhya.PATH_SCRIPT_PRODUTO, "r", encoding="utf-8") as f:
                 query = f.read()
                 params = {
                     "COD": self.sku,
                     "ID": self.id
                 }
-                rows = self.db.select(query=query,params=params)
+                rows = await db.select(query=query,params=params)
                 #data_prod  = self.db.format_dataframe(columns=cols,rows=rows)
                 
                 if rows:
@@ -179,10 +179,11 @@ class Produto:
             logger.error("Script de update da TGFPRO não encontrado em %s",configSankhya.PATH_UPDATE_PRODUTO)
             #return {"status":"Erro"}
             return False, None
-        else:    
+        else: 
+            db = dbConfig()   
             with open(configSankhya.PATH_UPDATE_PRODUTO, "r", encoding="utf-8") as f:
                 query = f.read()
-                ack, rows = self.db.dml(query=query,params=params)
+                ack, rows = await db.dml(query=query,params=params)
                 if ack:
                    return ack, rows
                 else:
