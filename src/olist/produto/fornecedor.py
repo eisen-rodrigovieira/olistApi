@@ -47,7 +47,7 @@ class Fornecedor:
                     data = json.load(f)
                 data["id"]                        = self.id
                 data["nome"]                      = self.nome
-                data["codigoProdutoNoFornecedor"] = self.codigoProdutoNoFornecedor           
+                data["codigoProdutoNoFornecedor"] = self.codigoProdutoNoFornecedor
                 data["padrao"]                    = self.padrao           
                 return data               
         except Exception as e:
