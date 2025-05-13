@@ -24,22 +24,7 @@ class dbConfig(object):
         self.pwd = keys.DATABASE_PASSWORD
         self.dns = keys.DATABASE_HOST
 
-    def select(self, query: str, params:str= None) -> list:
-        """
-        Executa uma consulta SQL no banco de dados Oracle.
-
-        Args:
-            query (str): Consulta SQL a ser executada.
-            params (str): Parâmetros para a consulta SQL.
-
-        Returns:
-            tuple: Uma tupla contendo:
-                - lista de registros retornados,
-                - metadados das colunas (descrição).
-
-        Raises:
-            oracledb.DatabaseError: Se ocorrer um erro na conexão ou execução da consulta.
-        """
+    async def select(self, query: str, params:str= None) -> list:
         try:
             # Estabelece conexão com o banco de dados Oracle
             with oracledb.connect(user=self.usr, password=self.pwd, dsn=self.dns) as connection:
@@ -62,12 +47,36 @@ class dbConfig(object):
             print("Erro ao executar a consulta:", e)
             raise  # Relança a exceção para que o chamador possa lidar com ela
 
-    def dml(self, query: str, params: str) -> tuple[bool,int]:
+    async def delete(self, query: str, params:str= None) -> list:
         try:
             # Estabelece conexão com o banco de dados Oracle
             with oracledb.connect(user=self.usr, password=self.pwd, dsn=self.dns) as connection:
                 with connection.cursor() as cursor:
-                    cursor.execute(query, params)
+                    if params:
+                        cursor.execute(query, params)
+                    else:
+                        cursor.execute(query)
+                    registros = cursor.rowcount
+                    if registros:
+                        connection.commit()
+                        return True, registros
+                    else:
+                        connection.rollback()
+                        return False, None   
+        except oracledb.DatabaseError as e:
+            # Exibe erro detalhado caso ocorra uma exceção
+            print(f"Erro ao realizar exclusão: {e}")
+            return False, None
+
+    async def dml(self, query: str, params: str=None) -> tuple[bool,int]:
+        try:
+            # Estabelece conexão com o banco de dados Oracle
+            with oracledb.connect(user=self.usr, password=self.pwd, dsn=self.dns) as connection:
+                with connection.cursor() as cursor:
+                    if params:
+                        cursor.execute(query, params)
+                    else:
+                        cursor.execute(query)
                     registros = cursor.rowcount
                     if registros:
                         connection.commit()
@@ -79,7 +88,19 @@ class dbConfig(object):
             # Exibe erro detalhado caso ocorra uma exceção
             print("Erro ao executar script:", e)
             raise  # Relança a exceção para que o chamador possa lidar com ela
-    
+
+    async def truncate(self, table: str =None) -> tuple[bool,int]:
+        try:
+            # Estabelece conexão com o banco de dados Oracle
+            with oracledb.connect(user=self.usr, password=self.pwd, dsn=self.dns) as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(f'truncate table {table}')
+                    return True
+        except oracledb.DatabaseError as e:
+            # Exibe erro detalhado caso ocorra uma exceção
+            print(f"Erro ao truncar tabela {e}")
+            return False
+
     def format_dataframe(self, columns: list, rows: list) -> pd.DataFrame:
         """
         Formata os resultados de uma consulta SQL em um DataFrame do Pandas.
