@@ -5,3 +5,4 @@ notas.txt
 keys/*
 *tokens_history.json
 *.teste.*
+*.csv
