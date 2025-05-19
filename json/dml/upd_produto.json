@@ -10,7 +10,7 @@
     "GTIN"                     : null,
     "ORIGEM"                   : null,
     "CEST"                     : null,
-    "CATEGORIA_NOME"           : null,
+    "ID_CATEGORIA"             : null,
     "LARGURA"                  : null,
     "ALTURA"                   : null,
     "ESPESSURA"                : null,
