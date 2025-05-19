@@ -19,6 +19,5 @@
     "QUANTIDADE_VOLUMES"       : null,
     "ESTOQUE_MINIMO"           : null,
     "ESTOQUE_MAXIMO"           : null,
-    "FORNECEDOR_ID"            : null,
     "FORNECEDOR_CODIGO_PRODUTO": null
 }
