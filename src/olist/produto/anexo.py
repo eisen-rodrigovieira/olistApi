@@ -11,6 +11,15 @@ logging.basicConfig(filename=config.PATH_LOGS,
                     level=logging.INFO)
 
 class Anexo:
+    """
+    Classe que representa um anexo de produto, contendo a URL do recurso e a indicação
+    se ele é externo.
+
+    Atributos:
+        url (str): Endereço do recurso anexo.
+        externo (bool): Indica se o anexo está hospedado externamente.
+    """
+
     def __init__(self
                 ,url:str=None
                 ,externo:bool=None
@@ -19,6 +28,15 @@ class Anexo:
         self.externo = externo
 
     def decodificar(self,payload:dict=None):
+        """
+        Preenche os atributos do anexo a partir de um dicionário de dados (payload).
+
+        Args:
+            payload (dict): Dicionário contendo os dados do anexo.
+
+        Returns:
+            bool: True se os dados foram extraídos com sucesso, False em caso de erro.
+        """        
         if payload:
             try:
                 self.url     = payload["url"]
@@ -31,6 +49,12 @@ class Anexo:
             return False
 
     def encodificar(self) -> dict:
+        """
+        Constrói e retorna um dicionário com os dados do anexo, baseado em um template JSON.
+
+        Returns:
+            dict: Dicionário com os dados do anexo formatado ou {"erro": True} em caso de falha.
+        """        
         data = {}
         try:
             if not os.path.exists(configOlist.PATH_OBJECT_PRODUTO_ANEXO):
