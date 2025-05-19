@@ -1,7 +1,7 @@
 SELECT --*
     DECODE(PRO.AD_MKPINTEGRADO,'S',1,0) AS INTEGRAR_MKP,
-    PRO.AD_MKPID        AS ID,
-    PRO.CODPROD          AS SKU,
+    PRO.AD_MKPID                        AS ID,
+    PRO.CODPROD                         AS SKU,
     INITCAP(TRIM(
         CASE
             WHEN PRO.MARCA = 'Q BELA MAN' THEN REPLACE(PRO.DESCRPROD,'Q BELA MANUELA','')
@@ -11,60 +11,60 @@ SELECT --*
             WHEN PRO.MARCA = 'GP REMOVE'  THEN REPLACE(PRO.DESCRPROD,'CARMESIM','')
             ELSE REPLACE(PRO.DESCRPROD,PRO.MARCA,'')
         END
-    ))                   AS DESCRICAO_FORMATADA,
-    AD_MKPNOME          AS DESCRICAO,
-    AD_MKPDESCRICAO     AS DESCRICAO_COMPLEMENTAR,
-    'S'                  AS TIPO,
-    'A'                  AS SITUACAO,
-    AD_MKPPROD_PAI      AS PRODUTO_PAI,
-    PRO.CODVOL           AS UNIDADE,
-    1                    AS UNIDADE_POR_CAIXA,
-    PRO.NCM              AS NCM,
-    PRO.REFERENCIA       AS GTIN,
-    PRO.ORIGPROD         AS ORIGEM,
-    PRO.CODESPECST       AS CEST,
-    NULL                 AS GARANTIA,
-    NULL                 AS OBSERVACOES,
-    AD_MKPCATEGORIA      AS CATEGORIA_NOME,
+    ))                                  AS DESCRICAO_FORMATADA,
+    AD_MKPNOME                          AS DESCRICAO,
+    AD_MKPDESCRICAO                     AS DESCRICAO_COMPLEMENTAR,
+    'S'                                 AS TIPO,
+    'A'                                 AS SITUACAO,
+    AD_MKPPROD_PAI                      AS PRODUTO_PAI,
+    PRO.CODVOL                          AS UNIDADE,
+    1                                   AS UNIDADE_POR_CAIXA,
+    PRO.NCM                             AS NCM,
+    PRO.REFERENCIA                      AS GTIN,
+    PRO.ORIGPROD                        AS ORIGEM,
+    PRO.CODESPECST                      AS CEST,
+    NULL                                AS GARANTIA,
+    NULL                                AS OBSERVACOES,
+    AD_MKPCATEGORIA                     AS CATEGORIA_NOME,
     DECODE( PRO.MARCA,
         'Q BELA MAN','Q BELA MANUELA',
         'PHA BEAUTY','PHALLE BEAUTY',
         'AIR PURE','AIRPURE',
         'A HICKMAN','ANA HICKMANN',
         'GP REMOVE','CARMESIM',
-        PRO.MARCA )      AS MARCA_NOME,
-    2                    AS EMBALAGEM_TIPO,
-    LARGURA              AS LARGURA,
-    ALTURA               AS ALTURA,
-    ESPESSURA            AS COMPRIMENTO,
-    NULL                 AS DIAMETRO,
-    PESOLIQ              AS PESO_LIQUIDO,
-    PESOBRUTO            AS PESO_BRUTO,    
-    QTDEMB               AS QUANTIDADE_VOLUMES,
-    (   -- PREÇO MAIS RECENTE DO PRODUTO NA TABELA OUTBEAUTY
-        SELECT DISTINCT
-            FIRST_VALUE(EXC.VLRVENDA) OVER (ORDER BY TAB.DTVIGOR DESC) 
-        FROM TGFTAB TAB INNER JOIN TGFEXC EXC ON TAB.NUTAB = EXC.NUTAB
-        WHERE TAB.CODTAB = 21 AND EXC.CODPROD = PRO.CODPROD
-    )                    AS PRECO,
+        PRO.MARCA )                     AS MARCA_NOME,
+    2                                   AS EMBALAGEM_TIPO,
+    LARGURA                             AS LARGURA,
+    ALTURA                              AS ALTURA,
+    ESPESSURA                           AS COMPRIMENTO,
+    NULL                                AS DIAMETRO,
+    PESOLIQ                             AS PESO_LIQUIDO,
+    PESOBRUTO                           AS PESO_BRUTO,    
+    QTDEMB                              AS QUANTIDADE_VOLUMES,
+    -- (   -- PREÇO MAIS RECENTE DO PRODUTO NA TABELA OUTBEAUTY
+    --     SELECT DISTINCT
+    --         FIRST_VALUE(EXC.VLRVENDA) OVER (ORDER BY TAB.DTVIGOR DESC) 
+    --     FROM TGFTAB TAB INNER JOIN TGFEXC EXC ON TAB.NUTAB = EXC.NUTAB
+    --     WHERE TAB.CODTAB = 21 AND EXC.CODPROD = PRO.CODPROD
+    -- )                                   AS PRECO,
+    0 AS PRECO,
     (   -- PREÇO DE CUSTO MAIS RECENTE DO PRODUTO
         SELECT DISTINCT 
             FIRST_VALUE(CUS.CUSMED) OVER (ORDER BY CUS.DTATUAL DESC)
         FROM TGFCUS CUS
         WHERE CUS.CODEMP IN (1,31) AND CUS.CODPROD = PRO.CODPROD
-    )                    AS PRECO_CUSTO,
-    --PRO.AD_CUSTOFORNEC  AS PRECO_CUSTO_CI,
-    'True'               AS ESTOQUE_CONTROLAR,
-    'False'              AS ESTOQUE_SOB_ENCOMENDA,
-    0                    AS ESTOQUE_DIAS_PREPARACAO,
-    NULL                 AS ESTOQUE_LOCALIZACAO,
-    PRO.ESTMIN           AS ESTOQUE_MINIMO,
-    PRO.ESTMAX           AS ESTOQUE_MAXIMO,
-    NULL                 AS ESTOQUE_QUANTIDADE,
-    NULL                 AS ESTOQUE_INICIAL,
-    PRO.CODPARCFORN      AS FORNECEDOR_ID,
-    PRO.REFFORN          AS FORNECEDOR_CODIGO_PRODUTO,
-    PRO.REFERENCIA       AS GTIN_EMBALAGEM   
+    )                                   AS PRECO_CUSTO,
+    'True'                              AS ESTOQUE_CONTROLAR,
+    'False'                             AS ESTOQUE_SOB_ENCOMENDA,
+    0                                   AS ESTOQUE_DIAS_PREPARACAO,
+    NULL                                AS ESTOQUE_LOCALIZACAO,
+    PRO.ESTMIN                          AS ESTOQUE_MINIMO,
+    PRO.ESTMAX                          AS ESTOQUE_MAXIMO,
+    NULL                                AS ESTOQUE_QUANTIDADE,
+    NULL                                AS ESTOQUE_INICIAL,
+    753053887                           AS FORNECEDOR_ID,
+    PRO.REFFORN                         AS FORNECEDOR_CODIGO_PRODUTO,
+    PRO.REFERENCIA                      AS GTIN_EMBALAGEM   
 FROM TGFPRO PRO   
 WHERE 1=1
-    AND (PRO.CODPROD = :COD OR PRO.AD_MKPID = :ID)--IN 14073908--(64410012,44180089,53270061,44120016,52870009) --({bind_names})
+    AND (PRO.CODPROD = :COD OR PRO.AD_MKPID = :ID)
