@@ -90,7 +90,7 @@ class App:
                             new_garantia                    = olProd.garantia                    if snkProd.garantia                              != olProd.garantia                              else None
                             new_observacoes                 = olProd.observacoes                 if snkProd.observacoes                           != olProd.observacoes                           else None
                             new_categoria_id                = olProd.categoria_id                if int(snkProd.categoria_id or 0)                != int(olProd.categoria_id or 0)                else None
-                            new_categoria_nome              = olProd.categoria_caminhoCompleto   if snkProd.categoria_nome                        != olProd.categoria_nome                        else None
+                            #new_categoria_nome              = olProd.categoria_caminhoCompleto   if snkProd.categoria_nome                        != olProd.categoria_nome                        else None
                             new_marca_id                    = olProd.marca_id                    if int(snkProd.marca_id or 0)                    != int(olProd.marca_id or 0)                    else None
                             new_marca_nome                  = olProd.marca_nome                  if snkProd.marca_nome                            != olProd.marca_nome                            else None
                             new_dimensoes_embalagem_tipo    = olProd.dimensoes_embalagem_tipo    if snkProd.dimensoes_embalagem_tipo              != olProd.dimensoes_embalagem_tipo              else None
@@ -131,7 +131,7 @@ class App:
                                 params['GTIN']                      = new_gtin
                                 params['ORIGEM']                    = new_origem
                                 params['CEST']                      = snkProd.cest
-                                params['CATEGORIA_NOME']            = new_categoria_nome
+                                params['ID_CATEGORIA']              = new_categoria_id
                                 params['LARGURA']                   = new_dimensoes_largura
                                 params['ALTURA']                    = new_dimensoes_altura
                                 params['ESPESSURA']                 = new_dimensoes_comprimento
@@ -182,15 +182,17 @@ class App:
             print(f"{len(fetch)} produtos com alteração encontrados.")
             print("Iniciando sincronização")                        
             for f in fetch:
+                print("")
+                time.sleep(4)
                 if f["evento"] == 'A':
                     olProd  = olProduto()
                     snkProd = snkProduto()
 
-                    olProd.id = f["idolist"]
+                    olProd.id = f["idprod"]
                     if await olProd.buscar():
                         print("Consulta bem sucedida")
                     else:
-                        raise Exception(f"Falha ao buscar os dados do produto {f["idolist"]} na base Olist. Verifique os logs.")
+                        raise Exception(f"Falha ao buscar os dados do produto {f["idprod"]} na base Olist. Verifique os logs.")
 
                     snkProd.sku = f["codprod"]
                     if await snkProd.buscar():
@@ -198,7 +200,6 @@ class App:
                     else: 
                         raise Exception(f"Falha ao buscar os dados do produto {f["codprod"]} na base Sankhya. Verifique os logs.")
 
-                    print("")                    
                     print(f"Comparando dados do produto {olProd.id}")  
 
                     olProd.ncm = re.sub(regex_cest_ncm, '', olProd.ncm)
@@ -215,7 +216,7 @@ class App:
                     olProd.cest                        = str(snkProd.cest)
                     olProd.garantia                    = snkProd.garantia                    if snkProd.garantia                              != olProd.garantia                              else olProd.garantia
                     olProd.observacoes                 = snkProd.observacoes                 if snkProd.observacoes                           != olProd.observacoes                           else olProd.observacoes
-                    olProd.categoria_id                = olProd.categoria_id
+                    olProd.categoria_id                = snkProd.categoria_id                if snkProd.categoria_id                          != olProd.categoria_id                          else olProd.categoria_id
                     #olProd.marca_id                    = 18671                
                     olProd.dimensoes_embalagem_tipo    = snkProd.dimensoes_embalagem_tipo    if snkProd.dimensoes_embalagem_tipo              != olProd.dimensoes_embalagem_tipo              else olProd.dimensoes_embalagem_tipo
                     olProd.dimensoes_largura           = snkProd.dimensoes_largura           if float(snkProd.dimensoes_largura or 0)         != float(olProd.dimensoes_largura or 0)         else olProd.dimensoes_largura
@@ -237,35 +238,36 @@ class App:
                     olProd.tributacao_gtinEmbalagem    = snkProd.tributacao_gtinEmbalagem    if snkProd.tributacao_gtinEmbalagem              != olProd.tributacao_gtinEmbalagem              else olProd.tributacao_gtinEmbalagem
                     olProd.seo_keywords = ["produto"]
 
-                    olProd.acao = 'put'
-
-                    
+                    olProd.acao = 'put'                    
 
                     print(f"Atualizando produto {olProd.id}")
-                    if await olProd.receber_alteracoes():
+                    res, val = await olProd.receber_alteracoes()
+                    if res and val == 1:
                         query = 'delete from MKP_SYNCPRODUTO where codprod = :codprod and dhevento = :dhevento'
                         params = {
                             "codprod" : f["codprod"],
                             "dhevento" : f["dhevento"]
                         }
-                        ack, rows = await db.delete(query=query,params=params)
+                        ack, rows = await db.dml(query=query,params=params)
 
                         if ack:
                             print(f"Produto {olProd.id} atualizado com sucesso.")
-                            self.atualiza_historico(produto_alterado=f["idolist"],sentido=0)
+                            self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)
                         else:
                             raise Exception(f"Erro: Produto {olProd.id} atualizado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
+                    elif res and val == 0:
+                        print(f"Produto {olProd.id} não encontrado")                        
                     else:
                         raise Exception(f"Falha ao atualizar os dados do produto {olProd.id} na base Olist. Verifique os logs.")                                        
                 elif f["evento"] == 'E':
                     olProd  = olProduto()
                     snkProd = snkProduto()
 
-                    olProd.id = f["idolist"]
+                    olProd.id = f["idprod"]
                     if await olProd.buscar():
                         print("Consulta bem sucedida")
                     else:
-                        raise Exception(f"Falha ao buscar os dados do produto {f["idolist"]} na base Olist. Verifique os logs.")
+                        raise Exception(f"Falha ao buscar os dados do produto {f["idprod"]} na base Olist. Verifique os logs.")
 
                     olProd.situacao = 'I'
                     olProd.acao = 'del'
@@ -281,7 +283,7 @@ class App:
 
                         if ack:
                             print(f"Produto {olProd.id} inativado com sucesso.")
-                            self.atualiza_historico(produto_alterado=f["idolist"],sentido=0)
+                            self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)
                         else:
                             raise Exception(f"Erro: Produto {olProd.id} inativado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
                     else:
