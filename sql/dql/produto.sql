@@ -1,7 +1,7 @@
 SELECT --*
-    DECODE(PRO.AD_MKPINTEGRADO,'S',1,0) AS INTEGRAR_MKP,
-    PRO.AD_MKPID                        AS ID,
-    PRO.CODPROD                         AS SKU,
+    DECODE(PRO.AD_MKP_INTEGRADO,'S',1,0) AS INTEGRAR_MKP,
+    PRO.AD_MKP_IDPROD                    AS ID,
+    PRO.CODPROD                          AS SKU,
     INITCAP(TRIM(
         CASE
             WHEN PRO.MARCA = 'Q BELA MAN' THEN REPLACE(PRO.DESCRPROD,'Q BELA MANUELA','')
@@ -12,11 +12,11 @@ SELECT --*
             ELSE REPLACE(PRO.DESCRPROD,PRO.MARCA,'')
         END
     ))                                  AS DESCRICAO_FORMATADA,
-    AD_MKPNOME                          AS DESCRICAO,
-    AD_MKPDESCRICAO                     AS DESCRICAO_COMPLEMENTAR,
+    AD_MKP_NOME                         AS DESCRICAO,
+    AD_MKP_DESCRICAO                    AS DESCRICAO_COMPLEMENTAR,
     'S'                                 AS TIPO,
     'A'                                 AS SITUACAO,
-    AD_MKPPROD_PAI                      AS PRODUTO_PAI,
+    AD_MKP_IDPRODPAI                    AS PRODUTO_PAI,
     PRO.CODVOL                          AS UNIDADE,
     1                                   AS UNIDADE_POR_CAIXA,
     PRO.NCM                             AS NCM,
@@ -25,7 +25,7 @@ SELECT --*
     PRO.CODESPECST                      AS CEST,
     NULL                                AS GARANTIA,
     NULL                                AS OBSERVACOES,
-    AD_MKPCATEGORIA                     AS CATEGORIA_NOME,
+    AD_MKP_CATEGORIA                    AS ID_CATEGORIA,
     DECODE( PRO.MARCA,
         'Q BELA MAN','Q BELA MANUELA',
         'PHA BEAUTY','PHALLE BEAUTY',
@@ -67,4 +67,4 @@ SELECT --*
     PRO.REFERENCIA                      AS GTIN_EMBALAGEM   
 FROM TGFPRO PRO   
 WHERE 1=1
-    AND (PRO.CODPROD = :COD OR PRO.AD_MKPID = :ID)
+    AND (PRO.CODPROD = :COD OR PRO.AD_MKP_IDPROD = :ID)

@@ -218,7 +218,7 @@
       "descricao": null,
       "estoque": {
         "controlar": true,
-        "sobEncomenda": true,
+        "sobEncomenda": false,
         "minimo": null,
         "maximo": null,
         "diasPreparacao": null,
