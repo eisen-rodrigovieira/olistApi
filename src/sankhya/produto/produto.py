@@ -162,16 +162,21 @@ class Produto:
             db = dbConfig()
             with open(configSankhya.PATH_SCRIPT_PRODUTO, "r", encoding="utf-8") as f:
                 query = f.read()
-                params = {
-                    "COD": self.sku,
-                    "ID": self.id
-                }
-                rows = await db.select(query=query,params=params)
-                #data_prod  = self.db.format_dataframe(columns=cols,rows=rows)
                 
-                if rows:
-                    return self.decodificar(rows[0])
-                else:
+                try:
+                    params = {
+                        "COD": int(self.sku),
+                        "ID": self.id
+                    }
+                    rows = await db.select(query=query,params=params)
+                    #data_prod  = self.db.format_dataframe(columns=cols,rows=rows)
+                    
+                    if rows:
+                        return self.decodificar(rows[0])
+                    else:
+                        return False
+                except:
+                    logger.error("Código do produto inválido %s",self.sku)
                     return False
 
     async def atualizar(self, params: dict=None) -> tuple[bool,int]:
