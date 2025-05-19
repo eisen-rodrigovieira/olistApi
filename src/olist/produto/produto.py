@@ -379,19 +379,20 @@ class Produto:
                 return data               
             except Exception as e:
                 logger.error("Erro ao formatar dict produto: %s",e)
-                return {"status":"Erro"}
-        
-        if self.acao == 'put':
+                return {"status":"Erro"} 
+                   
+        elif self.acao in ['put','del']:
             try:
-                data = obj[self.acao]
+                data = obj['put']
                 data["sku"]                                       = self.sku                       
                 data["descricao"]                                 = self.descricao                 
                 data["descricaoComplementar"]                     = self.descricaoComplementar     
+                data["situacao"]                                  = self.situacao
                 data["unidade"]                                   = self.unidade                   
                 data["unidadePorCaixa"]                           = self.unidadePorCaixa           
                 data["ncm"]                                       = self.ncm                       
                 data["gtin"]                                      = self.gtin                      
-                data["origem"]                                    = self.origem                    
+                data["origem"]                                    = int(self.origem)
                 data["codigoEspecificadorSubstituicaoTributaria"] = self.cest                      
                 data["garantia"]                                  = self.garantia                  
                 data["observacoes"]                               = self.observacoes               
@@ -432,13 +433,15 @@ class Produto:
                 return data               
             except Exception as e:
                 logger.error("Erro ao formatar dict produto: %s",e)
-                return {"status":"Erro"}            
+                return {"status":"Erro"} 
+        else:
+            return {"status":"Ação não configurada"} 
 
     async def buscar(self) -> bool:
         #logger.debug("start buscar")
 
         url = self.endpoint+f"/{self.id}"
-        #logger.debug("url ok %s",url)
+        print(url)
         try:
             token = self.con.get_latest_valid_token_or_refresh()
             #logger.debug("token ok %s",token)
@@ -453,16 +456,17 @@ class Produto:
                 )
                 if get_produto.status_code == 200:
                     #logger.debug("get ok")
-                    if get_produto.json()["tipo"] == 'S':
+                    #if get_produto.json()["tipo"] == 'S':
                         if self.decodificar(get_produto.json()):
                             self.acao = 'get'
                             #logger.debug("decode ok")
                             return True
                         else:
-                            #logger.debug("decode fail")
+                            logger.error("Erro ao decodificar produto %s", self.id)
                             return False
-                    else:
-                        return False
+                    #else:
+                    #    logger.warning("Produto do tipo variação %s", self.id)
+                    #    return True
                 else:                      
                     logger.error("Erro %s: %s", get_produto.status_code, get_produto.json().get("mensagem","Erro desconhecido"))
                     return False                    
@@ -529,6 +533,8 @@ class Produto:
             token = self.con.get_latest_valid_token_or_refresh()
             payload = self.encodificar()
 
+            print(payload)
+
             if self.acao == 'put':
                 url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.id}"
                 if url:
@@ -545,8 +551,7 @@ class Produto:
                         historico["ultima_atualizacao_sankhya_olist"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         historico["ultima_atualizacao_sankhya_olist"]["id"] = self.id
                         with open(configOlist.PATH_HISTORICO_PRODUTO, "w", encoding="utf-8") as f:
-                            json.dump(historico, f, indent=4, ensure_ascii=False)                    
-                        print(f"Produto {self.id} atualizado com sucesso")
+                            json.dump(historico, f, indent=4, ensure_ascii=False)                                            
                         return True
                     else:
                         print(f"Falha ao atualizar produto {self.id}")
@@ -556,50 +561,37 @@ class Produto:
                     print("Falha ao montar URL")
                     logger.error("Erro: Falha ao montar URL")
                     return False
-            else:
-                print("Evento não configurado")
-                logger.error("Erro: Evento de atualização não configurado")
-                return False
-
-
-
-
-
-
-
-
-            status = 200
-            paginacao = {}
-            itens = []
-
-            while status == 200:
-                if paginacao:        
-                    if paginacao["limit"] + paginacao["offset"] < paginacao ["total"]:
-                        offset = paginacao["limit"] + paginacao["offset"]
-                        url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?situacao=A&dataAlteracao={historico["ultima_atualizacao_olist_sankhya"]["data"]}&offset={offset}"
-                    else:
-                        url = None
-                else:
-                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?situacao=A&dataAlteracao={historico["ultima_atualizacao_olist_sankhya"]["data"]}"
-                # print(url)
+            elif self.acao == 'del':
+                print(payload)
+                url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.id}"
                 if url:
-                    get_alteracoes = requests.get(url=url,
+                    put_alteracoes = requests.put(url=url,
                                                   headers={
                                                       "Authorization":f"Bearer {token}",
                                                       "Content-Type":"application/json",
                                                       "Accept":"application/json"
-                                                  })
-                    status=get_alteracoes.status_code
-                    itens += get_alteracoes.json()["itens"]
-                    paginacao = get_alteracoes.json()["paginacao"]
-                    time.sleep(3)
+                                                  },
+                                                  data=json.dumps(payload))
+                    if put_alteracoes.status_code == 204:
+                        with open(configOlist.PATH_HISTORICO_PRODUTO, "r", encoding="utf-8") as f:
+                            historico = json.load(f)  
+                        historico["ultima_inativacao"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        historico["ultima_inativacao"]["id"] = self.id
+                        with open(configOlist.PATH_HISTORICO_PRODUTO, "w", encoding="utf-8") as f:
+                            json.dump(historico, f, indent=4, ensure_ascii=False)                                            
+                        return True
+                    else:
+                        print(f"Falha ao inativar produto {self.id}")
+                        logger.error("Erro %s: %s", put_alteracoes.status_code, put_alteracoes.json())
+                        return False
                 else:
-                    status = 0
-                    #print(f"Fim. {len(itens)} produtos encontratos")
-            
-            itens.sort(key=lambda i: i['dataAlteracao'],reverse=True)
-            
-            return [{"id":i["id"],"sku":i["sku"]} for i in itens] 
+                    print("Falha ao montar URL")
+                    logger.error("Erro: Falha ao montar URL")
+                    return False             
+            else:
+                print("Evento não configurado")
+                logger.error("Erro: Evento de atualização não configurado")
+                return False        
 
     async def buscar_todos(self) -> list:
                 
