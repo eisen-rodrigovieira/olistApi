@@ -389,7 +389,7 @@ class Produto:
                 data["descricaoComplementar"]                     = self.descricaoComplementar     
                 data["situacao"]                                  = self.situacao
                 data["unidade"]                                   = self.unidade                   
-                data["unidadePorCaixa"]                           = self.unidadePorCaixa           
+                data["unidadePorCaixa"]                           = str(self.unidadePorCaixa)
                 data["ncm"]                                       = self.ncm                       
                 data["gtin"]                                      = self.gtin                      
                 data["origem"]                                    = int(self.origem)
@@ -397,7 +397,7 @@ class Produto:
                 data["garantia"]                                  = self.garantia                  
                 data["observacoes"]                               = self.observacoes               
                 data["marca"]["id"]                               = self.marca_id                  
-                data["categoria"]["id"]                           = self.categoria_id              
+                data["categoria"]["id"]                           = int(self.categoria_id)
                 data["precos"]["preco"]                           = self.preco                     
                 data["precos"]["precoPromocional"]                = self.precoPromocional          
                 data["precos"]["precoCusto"]                      = self.precoCusto                
@@ -425,7 +425,7 @@ class Produto:
                 data["estoque"]["maximo"]                         = self.estoque_maximo            
 
                 data["fornecedores"] = [{
-                    "id" : 753240684,
+                    "id" : 753053887,
                     "codigoProdutoNoFornecedor" : self.fornecedores[0].codigoProdutoNoFornecedor,
                     "padrao" : True
                 }]
@@ -521,7 +521,7 @@ class Produto:
             
             return [{"id":i["id"],"sku":i["sku"]} for i in itens]
 
-    async def receber_alteracoes(self) -> bool:
+    async def receber_alteracoes(self) -> tuple[bool,int]:
 
         if not os.path.exists(configOlist.PATH_HISTORICO_PRODUTO):
             logger.error("Histórico de produtos não encontrado em %s",configOlist.PATH_HISTORICO_PRODUTO)
@@ -533,10 +533,11 @@ class Produto:
             token = self.con.get_latest_valid_token_or_refresh()
             payload = self.encodificar()
 
-            print(payload)
-
             if self.acao == 'put':
-                url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.id}"
+                if self.produtoPai_id: # se for variacao
+                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.produtoPai_id}/variacoes/{self.id}"
+                else:
+                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.id}"                
                 if url:
                     put_alteracoes = requests.put(url=url,
                                                   headers={
@@ -552,15 +553,20 @@ class Produto:
                         historico["ultima_atualizacao_sankhya_olist"]["id"] = self.id
                         with open(configOlist.PATH_HISTORICO_PRODUTO, "w", encoding="utf-8") as f:
                             json.dump(historico, f, indent=4, ensure_ascii=False)                                            
-                        return True
+                        return True, 1
+                    elif put_alteracoes.status_code in [404,409]:
+                        logger.warning("Erro %s: %s ID %s", put_alteracoes.status_code, put_alteracoes.json(), self.id)
+                        logger.info(json.dumps(payload))
+                        return True, 0
                     else:
                         print(f"Falha ao atualizar produto {self.id}")
-                        logger.error("Erro %s: %s", put_alteracoes.status_code, put_alteracoes.json())
-                        return False
+                        logger.error("Erro %s: %s ID %s", put_alteracoes.status_code, put_alteracoes.json(), self.id)
+                        logger.info(json.dumps(payload))
+                        return False, 0
                 else:
                     print("Falha ao montar URL")
                     logger.error("Erro: Falha ao montar URL")
-                    return False
+                    return False, 0
             elif self.acao == 'del':
                 print(payload)
                 url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.id}"
