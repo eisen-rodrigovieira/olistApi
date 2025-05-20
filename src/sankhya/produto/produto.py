@@ -18,47 +18,47 @@ class Produto:
     controle de estoque, tributação e dimensões físicas.
 
     Atributos:
-        integrar_mkp (bool): Indica se o produto deve ser integrado ao marketplace.
-        id (str): Identificador único do produto.
-        sku (str): Código SKU do produto.
-        descricao (str): Descrição do produto.
-        descricao_formatada (str): Descrição formatada do produto.
-        descricaoComplementar (str): Descrição complementar.
-        tipo (str): Tipo de produto.
-        situacao (str): Situação atual do produto (ativo, inativo etc.).
-        produtoPai_id (int): ID do produto pai, se for uma variação.
-        unidade (str): Unidade de medida.
-        unidadePorCaixa (int): Quantidade por caixa.
-        ncm (str): Código NCM.
-        gtin (str): Código GTIN (EAN).
-        origem (int): Código de origem do produto.
-        cest (str): Código CEST.
-        garantia (str): Informações sobre garantia.
-        observacoes (str): Observações adicionais.
-        categoria_id (int): ID da categoria.
-        categoria_nome (str): Nome da categoria.
-        marca_id (int): ID da marca.
-        marca_nome (str): Nome da marca.
-        dimensoes_embalagem_tipo (int): Tipo da embalagem.
-        dimensoes_largura (float): Largura do produto.
-        dimensoes_altura (float): Altura do produto.
-        dimensoes_comprimento (float): Comprimento do produto.
-        dimensoes_pesoLiquido (float): Peso líquido.
-        dimensoes_pesoBruto (float): Peso bruto.
+        integrar_mkp                (bool): Indica se o produto deve ser integrado ao marketplace.
+        id                          (str): Identificador único do produto.
+        sku                         (str): Código SKU do produto.
+        descricao                   (str): Descrição do produto.
+        descricao_formatada         (str): Descrição formatada do produto.
+        descricaoComplementar       (str): Descrição complementar.
+        tipo                        (str): Tipo de produto.
+        situacao                    (str): Situação atual do produto (ativo, inativo etc.).
+        produtoPai_id               (int): ID do produto pai, se for uma variação.
+        unidade                     (str): Unidade de medida.
+        unidadePorCaixa             (int): Quantidade por caixa.
+        ncm                         (str): Código NCM.
+        gtin                        (str): Código GTIN (EAN).
+        origem                      (int): Código de origem do produto.
+        cest                        (str): Código CEST.
+        garantia                    (str): Informações sobre garantia.
+        observacoes                 (str): Observações adicionais.
+        categoria_id                (int): ID da categoria.
+        categoria_nome              (str): Nome da categoria.
+        marca_id                    (int): ID da marca.
+        marca_nome                  (str): Nome da marca.
+        dimensoes_embalagem_tipo    (int): Tipo da embalagem.
+        dimensoes_largura           (float): Largura do produto.
+        dimensoes_altura            (float): Altura do produto.
+        dimensoes_comprimento       (float): Comprimento do produto.
+        dimensoes_pesoLiquido       (float): Peso líquido.
+        dimensoes_pesoBruto         (float): Peso bruto.
         dimensoes_quantidadeVolumes (int): Número de volumes.
-        preco (float): Preço de venda.
-        precoCusto (float): Preço de custo.
-        estoque_controlar (bool): Indica se deve haver controle de estoque.
-        estoque_sobEncomenda (bool): Produto sob encomenda.
-        estoque_diasPreparacao (int): Dias necessários para preparação.
-        estoque_localizacao (str): Localização física no estoque.
-        estoque_minimo (int): Estoque mínimo.
-        estoque_maximo (int): Estoque máximo.
-        estoque_quantidade (int): Quantidade atual em estoque.
-        estoque_inicial (int): Quantidade inicial.
-        fornecedor_id (int): ID do fornecedor.
-        fornecedor_codigo_produto (int): Código do produto no fornecedor.
-        tributacao_gtinEmbalagem (str): GTIN da embalagem para tributação.
+        preco                       (float): Preço de venda.
+        precoCusto                  (float): Preço de custo.
+        estoque_controlar           (bool): Indica se deve haver controle de estoque.
+        estoque_sobEncomenda        (bool): Produto sob encomenda.
+        estoque_diasPreparacao      (int): Dias necessários para preparação.
+        estoque_localizacao         (str): Localização física no estoque.
+        estoque_minimo              (int): Estoque mínimo.
+        estoque_maximo              (int): Estoque máximo.
+        estoque_quantidade          (int): Quantidade atual em estoque.
+        estoque_inicial             (int): Quantidade inicial.
+        fornecedor_id               (int): ID do fornecedor.
+        fornecedor_codigo_produto   (int): Código do produto no fornecedor.
+        tributacao_gtinEmbalagem    (str): GTIN da embalagem para tributação.
     """      
 
     def __init__(

@@ -11,18 +11,46 @@ logging.basicConfig(filename=config.PATH_LOGS,
                     level=logging.INFO)
 
 class Fornecedor:
+    """
+    Classe que representa um fornecedor de produto, contendo informações como nome, código do produto
+    no fornecedor e se é o fornecedor padrão.
+
+    Atributos:
+        id (int): Identificador único do fornecedor.
+        nome (str): Nome do fornecedor.
+        codigoProdutoNoFornecedor (str): Código do produto no sistema do fornecedor.
+        padrao (bool): Indica se é o fornecedor padrão.
+    """    
     def __init__(self
                 ,id:int=None
                 ,nome:str=None
                 ,codigoProdutoNoFornecedor:str=None
                 ,padrao:bool=None
                 ):
+        """
+        Inicializa um objeto Fornecedor com os dados fornecidos.
+
+        Args:
+            id (int): Identificador do fornecedor.
+            nome (str): Nome do fornecedor.
+            codigoProdutoNoFornecedor (str): Código do produto no fornecedor.
+            padrao (bool): Indica se é o fornecedor padrão.
+        """        
         self.id                        = id
         self.nome                      = nome
         self.codigoProdutoNoFornecedor = codigoProdutoNoFornecedor
         self.padrao                    = padrao
 
-    def decodificar(self,payload:dict=None):
+    def decodificar(self,payload:dict=None) -> bool:
+        """
+        Preenche os atributos do fornecedor a partir de um dicionário de dados (payload).
+
+        Args:
+            payload (dict): Dicionário com os dados do fornecedor.
+
+        Returns:
+            bool: True se os dados foram extraídos com sucesso, False em caso de erro.
+        """        
         if payload:
             try:
                 self.id                        = payload["id"]
@@ -37,6 +65,12 @@ class Fornecedor:
             return False
 
     def encodificar(self) -> dict:
+        """
+        Constrói e retorna um dicionário com os dados do fornecedor, baseado em um template JSON.
+
+        Returns:
+            dict: Dicionário com os dados do fornecedor ou {"erro": True} em caso de falha.
+        """        
         data = {}
         try:
             if not os.path.exists(configOlist.PATH_OBJECT_PRODUTO_FORNECEDOR):

@@ -11,6 +11,28 @@ logging.basicConfig(filename=config.PATH_LOGS,
                     level=logging.INFO)
 
 class Variacao:
+    """
+    Classe que representa uma variação de produto com preços, estoque e informações complementares.
+
+    Atributos:
+        id (int): ID da variação.
+        descricao (str): Descrição da variação.
+        sku (str): SKU da variação.
+        gtin (str): Código GTIN (EAN).
+        preco (float): Preço de venda.
+        precoPromocional (float): Preço promocional.
+        precoCusto (float): Preço de custo.
+        precoCustoMedio (float): Preço de custo médio.
+        estoque_controlar (bool): Controle de estoque habilitado.
+        estoque_sobEncomenda (bool): Produto sob encomenda.
+        estoque_diasPreparacao (int): Dias de preparação.
+        estoque_localizacao (str): Localização no estoque.
+        estoque_minimo (int): Estoque mínimo.
+        estoque_maximo (int): Estoque máximo.
+        estoque_quantidade (int): Quantidade disponível.
+        estoque_inicial (int): Quantidade inicial.
+        grade (list): Lista de variações por grade.
+    """    
     def __init__(self
                 ,id                     :int   = None
                 ,descricao              :str   = None
@@ -48,7 +70,13 @@ class Variacao:
         self.estoque_inicial        = estoque_inicial
         self.grade                  = grade
 
-    def decodificar(self,payload:dict=None):
+    def decodificar(self,payload:dict=None) -> bool:
+        """
+        Preenche os atributos da variação a partir de um dicionário de dados.
+
+        Returns:
+            bool: True se os dados foram extraídos com sucesso, False em caso de erro.
+        """        
         if payload:
             try:
                 self.id                     = payload["id"]
@@ -76,6 +104,12 @@ class Variacao:
             return False
 
     def encodificar(self) -> dict:
+        """
+        Constrói e retorna um dicionário com os dados da variação baseado em um template JSON.
+
+        Returns:
+            dict: Dados formatados ou {"erro": True} em caso de falha.
+        """        
         data = {}
         try:
             if not os.path.exists(configOlist.PATH_OBJECT_PRODUTO_VARIACAO):
