@@ -3,7 +3,6 @@ import time
 import json
 import logging
 import requests
-from datetime          import datetime
 from src.olist.connect import Connect
 from src.olist.produto import fornecedor, anexo, kit, variacao, producao
 from params            import config, configOlist
