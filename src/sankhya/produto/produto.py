@@ -1,5 +1,4 @@
 import os
-import json
 import logging
 import pandas as pd
 from params               import config, configSankhya
@@ -180,7 +179,7 @@ class Produto:
                 self.garantia                      = data["garantia"]
                 self.observacoes                   = data["observacoes"]
                 self.categoria_id                  = data["id_categoria"]
-                self.marca_nome                    = data["marca_nome"]
+                self.marca_id                      = data["marca_id"]
                 self.dimensoes_embalagem_tipo      = data["embalagem_tipo"]
                 self.dimensoes_largura             = data["largura"]
                 self.dimensoes_altura              = data["altura"]
