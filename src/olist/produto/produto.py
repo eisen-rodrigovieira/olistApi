@@ -73,7 +73,8 @@ class Produto:
             ,tributacao_classeIPI           :str   = None
         ):  
 
-        self.con                           = Connect()    
+        self.con                           = Connect()  
+        self.req_sleep                     = config.REQ_TIME_SLEEP  
         self.endpoint                      = config.API_URL+config.ENDPOINT_PRODUTOS
         self.id                            = id
         self.sku                           = sku
@@ -563,7 +564,7 @@ class Produto:
                     status=get_alteracoes.status_code
                     itens += get_alteracoes.json()["itens"]
                     paginacao = get_alteracoes.json()["paginacao"]
-                    time.sleep(3)
+                    time.sleep(self.req_sleep)
                 else:
                     status = 0
             
@@ -687,7 +688,7 @@ class Produto:
                 itens += get_alteracoes.json()["itens"]
                 paginacao = get_alteracoes.json()["paginacao"]
                 print(f"{len(itens)}/{paginacao["total"]}")
-                time.sleep(3)
+                time.sleep(self.req_sleep)
             else:
                 status=0
                 print(f"Fim. {len(itens)} produtos encontratos")            
