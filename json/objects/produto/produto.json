@@ -141,28 +141,13 @@
       "tipo": null,
       "estoque": {
         "controlar": true,
-        "sobEncomenda": true,
+        "sobEncomenda": false,
         "minimo": null,
         "maximo": null,
         "diasPreparacao": null,
         "localizacao": null,
         "inicial": null
-      },
-      "anexos": [
-
-      ],
-      "grade": [
-        null
-      ],
-      "producao": {
-
-      },
-      "kit": [
-
-      ],
-      "variacoes": [
-
-      ]
+      }
   },
   "put" : {
       "sku": null,

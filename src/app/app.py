@@ -22,17 +22,16 @@ class App:
 
         pass
 
-    def atualiza_historico(self, produto_alterado:int=None, sentido:int=None):
+    def atualiza_historico(self, produto_alterado:int=None, produto_incluido:int=None, sentido:int=None):
 
         if not os.path.exists(configOlist.PATH_HISTORICO_PRODUTO):
             logger.error("Histórico de produtos não encontrado em %s",configOlist.PATH_HISTORICO_PRODUTO)
             return {"status":"Erro"}
         else:    
             with open(configOlist.PATH_HISTORICO_PRODUTO, "r", encoding="utf-8") as f:
-                historico = json.load(f)        
+                historico = json.load(f)
 
-
-        if produto_alterado:
+        if produto_alterado and not produto_incluido:
             if sentido == 0: # SANKHYA > OLIST
                 historico["ultima_atualizacao_sankhya_olist"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 historico["ultima_atualizacao_sankhya_olist"]["id"] = produto_alterado
@@ -41,11 +40,12 @@ class App:
                 historico["ultima_atualizacao_olist_sankhya"]["id"] = produto_alterado
             else:
                 pass
+        elif produto_incluido and not produto_alterado:
+            historico["ultima_inclusao_olist"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            historico["ultima_inclusao_olist"]["id"] = produto_incluido
 
-            with open(configOlist.PATH_HISTORICO_PRODUTO, "w", encoding="utf-8") as f:
-                json.dump(historico, f, indent=4, ensure_ascii=False)
-        else:
-            pass         
+        with open(configOlist.PATH_HISTORICO_PRODUTO, "w", encoding="utf-8") as f:
+            json.dump(historico, f, indent=4, ensure_ascii=False)
 
     async def snk_atualizar_produtos(self) -> bool:
 
@@ -72,7 +72,6 @@ class App:
                                                
                             print(f"Comparando dados do produto {snkProd.sku}")     
                             olProd.ncm = re.sub(regex_cest_ncm, '', olProd.ncm)
-                            # olProd.cest = re.sub(regex_cest_ncm, '', olProd.cest)
 
                             new_id                          = olProd.id                          if int(snkProd.id or 0)                          != int(olProd.id or 0)                          else None
                             #new_sku                         = olProd.sku                         if int(snkProd.sku or 0)                         != int(olProd.sku or 0)                         else None
@@ -174,12 +173,12 @@ class App:
         
         regex_cest_ncm = r"[.]"
             
-        print("Iniciando busca dos produtos com alteração no Sankhya.")
+        print("Iniciando busca das alterações no Sankhya.")
         db = dbConfig()
         fetch = await db.select(query='select * from MKP_SYNCPRODUTO')
         
         if fetch:            
-            print(f"{len(fetch)} produtos com alteração encontrados.")
+            print(f"{len(fetch)} alterações encontradas.")
             print("Iniciando sincronização")                        
             for f in fetch:
                 print("")
@@ -258,7 +257,8 @@ class App:
                     elif res and val == 0:
                         print(f"Produto {olProd.id} não encontrado")                        
                     else:
-                        raise Exception(f"Falha ao atualizar os dados do produto {olProd.id} na base Olist. Verifique os logs.")                                        
+                        raise Exception(f"Falha ao atualizar os dados do produto {olProd.id} na base Olist. Verifique os logs.")         
+                                                   
                 elif f["evento"] == 'E':
                     olProd  = olProduto()
                     snkProd = snkProduto()
@@ -279,7 +279,7 @@ class App:
                             "codprod" : f["codprod"],
                             "dhevento" : f["dhevento"]
                         }
-                        ack, rows = await db.delete(query=query,params=params)
+                        ack, rows = await db.dml(query=query,params=params)
 
                         if ack:
                             print(f"Produto {olProd.id} inativado com sucesso.")
@@ -287,7 +287,103 @@ class App:
                         else:
                             raise Exception(f"Erro: Produto {olProd.id} inativado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
                     else:
-                        raise Exception(f"Falha ao intivar os dados do produto {olProd.id} na base Olist. Verifique os logs.")       
+                        raise Exception(f"Falha ao intivar os dados do produto {olProd.id} na base Olist. Verifique os logs.")     
+                      
+                elif f["evento"] == 'I':
+                    olP  = olProduto()
+                    snkProd = snkProduto()
+
+                    olP.sku = f["codprod"]
+                    if not await olP.buscar():
+                        print("Produto não está cadastrado na base Olist.")
+                    else:
+                        raise Exception(f"Produto {olProd.id} já cadastrado na base Olist com o mesmo sku {olProd.sku}.")
+
+                    snkProd.sku = f["codprod"]
+                    if await snkProd.buscar():
+                        print("Busca bem sucedida")
+                    else: 
+                        raise Exception(f"Falha ao buscar os dados do produto {f["codprod"]} na base Sankhya. Verifique os logs.")
+                    olProd = olProduto()
+                    olProd.sku                         = snkProd.sku
+                    olProd.descricaoComplementar       = snkProd.descricaoComplementar
+                    olProd.unidade                     = snkProd.unidade
+                    olProd.unidadePorCaixa             = snkProd.unidadePorCaixa
+                    olProd.ncm                         = re.sub(regex_cest_ncm, '', snkProd.ncm)
+                    olProd.gtin                        = snkProd.gtin
+                    olProd.origem                      = snkProd.origem
+                    olProd.cest                        = str(snkProd.cest)
+                    olProd.garantia                    = snkProd.garantia
+                    olProd.observacoes                 = snkProd.observacoes
+                    olProd.marca_id                    = 18671 ##               
+                    olProd.categoria_id                = snkProd.categoria_id
+                    olProd.preco                       = snkProd.preco
+                    # olProd.precoPromocional            = None
+                    olProd.precoCusto                  = snkProd.precoCusto
+                    # olProd.dimensoes_embalagem_id      = None
+                    olProd.dimensoes_embalagem_tipo    = snkProd.dimensoes_embalagem_tipo
+                    olProd.dimensoes_largura           = snkProd.dimensoes_largura
+                    olProd.dimensoes_altura            = snkProd.dimensoes_altura
+                    olProd.dimensoes_comprimento       = snkProd.dimensoes_comprimento
+                    olProd.dimensoes_pesoLiquido       = snkProd.dimensoes_pesoLiquido
+                    olProd.dimensoes_pesoBruto         = snkProd.dimensoes_pesoBruto
+                    olProd.tributacao_gtinEmbalagem    = snkProd.tributacao_gtinEmbalagem
+                    # olProd.tributacao_valorIPIFixo     = None
+                    # olProd.tributacao_classeIPI        = None
+                    # olProd.seo_titulo                  = None
+                    # olProd.seo_descricao               = None
+                    # olProd.seo_keywords                = ["produto"]
+                    # olProd.seo_linkVideo               = None
+                    # olProd.seo_slug                    = None
+                    # olProd.fornecedores                = None
+                    olProd.descricao                   = snkProd.descricao
+                    olProd.tipo                        = snkProd.tipo
+                    # olProd.estoque_controlar           = True
+                    # olProd.estoque_sobEncomenda        = False
+                    olProd.estoque_minimo              = snkProd.estoque_minimo
+                    olProd.estoque_maximo              = snkProd.estoque_maximo
+                    olProd.estoque_diasPreparacao      = snkProd.estoque_diasPreparacao
+                    olProd.estoque_localizacao         = snkProd.estoque_localizacao
+                    olProd.estoque_inicial             = snkProd.estoque_inicial
+                    # olProd.anexos
+                    # olProd.grade
+                    # olProd.producao
+                    # olProd.kits
+                    # olProd.variacoes
+
+                    olProd.acao = 'post'
+
+                    print(f"Incluindo produto {olProd.sku}")
+                    res, val = await olProd.receber_alteracoes()
+                    if res:
+                        query = ''' DELETE
+                                    FROM  MKP_SYNCPRODUTO
+                                    WHERE CODPROD = :codprod
+                                      AND DHEVENTO = :dhevento
+                                '''
+                        params = {
+                            "codprod"  : f["codprod"],
+                            "dhevento" : f["dhevento"]
+                        }
+                        ack1, rows1 = await db.dml(query=query,params=params)
+
+                        query = ''' UPDATE TGFPRO
+                                    SET    AD_MKP_IDPROD = :id
+                                    WHERE  CODPROD = :codprod
+                                '''                        
+                        params = {
+                            "id" : val,
+                            "codprod" : f["codprod"]
+                        }
+                        ack2, rows2 = await db.dml(query=query,params=params)
+
+                        if ack1 and ack2:
+                            print(f"Produto {f["codprod"]} incluído com sucesso no ID {val}.")
+                            self.atualiza_historico(produto_incluido=val)
+                        else:
+                            raise Exception(f"Erro: Produto {f["codprod"]} incluído na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
+                    else:
+                        raise Exception(f"Falha ao incluir produto {f["codprod"]} na base Olist. Verifique os logs.")
             print("Rotina concluída.")
             return True
         else:

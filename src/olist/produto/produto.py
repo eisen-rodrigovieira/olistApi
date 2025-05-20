@@ -434,18 +434,76 @@ class Produto:
             except Exception as e:
                 logger.error("Erro ao formatar dict produto: %s",e)
                 return {"status":"Erro"} 
+                   
+        elif self.acao in 'post':
+            try:
+                data = obj['post']
+                data["sku"]                                       = self.sku
+                data["descricaoComplementar"]                     = self.descricaoComplementar
+                data["unidade"]                                   = self.unidade
+                data["unidadePorCaixa"]                           = str(self.unidadePorCaixa)
+                data["ncm"]                                       = self.ncm
+                data["gtin"]                                      = self.gtin
+                data["origem"]                                    = int(self.origem)
+                data["codigoEspecificadorSubstituicaoTributaria"] = self.cest
+                data["garantia"]                                  = self.garantia
+                data["observacoes"]                               = self.observacoes
+                data["marca"]["id"]                               = self.marca_id
+                data["categoria"]["id"]                           = int(self.categoria_id)
+                data["precos"]["preco"]                           = self.preco
+                data["precos"]["precoPromocional"]                = self.precoPromocional
+                data["precos"]["precoCusto"]                      = self.precoCusto
+                data["dimensoes"]["embalagem"]["id"]              = self.dimensoes_embalagem_id
+                data["dimensoes"]["embalagem"]["tipo"]            = self.dimensoes_embalagem_tipo
+                data["dimensoes"]["largura"]                      = self.dimensoes_largura
+                data["dimensoes"]["altura"]                       = self.dimensoes_altura
+                data["dimensoes"]["comprimento"]                  = self.dimensoes_comprimento
+                data["dimensoes"]["diametro"]                     = self.dimensoes_diametro
+                data["dimensoes"]["pesoLiquido"]                  = self.dimensoes_pesoLiquido
+                data["dimensoes"]["pesoBruto"]                    = self.dimensoes_pesoBruto
+                data["tributacao"]["gtinEmbalagem"]               = self.tributacao_gtinEmbalagem
+                data["tributacao"]["valorIPIFixo"]                = self.tributacao_valorIPIFixo
+                data["tributacao"]["classeIPI"]                   = self.tributacao_classeIPI
+                data["seo"]["titulo"]                             = self.seo_titulo
+                data["seo"]["descricao"]                          = self.seo_descricao
+                data["seo"]["keywords"]                           = self.seo_keywords or ["produto"]
+                data["seo"]["linkVideo"]                          = self.seo_linkVideo
+                data["seo"]["slug"]                               = self.seo_slug
+                data["descricao"]                                 = self.descricao
+                data["tipo"]                                      = self.tipo
+                data["estoque"]["controlar"]                      = True
+                data["estoque"]["sobEncomenda"]                   = False
+                data["estoque"]["minimo"]                         = self.estoque_minimo
+                data["estoque"]["maximo"]                         = self.estoque_maximo
+                data["estoque"]["diasPreparacao"]                 = self.estoque_diasPreparacao
+                data["estoque"]["localizacao"]                    = self.estoque_localizacao
+                
+                data["fornecedores"] = [{
+                    "id" : 753240684,
+                    "codigoProdutoNoFornecedor" : self.sku,
+                    "padrao" : True
+                }]
+
+                data["grade"] = ["."]
+
+                return data               
+            except Exception as e:
+                logger.error("Erro ao formatar dict produto: %s",e)
+                return {"status":"Erro"} 
         else:
             return {"status":"Ação não configurada"} 
 
     async def buscar(self) -> bool:
-        #logger.debug("start buscar")
 
-        url = self.endpoint+f"/{self.id}"
+        if self.id:
+            url = self.endpoint+f"/{self.id}"
+        elif self.sku:
+            url = self.endpoint+f"/?codigo={self.sku}"
+        
         print(url)
         try:
             token = self.con.get_latest_valid_token_or_refresh()
-            #logger.debug("token ok %s",token)
-            if url and token:
+            if url and token:                
                 get_produto = requests.get(
                     url=url,
                     headers={
@@ -455,20 +513,14 @@ class Produto:
                     }
                 )
                 if get_produto.status_code == 200:
-                    #logger.debug("get ok")
-                    #if get_produto.json()["tipo"] == 'S':
                         if self.decodificar(get_produto.json()):
                             self.acao = 'get'
-                            #logger.debug("decode ok")
                             return True
                         else:
-                            logger.error("Erro ao decodificar produto %s", self.id)
+                            logger.error("Erro ao decodificar produto %s", self.id or self.sku)
                             return False
-                    #else:
-                    #    logger.warning("Produto do tipo variação %s", self.id)
-                    #    return True
                 else:                      
-                    logger.error("Erro %s: %s", get_produto.status_code, get_produto.json().get("mensagem","Erro desconhecido"))
+                    logger.error("Erro %s: %s cod %s", get_produto.status_code, get_produto.json().get("mensagem","Erro desconhecido"), self.id or self.sku)
                     return False                    
             else:
                 logger.warning("Endpoint da API ou token de acesso faltantes")
@@ -500,7 +552,6 @@ class Produto:
                         url = None
                 else:
                     url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?situacao=A&dataAlteracao={historico["ultima_atualizacao_olist_sankhya"]["data"]}"
-                # print(url)
                 if url:
                     get_alteracoes = requests.get(url=url,
                                                   headers={
@@ -515,7 +566,6 @@ class Produto:
                     time.sleep(3)
                 else:
                     status = 0
-                    #print(f"Fim. {len(itens)} produtos encontratos")
             
             itens.sort(key=lambda i: i['dataAlteracao'],reverse=True)
             
@@ -546,13 +596,7 @@ class Produto:
                                                       "Accept":"application/json"
                                                   },
                                                   data=json.dumps(payload))
-                    if put_alteracoes.status_code == 204:
-                        with open(configOlist.PATH_HISTORICO_PRODUTO, "r", encoding="utf-8") as f:
-                            historico = json.load(f)  
-                        historico["ultima_atualizacao_sankhya_olist"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        historico["ultima_atualizacao_sankhya_olist"]["id"] = self.id
-                        with open(configOlist.PATH_HISTORICO_PRODUTO, "w", encoding="utf-8") as f:
-                            json.dump(historico, f, indent=4, ensure_ascii=False)                                            
+                    if put_alteracoes.status_code == 204:                                         
                         return True, 1
                     elif put_alteracoes.status_code in [404,409]:
                         logger.warning("Erro %s: %s ID %s", put_alteracoes.status_code, put_alteracoes.json(), self.id)
@@ -567,6 +611,29 @@ class Produto:
                     print("Falha ao montar URL")
                     logger.error("Erro: Falha ao montar URL")
                     return False, 0
+            elif self.acao == 'post':
+                print(payload)
+                url = config.API_URL+config.ENDPOINT_PRODUTOS
+                logger.info("url %s and token %s -ok",token,url)
+                if url:
+                    post_novo = requests.post(url=url,
+                                              headers={
+                                                  "Authorization":f"Bearer {token}",
+                                                  "Content-Type":"application/json",
+                                                  "Accept":"application/json"
+                                              },
+                                              data=json.dumps(payload))
+                    if post_novo.status_code == 201:                    
+                        return True, post_novo.json()["id"]
+                    else:
+                        print(f"Falha ao incluir produto {payload["sku"]}")
+                        logger.error("Erro %s: %s cod %s", post_novo.status_code, post_novo.json(), payload["sku"])
+                        return False,0
+                else:
+                    print("Falha ao montar URL")
+                    logger.error("Erro: Falha ao montar URL")
+                    return False,0
+
             elif self.acao == 'del':
                 print(payload)
                 url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.id}"
@@ -578,13 +645,7 @@ class Produto:
                                                       "Accept":"application/json"
                                                   },
                                                   data=json.dumps(payload))
-                    if put_alteracoes.status_code == 204:
-                        with open(configOlist.PATH_HISTORICO_PRODUTO, "r", encoding="utf-8") as f:
-                            historico = json.load(f)  
-                        historico["ultima_inativacao"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        historico["ultima_inativacao"]["id"] = self.id
-                        with open(configOlist.PATH_HISTORICO_PRODUTO, "w", encoding="utf-8") as f:
-                            json.dump(historico, f, indent=4, ensure_ascii=False)                                            
+                    if put_alteracoes.status_code == 204:                                       
                         return True
                     else:
                         print(f"Falha ao inativar produto {self.id}")
@@ -615,7 +676,6 @@ class Produto:
                     url = None
             else:
                 url = config.API_URL+config.ENDPOINT_PRODUTOS
-            # print(url)
             if url:
                 get_alteracoes = requests.get(url=url,
                                             headers={
@@ -630,12 +690,5 @@ class Produto:
                 time.sleep(3)
             else:
                 status=0
-                print(f"Fim. {len(itens)} produtos encontratos")
-            
-        return itens        
-   
-    async def cadastrar(self) -> int:
-        pass
-            
-    async def excluir(self) -> bool:
-        pass
+                print(f"Fim. {len(itens)} produtos encontratos")            
+        return itens
