@@ -5,6 +5,7 @@ SET    PRO.AD_MKP_INTEGRADO    = NVL(:INTEGRAR_MKP             ,PRO.AD_MKP_INTEG
        PRO.AD_MKP_DESCRICAO    = NVL(:DESCRICAO_COMPLEMENTAR   ,PRO.AD_MKP_DESCRICAO),
        PRO.AD_MKP_IDPRODPAI    = NVL(:PRODUTO_PAI_ID           ,PRO.AD_MKP_IDPRODPAI),
        PRO.AD_MKP_DHATUALIZADO = CURRENT_DATE,
+       PRO.AD_MKP_MARCA        = NVL(:ID_MARCA                 ,PRO.AD_MKP_MARCA),
        PRO.CODVOL              = NVL(:UNIDADE                  ,PRO.CODVOL),
        PRO.NCM                 = NVL(:NCM                      ,PRO.NCM),
        PRO.REFERENCIA          = NVL(:GTIN                     ,PRO.REFERENCIA),
