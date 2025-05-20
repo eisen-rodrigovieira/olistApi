@@ -19,8 +19,9 @@ logging.basicConfig(filename=config.PATH_LOGS,
 class App:
 
     def __init__(self):
+        self.req_sleep = config.REQ_TIME_SLEEP
 
-        pass
+
 
     def atualiza_historico(self, produto_alterado:int=None, produto_incluido:int=None, sentido:int=None):
 
@@ -60,7 +61,7 @@ class App:
 
             for produto in produtos_com_alteracao:
                 print("")
-                time.sleep(4)
+                time.sleep(self.req_sleep)
                 snkProd = snkProduto()
                 olProd  = olProduto()
                 if produto:                
@@ -74,48 +75,48 @@ class App:
                             olProd.ncm = re.sub(regex_cest_ncm, '', olProd.ncm)
 
                             new_id                          = olProd.id                          if int(snkProd.id or 0)                          != int(olProd.id or 0)                          else None
-                            #new_sku                         = olProd.sku                         if int(snkProd.sku or 0)                         != int(olProd.sku or 0)                         else None
+                            # new_sku                         = olProd.sku                         if int(snkProd.sku or 0)                         != int(olProd.sku or 0)                         else None
                             new_descricao                   = olProd.descricao                   if snkProd.descricao                             != olProd.descricao                             else None
                             new_descricaoComplementar       = olProd.descricaoComplementar       if snkProd.descricaoComplementar                 != olProd.descricaoComplementar                 else None
-                            new_tipo                        = olProd.tipo                        if snkProd.tipo                                  != olProd.tipo                                  else None
-                            new_situacao                    = olProd.situacao                    if snkProd.situacao                              != olProd.situacao                              else None
+                            # new_tipo                        = olProd.tipo                        if snkProd.tipo                                  != olProd.tipo                                  else None
+                            # new_situacao                    = olProd.situacao                    if snkProd.situacao                              != olProd.situacao                              else None
                             new_produtoPai_id               = olProd.produtoPai_id               if int(snkProd.produtoPai_id or 0)               != int(olProd.produtoPai_id or 0)               else None
                             new_unidade                     = olProd.unidade                     if snkProd.unidade                               != olProd.unidade                               else None
-                            new_unidadePorCaixa             = olProd.unidadePorCaixa             if int(snkProd.unidadePorCaixa or 0)             != int(olProd.unidadePorCaixa or 0)             else None
+                            # new_unidadePorCaixa             = olProd.unidadePorCaixa             if int(snkProd.unidadePorCaixa or 0)             != int(olProd.unidadePorCaixa or 0)             else None
                             new_ncm                         = olProd.ncm                         if snkProd.ncm                                   != olProd.ncm                                   else None
                             new_gtin                        = olProd.gtin                        if snkProd.gtin                                  != olProd.gtin                                  else None
                             new_origem                      = olProd.origem                      if int(snkProd.origem or 0)                      != int(olProd.origem or 0)                      else None
                             # new_cest                        = olProd.cest                        if snkProd.cest                                  != olProd.cest                                  else None
-                            new_garantia                    = olProd.garantia                    if snkProd.garantia                              != olProd.garantia                              else None
-                            new_observacoes                 = olProd.observacoes                 if snkProd.observacoes                           != olProd.observacoes                           else None
+                            # new_garantia                    = olProd.garantia                    if snkProd.garantia                              != olProd.garantia                              else None
+                            # new_observacoes                 = olProd.observacoes                 if snkProd.observacoes                           != olProd.observacoes                           else None
                             new_categoria_id                = olProd.categoria_id                if int(snkProd.categoria_id or 0)                != int(olProd.categoria_id or 0)                else None
                             #new_categoria_nome              = olProd.categoria_caminhoCompleto   if snkProd.categoria_nome                        != olProd.categoria_nome                        else None
                             new_marca_id                    = olProd.marca_id                    if int(snkProd.marca_id or 0)                    != int(olProd.marca_id or 0)                    else None
-                            new_marca_nome                  = olProd.marca_nome                  if snkProd.marca_nome                            != olProd.marca_nome                            else None
-                            new_dimensoes_embalagem_tipo    = olProd.dimensoes_embalagem_tipo    if snkProd.dimensoes_embalagem_tipo              != olProd.dimensoes_embalagem_tipo              else None
+                            # new_marca_nome                  = olProd.marca_nome                  if snkProd.marca_nome                            != olProd.marca_nome                            else None
+                            # new_dimensoes_embalagem_tipo    = olProd.dimensoes_embalagem_tipo    if snkProd.dimensoes_embalagem_tipo              != olProd.dimensoes_embalagem_tipo              else None
                             new_dimensoes_largura           = olProd.dimensoes_largura           if float(snkProd.dimensoes_largura or 0)         != float(olProd.dimensoes_largura or 0)         else None
                             new_dimensoes_altura            = olProd.dimensoes_altura            if float(snkProd.dimensoes_altura or 0)          != float(olProd.dimensoes_altura or 0)          else None
                             new_dimensoes_comprimento       = olProd.dimensoes_comprimento       if float(snkProd.dimensoes_comprimento or 0)     != float(olProd.dimensoes_comprimento or 0)     else None
                             new_dimensoes_pesoLiquido       = olProd.dimensoes_pesoLiquido       if float(snkProd.dimensoes_pesoLiquido or 0)     != float(olProd.dimensoes_pesoLiquido or 0)     else None
                             new_dimensoes_pesoBruto         = olProd.dimensoes_pesoBruto         if float(snkProd.dimensoes_pesoBruto or 0)       != float(olProd.dimensoes_pesoBruto or 0)       else None
                             new_dimensoes_quantidadeVolumes = olProd.dimensoes_quantidadeVolumes if int(snkProd.dimensoes_quantidadeVolumes or 0) != int(olProd.dimensoes_quantidadeVolumes or 0) else None
-                            new_preco                       = olProd.preco                       if float(snkProd.preco or 0)                     != float(olProd.preco or 0)                     else None
-                            new_precoCusto                  = olProd.precoCusto                  if float(snkProd.precoCusto or 0)                != float(olProd.precoCusto or 0)                else None
-                            new_estoque_controlar           = olProd.estoque_controlar           if snkProd.estoque_controlar                     != olProd.estoque_controlar                     else None
-                            new_estoque_sobEncomenda        = olProd.estoque_sobEncomenda        if snkProd.estoque_sobEncomenda                  != olProd.estoque_sobEncomenda                  else None
-                            new_estoque_diasPreparacao      = olProd.estoque_diasPreparacao      if int(snkProd.estoque_diasPreparacao or 0)      != int(olProd.estoque_diasPreparacao or 0)      else None
-                            new_estoque_localizacao         = olProd.estoque_localizacao         if snkProd.estoque_localizacao                   != olProd.estoque_localizacao                   else None
+                            # new_preco                       = olProd.preco                       if float(snkProd.preco or 0)                     != float(olProd.preco or 0)                     else None
+                            # new_precoCusto                  = olProd.precoCusto                  if float(snkProd.precoCusto or 0)                != float(olProd.precoCusto or 0)                else None
+                            # new_estoque_controlar           = olProd.estoque_controlar           if snkProd.estoque_controlar                     != olProd.estoque_controlar                     else None
+                            # new_estoque_sobEncomenda        = olProd.estoque_sobEncomenda        if snkProd.estoque_sobEncomenda                  != olProd.estoque_sobEncomenda                  else None
+                            # new_estoque_diasPreparacao      = olProd.estoque_diasPreparacao      if int(snkProd.estoque_diasPreparacao or 0)      != int(olProd.estoque_diasPreparacao or 0)      else None
+                            # new_estoque_localizacao         = olProd.estoque_localizacao         if snkProd.estoque_localizacao                   != olProd.estoque_localizacao                   else None
                             new_estoque_minimo              = olProd.estoque_minimo              if int(snkProd.estoque_minimo or 0)              != int(olProd.estoque_minimo or 0)              else None
                             new_estoque_maximo              = olProd.estoque_maximo              if int(snkProd.estoque_maximo or 0)              != int(olProd.estoque_maximo or 0)              else None
-                            new_estoque_quantidade          = olProd.estoque_quantidade          if int(snkProd.estoque_quantidade or 0)          != int(olProd.estoque_quantidade or 0)          else None
-                            new_estoque_inicial             = olProd.estoque_inicial             if int(snkProd.estoque_inicial or 0)             != int(olProd.estoque_inicial or 0)             else None
-                            new_tributacao_gtinEmbalagem    = olProd.tributacao_gtinEmbalagem    if snkProd.tributacao_gtinEmbalagem              != olProd.tributacao_gtinEmbalagem              else None
+                            # new_estoque_quantidade          = olProd.estoque_quantidade          if int(snkProd.estoque_quantidade or 0)          != int(olProd.estoque_quantidade or 0)          else None
+                            # new_estoque_inicial             = olProd.estoque_inicial             if int(snkProd.estoque_inicial or 0)             != int(olProd.estoque_inicial or 0)             else None
+                            # new_tributacao_gtinEmbalagem    = olProd.tributacao_gtinEmbalagem    if snkProd.tributacao_gtinEmbalagem              != olProd.tributacao_gtinEmbalagem              else None
 
                             if olProd.fornecedores:
-                                new_fornecedor_id             = olProd.fornecedores[0].id  if int(snkProd.fornecedor_id or 0) != int(olProd.fornecedores[0].id or 0) else None
+                                # new_fornecedor_id             = olProd.fornecedores[0].id  if int(snkProd.fornecedor_id or 0) != int(olProd.fornecedores[0].id or 0) else None
                                 new_fornecedor_codigo_produto = olProd.fornecedores[0].codigoProdutoNoFornecedor if snkProd.fornecedor_codigo_produto != olProd.fornecedores[0].codigoProdutoNoFornecedor else None
                             else:
-                                new_fornecedor_id             = None
+                                #new_fornecedor_id             = None
                                 new_fornecedor_codigo_produto = None  
 
                             with open(configSankhya.PATH_PARAMS_UPDATE_PRODUTO, "r", encoding="utf-8") as f:
@@ -126,6 +127,7 @@ class App:
                                 params['DESCRICAO_COMPLEMENTAR']    = new_descricaoComplementar
                                 params['PRODUTO_PAI_ID']            = new_produtoPai_id
                                 params['UNIDADE']                   = new_unidade
+                                params['ID_MARCA']                  = new_marca_id
                                 params['NCM']                       = new_ncm
                                 params['GTIN']                      = new_gtin
                                 params['ORIGEM']                    = new_origem
@@ -182,7 +184,7 @@ class App:
             print("Iniciando sincronização")                        
             for f in fetch:
                 print("")
-                time.sleep(4)
+                time.sleep(self.req_sleep)
                 if f["evento"] == 'A':
                     olProd  = olProduto()
                     snkProd = snkProduto()
@@ -216,7 +218,7 @@ class App:
                     olProd.garantia                    = snkProd.garantia                    if snkProd.garantia                              != olProd.garantia                              else olProd.garantia
                     olProd.observacoes                 = snkProd.observacoes                 if snkProd.observacoes                           != olProd.observacoes                           else olProd.observacoes
                     olProd.categoria_id                = snkProd.categoria_id                if snkProd.categoria_id                          != olProd.categoria_id                          else olProd.categoria_id
-                    #olProd.marca_id                    = 18671                
+                    olProd.marca_id                    = snkProd.marca_id                    if snkProd.marca_id                              != olProd.marca_id                              else olProd.marca_id
                     olProd.dimensoes_embalagem_tipo    = snkProd.dimensoes_embalagem_tipo    if snkProd.dimensoes_embalagem_tipo              != olProd.dimensoes_embalagem_tipo              else olProd.dimensoes_embalagem_tipo
                     olProd.dimensoes_largura           = snkProd.dimensoes_largura           if float(snkProd.dimensoes_largura or 0)         != float(olProd.dimensoes_largura or 0)         else olProd.dimensoes_largura
                     olProd.dimensoes_altura            = snkProd.dimensoes_altura            if float(snkProd.dimensoes_altura or 0)          != float(olProd.dimensoes_altura or 0)          else olProd.dimensoes_altura
@@ -242,7 +244,10 @@ class App:
                     print(f"Atualizando produto {olProd.id}")
                     res, val = await olProd.receber_alteracoes()
                     if res and val == 1:
-                        query = 'delete from MKP_SYNCPRODUTO where codprod = :codprod and dhevento = :dhevento'
+                        query = ''' DELETE
+                                    FROM MKP_SYNCPRODUTO
+                                    WHERE codprod  = :codprod
+                                     AND  dhevento = :dhevento'''
                         params = {
                             "codprod" : f["codprod"],
                             "dhevento" : f["dhevento"]
@@ -274,7 +279,10 @@ class App:
 
                     print(f"Inativando produto {olProd.id}")
                     if await olProd.receber_alteracoes():
-                        query = 'delete from MKP_SYNCPRODUTO where codprod = :codprod and dhevento = :dhevento'
+                        query = ''' DELETE
+                                    FROM MKP_SYNCPRODUTO
+                                    WHERE codprod  = :codprod
+                                     AND  dhevento = :dhevento'''
                         params = {
                             "codprod" : f["codprod"],
                             "dhevento" : f["dhevento"]
@@ -357,10 +365,9 @@ class App:
                     res, val = await olProd.receber_alteracoes()
                     if res:
                         query = ''' DELETE
-                                    FROM  MKP_SYNCPRODUTO
-                                    WHERE CODPROD = :codprod
-                                      AND DHEVENTO = :dhevento
-                                '''
+                                    FROM MKP_SYNCPRODUTO
+                                    WHERE codprod  = :codprod
+                                     AND  dhevento = :dhevento'''
                         params = {
                             "codprod"  : f["codprod"],
                             "dhevento" : f["dhevento"]
