@@ -5,3 +5,8 @@ PATH_OBJECT_PRODUTO_KIT        = "json/objects/produto/kit.json"
 PATH_OBJECT_PRODUTO_PRODUCAO   = "json/objects/produto/producao.json"
 PATH_HISTORICO_PRODUTO         = "json/objects/produto/historico.json"
 PATH_OBJECT_PRODUTO            = "json/objects/produto/produto.json"
+
+PATH_OBJECT_PEDIDO_ITEM        = "json/objects/pedido/item.json"
+PATH_OBJECT_PEDIDO_PARCELA     = "json/objects/pedido/parcela.json"
+PATH_HISTORICO_PEDIDO          = "json/objects/pedido/historico.json"
+PATH_OBJECT_PEDIDO             = "json/objects/pedido/pedido.json"
