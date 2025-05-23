@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from params               import config, configSankhya
 from src.sankhya.dbConfig import dbConfig
@@ -27,7 +28,7 @@ class Item:
                 statusnota:str=None,
                 codvend:int=None
                  ):
-        
+        self.db           = dbConfig()
         self.nunota       = nunota
         self.sequencia    = sequencia
         self.codemp       = codemp
@@ -43,7 +44,6 @@ class Item:
         self.statusnota   = statusnota
         self.codvend      = codvend  
         pass
-
 
     def decodificar(self,data:dict=None) -> bool:
         if data:
@@ -77,8 +77,7 @@ class Item:
         if not os.path.exists(file_path):
             logger.error("Script da TGFITE não encontrado em %s",file_path)
             return False
-        else:    
-            db = dbConfig()
+        else: 
             with open(file_path, "r", encoding="utf-8") as f:
                 query = f.read()
                 
@@ -87,7 +86,7 @@ class Item:
                         "NUNOTA": nunota or self.nunota,
                         "SEQUENCIA": sequencia or self.sequencia
                     }
-                    rows = await db.select(query=query,params=params)
+                    rows = await self.db.select(query=query,params=params)
                                         
                     if rows:
                         self.decodificar(rows[0])
@@ -97,4 +96,69 @@ class Item:
                 except:
                     logger.error("Nº único do pedido %s",self.nunota)
                     return False
+
+    async def buscar_parametros(self,**kwargs) -> tuple:     
+
+        pass
+
+    async def preparacao(self,payload_olist:dict=None,nunota:int=None,sequencia:int=None) -> tuple[bool,dict]:
+        file_path = configSankhya.PATH_PARAMS_INS_PEDIDO_ITE
+
+        if payload_olist and nunota and sequencia:
+
+            try:
+                if not os.path.exists(file_path):
+                    raise FileNotFoundError("Parametros de inserção de item de pedido não encontrados.")
+                with open(file_path, "r", encoding="utf-8") as f:
+                    ins_tgfite = json.load(f)
+            except Exception as e:
+                print(f"Erro: {e}") 
+                  
+            valores_insert = {
+                "NUNOTA"        : nunota,
+                "SEQUENCIA"     : sequencia,
+                "CODEMP"        : ins_tgfite["CODEMP"],
+                "CODPROD"       : int(payload_olist["produto"]["sku"]),
+                "CODLOCALORIG"  : ins_tgfite["CODLOCALORIG"],
+                "USOPROD"       : ins_tgfite["USOPROD"],
+                "QTDNEG"        : payload_olist["quantidade"],
+                "VLRUNIT"       : payload_olist["valorUnitario"],
+                "VLRTOT"        : payload_olist["quantidade"] * payload_olist["valorUnitario"],
+                "CODVOL"        : 'UN',
+                "ATUALESTOQUE"  : ins_tgfite["ATUALESTOQUE"],
+                "RESERVA"       : ins_tgfite["RESERVA"],
+                "STATUSNOTA"    : ins_tgfite["STATUSNOTA"],
+                "CODVEND"       : ins_tgfite["CODVEND"]
+            }
+
+            return True, valores_insert
+        else:
+            print("Dados faltantes")
+            return False, {}
+            
+
+    async def atualiza_seqs(self,kwargs):
+
+        pass
+
+    async def registrar(self, payload:dict=None, nunota:int=None, sequencia:int=None) -> tuple[bool,int]:
+        file_path = configSankhya.PATH_INSERT_PEDIDO_ITE
+
+        if not os.path.exists(file_path):
+            logger.error("Script de insert da TGFITE não encontrado em %s",file_path)
+            return False, None
+        else: 
+            ack, data = await self.preparacao(payload_olist=payload,
+                                              nunota=nunota,
+                                              sequencia=sequencia)
+            if ack:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    query = f.read()                    
+                ack2, rows = await self.db.dml(query=query,params=data)
+                if ack2:
+                    logger.info("Item %s inserido no pedido %s com sucesso",payload["produto"]["sku"],nunota)
+                    return ack2, rows
+                else:
+                    logger.info("Erro ao inserir item %s inserido no pedido %s",payload["produto"]["sku"],nunota)
+                    return ack2, None                
                 
