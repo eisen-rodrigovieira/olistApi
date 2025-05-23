@@ -1,9 +1,10 @@
 import os
 import json
 import logging
-from params             import config, configSankhya
-from src.sankhya.pedido import item, parcela
-from src.sankhya.dbConfig import dbConfig
+from params                    import config, configSankhya
+from src.olist.pedido.item import Item
+from src.sankhya.pedido        import item, parcela
+from src.sankhya.dbConfig      import dbConfig
 
 logger = logging.getLogger(__name__)
 logging.basicConfig( filename = config.PATH_LOGS,
@@ -475,30 +476,44 @@ class Pedido:
                 print("> Inserindo dados do cabeçalho...")
                 ack_cab, rows_cab = await self.db.dml(query=query,params=data)
                 if ack_cab:
-                    print(f"> Cabeçalho do pedido {data["nunota"]} inserido com sucesso!")
+                    print(f">> Cabeçalho do pedido {data["nunota"]} inserido com sucesso!")
                     logger.info("Cabeçalho do pedido %s inserido com sucesso.",data["nunota"])
                     if payload.get("itens"):
                         print("> Lançando produtos no pedido...")
                         rows_itens = 0
-                        for i, it_dict in enumerate(payload["itens"]):
+                        seq_pedido = 0
+                        for i, it_dict in enumerate(payload["itens"]):                            
                             #print(i)
                             #print(it_dict)
                             #print("")
-                            
-                            ack_ite, rows_ite = await it.registrar(payload=it_dict,
-                                                                   nunota=data["nunota"],
-                                                                   sequencia=i+1)
+                            olItm = Item()
+                            ack_kit, kit_dict = olItm.valida_kit(id=int(it_dict["produto"]["id"]),lcto_item=it_dict)
+                            #print(kit_dict)
+                            if ack_kit:
+                                print(f">> Produto {it_dict["produto"]["id"]} é kit. Desmembrando...")
+                                for kd in kit_dict:
+                                    seq_pedido+=1
+                                    #print(kd)
+                                    ack_ite, rows_ite = await it.registrar(payload=kd,
+                                                                            nunota=data["nunota"],
+                                                                            sequencia=seq_pedido)                                
+                                print(f">>> Kit desmembrado em {len(kit_dict)} produtos")
+                            else:
+                                seq_pedido+=1
+                                ack_ite, rows_ite = await it.registrar(payload=it_dict,
+                                                                        nunota=data["nunota"],
+                                                                        sequencia=seq_pedido+1)
                             if ack_ite:
                                 rows_itens+=rows_ite
                         if rows_itens == len(payload["itens"]):
                             ack_itens = True
-                            print(f"> Todos os itens do pedido {data["nunota"]} inseridos com sucesso!")
+                            print(f">> Todos os itens do pedido {data["nunota"]} inseridos com sucesso!")
                         else:
                             ack_itens = False
-                            print(f"Nem todos os itens do pedido {data["nunota"]} inseridos. Verifique os logs.")
+                            print(f">>Nem todos os itens do pedido {data["nunota"]} inseridos. Verifique os logs.")
                     else:
                         ack_itens = True
-                        print(f"> Não tem itens no pedido!")
+                        print(f">> Não tem itens no pedido!")
 
                     if payload["pagamento"].get("parcelas"):
                         print("> Lançando financeiro do pedido...")
@@ -513,18 +528,18 @@ class Pedido:
                                 rows_fins+=rows_fin
                         if rows_fins == len(payload["pagamento"]["parcelas"]):
                             ack_fins = True
-                            print(f"> Todos os financeiros do pedido {data["nunota"]} inseridos com sucesso!")
+                            print(f">> Todos os financeiros do pedido {data["nunota"]} inseridos com sucesso!")
                         else:
                             ack_fins = False
-                            print(f"Nem todos os financeiros do pedido {data["nunota"]} inseridos. Verifique os logs.")                            
+                            print(f">>Nem todos os financeiros do pedido {data["nunota"]} inseridos. Verifique os logs.")                            
                     else:
                         ack_fins = True
-                        print(f"> Não tem financeiro no pedido!")
+                        print(f">> Não tem financeiro no pedido!")
                     
                     # return True, data["nunota"] if ack_cab and ack_itens and ack_fins else False, None
                     if ack_cab and ack_itens and ack_fins:
                         await self.atualiza_seqs(nunota_nextval=data["nunota"],numnota_nextval=data["numnota"])
-                        print(f">>> Pedido {payload['numeroPedido']} importado com sucesso! Nº único {data["nunota"]}")
+                        print(f"----------> Pedido {payload['numeroPedido']} importado com sucesso! Nº único {data["nunota"]}")
                         return True, data["nunota"]
                     else:
                         return False, None

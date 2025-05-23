@@ -1,6 +1,9 @@
 import os
 import json
 import logging
+import requests
+from src.olist.connect import Connect
+from src.olist.produto.produto import Produto
 from params import config, configOlist
 
 logger = logging.getLogger(__name__)
@@ -21,6 +24,7 @@ class Item:
                  ,infoAdicional:str=None
                 ):    
         self.file_path     = configOlist.PATH_OBJECT_PEDIDO_ITEM
+        self.endpoint      = config.API_URL+config.ENDPOINT_PRODUTOS             
         self.id            = id
         self.sku           = sku
         self.descricao     = descricao
@@ -28,6 +32,66 @@ class Item:
         self.valorUnitario = valorUnitario
         self.infoAdicional = infoAdicional
         self.acao          = None        
+
+    def valida_kit(self,id:int=None,lcto_item:dict=None) -> tuple[bool,dict]:
+        # print("KIT: iniciando validacao")
+        # print(f"KIT: dados recebidos {lcto_item}")
+        self.con = Connect() 
+
+        url = self.endpoint+f"/{id or self.id}"
+        # print(f"KIT: url {url}")
+        prod = Produto()      
+        #print(url)
+        try:
+            token = self.con.get_latest_valid_token_or_refresh()
+            if url and token:                
+                get_produto = requests.get(
+                    url=url,
+                    headers={
+                        "Authorization":f"Bearer {token}",
+                        "Content-Type":"application/json",
+                        "Accept":"application/json"
+                    }
+                )
+                if get_produto.status_code == 200:
+                    # print("KIT: buscado dados do produto")
+                    if prod.decodificar(get_produto.json()):
+                        self.acao = 'get'
+                        if prod.tipo == 'K':
+                            # print(f"KIT: é kit de {len(prod.kit)} produtos")
+                            qtd_kit = lcto_item["quantidade"]
+                            vlt_kit = lcto_item["valorUnitario"]
+                            res_item = []
+                            # print(f"KIT: {(prod.kit)} produtos")
+                            for k in prod.kit:
+                                kit_item = {
+                                    "produto": {
+                                        "id": k.produto_id,
+                                        "sku": k.produto_sku,
+                                        "descricao": k.produto_descricao
+                                    },
+                                    "quantidade": k.quantidade * qtd_kit,
+                                    "valorUnitario": vlt_kit / len(prod.kit),
+                                    "infoAdicional": ""                                    
+                                }
+                                # print(f"KIT: item {kit_item}")
+                                res_item.append(kit_item)                            
+                            return True, res_item
+                        else:
+                            return False, {}
+                    else:
+                        logger.error("Erro ao decodificar pedido %s", self.id)
+                        return False, {}
+                else:                      
+                    logger.error("Erro %s: %s cod %s", get_produto.status_code, get_produto.json().get("mensagem","Erro desconhecido"), self.id)
+                    return False, {}                   
+            else:
+                logger.warning("Endpoint da API ou token de acesso faltantes")
+                return False, {}                    
+        except Exception as e:
+            logger.error("Erro relacionado ao token de acesso. %s",e)
+            return False, {}
+        
 
     def decodificar(self,payload:dict=None) -> bool:     
         if payload:
