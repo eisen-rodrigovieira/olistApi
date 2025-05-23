@@ -27,6 +27,7 @@ class Item:
         self.quantidade    = quantidade
         self.valorUnitario = valorUnitario
         self.infoAdicional = infoAdicional
+        self.acao          = None        
 
     def decodificar(self,payload:dict=None) -> bool:     
         if payload:
@@ -44,7 +45,7 @@ class Item:
             logger.error("Não foram informados dados para decodificar")
             return False
 
-    def encodificar(self) -> dict:
+    def encodificar(self,acao:str=None) -> dict:
         data = {}
         try:
             if not os.path.exists(self.file_path):
@@ -52,14 +53,23 @@ class Item:
                 return {"erro":True}
             else:    
                 with open(self.file_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)                
-                data['produto']['id']        = self.id
-                data['produto']['sku']       = self.sku
-                data['produto']['descricao'] = self.descricao
-                data['quantidade']           = self.quantidade
-                data['valorUnitario']        = self.valorUnitario
-                data['infoAdicional']        = self.infoAdicional     
-                return data               
+                    obj = json.load(f)   
+                if acao == 'get':
+                    try:
+                        data = obj[acao]                                 
+                        data['produto']['id']        = self.id
+                        data['produto']['sku']       = self.sku
+                        data['produto']['descricao'] = self.descricao
+                        data['quantidade']           = self.quantidade
+                        data['valorUnitario']        = self.valorUnitario
+                        data['infoAdicional']        = self.infoAdicional
+                    except Exception as e:
+                        logger.error("Erro ao formatar dict item pedido: %s",e)
+                        return {"status":"Erro"} 
+                else:
+                    pass
+                return data
+            
         except Exception as e:
             logger.error("Erro ao formatar dicionario item de pedido: %s",e)
             return {"erro":True}

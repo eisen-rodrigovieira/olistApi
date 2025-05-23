@@ -57,7 +57,7 @@ class Parcela:
             logger.error("Não foram informados dados para decodificar")
             return False
 
-    def encodificar(self) -> dict:
+    def encodificar(self,acao:str=None) -> dict:
         data = {}
         try:
             if not os.path.exists(self.file_path):
@@ -65,15 +65,21 @@ class Parcela:
                 return {"erro":True}
             else:    
                 with open(self.file_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                data["dias"]                   = self.dias
-                data["data"]                   = self.data
-                data["valor"]                  = self.valor
-                data["observacoes"]            = self.observacoes
-                data["formaPagamento"]["id"]   = self.formaPagamento_id
-                data["formaPagamento"]["nome"] = self.formaPagamento_nome
-                data["meioPagamento"]["id"]    = self.meioPagamento_id
-                data["meioPagamento"]["nome"]  = self.meioPagamento_nome
+                    obj = json.load(f)   
+                if acao == 'get':
+                    try:
+                        data = obj[acao]  
+                        data["dias"]                   = self.dias
+                        data["data"]                   = self.data
+                        data["valor"]                  = self.valor
+                        data["observacoes"]            = self.observacoes
+                        data["formaPagamento"]["id"]   = self.formaPagamento_id
+                        data["formaPagamento"]["nome"] = self.formaPagamento_nome
+                        data["meioPagamento"]["id"]    = self.meioPagamento_id
+                        data["meioPagamento"]["nome"]  = self.meioPagamento_nome
+                    except Exception as e:
+                        logger.error("Erro ao formatar dict parcela pedido: %s",e)
+                        return {"status":"Erro"}                         
                 return data               
         except Exception as e:
             logger.error("Erro ao formatar dicionario parcela de pedido: %s",e)
