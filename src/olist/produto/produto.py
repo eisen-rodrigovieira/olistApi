@@ -130,7 +130,7 @@ class Produto:
         self.tributacao_classeIPI          = tributacao_classeIPI
         self.anexos                        = []
         self.variacoes                     = []
-        self.kits                          = []
+        self.kit                          = []
         self.producao                      = []
         self.acao = None
         
@@ -269,11 +269,11 @@ class Produto:
                     va.decodificar(v)
                     self.variacoes.append(va)
 
-                #logger.debug("iniciando decode %s kits",len(payload["kit"]))
+                #logger.debug("iniciando decode %s kit",len(payload["kit"]))
                 for k in payload["kit"]:
                     ki = kit.Kit()
                     ki.decodificar(k)
-                    self.kits.append(ki) 
+                    self.kit.append(ki) 
 
                 #logger.debug("iniciando decode %s producao",len(payload["producao"]))
                 if payload["producao"]:
@@ -368,14 +368,14 @@ class Produto:
                 for va in self.variacoes:
                     variacoes_list.append(va.encodificar())
                 
-                kits_list = list()
-                for ki in self.kits:
-                    kits_list.append(ki.encodificar())
+                kit_list = list()
+                for ki in self.kit:
+                    kit_list.append(ki.encodificar())
 
                 data["fornecedores"]                        = fornecedores_list
                 data["anexos"]                              = anexos_list                       
                 data["variacoes"]                           = variacoes_list                    
-                data["kit"]                                 = kits_list
+                data["kit"]                                 = kit_list
                 return data               
             except Exception as e:
                 logger.error("Erro ao formatar dict produto: %s",e)
@@ -493,12 +493,12 @@ class Produto:
         else:
             return {"status":"Ação não configurada"} 
 
-    async def buscar(self) -> bool:
+    async def buscar(self,id:int=None,sku:int=None) -> bool:
 
-        if self.id:
-            url = self.endpoint+f"/{self.id}"
-        elif self.sku:
-            url = self.endpoint+f"/?codigo={self.sku}"
+        if id or self.id:
+            url = self.endpoint+f"/{id or self.id}"
+        elif sku or self.sku:
+            url = self.endpoint+f"/?codigo={sku or self.sku}"
         
         print(url)
         try:
@@ -517,10 +517,10 @@ class Produto:
                             self.acao = 'get'
                             return True
                         else:
-                            logger.error("Erro ao decodificar produto %s", self.id or self.sku)
+                            logger.error("Erro ao decodificar produto %s", id or self.id or sku or self.sku)
                             return False
                 else:                      
-                    logger.error("Erro %s: %s cod %s", get_produto.status_code, get_produto.json().get("mensagem","Erro desconhecido"), self.id or self.sku)
+                    logger.error("Erro %s: %s cod %s", get_produto.status_code, get_produto.json().get("mensagem","Erro desconhecido"), id or self.id or sku or self.sku)
                     return False                    
             else:
                 logger.warning("Endpoint da API ou token de acesso faltantes")
