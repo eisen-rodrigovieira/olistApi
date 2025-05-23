@@ -1,6 +1,7 @@
 import os
+import json
 import logging
-from params               import config, configSankhya
+from params             import config, configSankhya
 from src.sankhya.pedido import item, parcela
 from src.sankhya.dbConfig import dbConfig
 
@@ -82,6 +83,7 @@ class Pedido:
                 qtdite:int=None,
                 qtdfin:int=None
                  ):
+        self.db               = dbConfig()
         self.nunota           =  nunota
         self.numnota          =  numnota
         self.ad_mkp_id        =  ad_mkp_id
@@ -153,7 +155,6 @@ class Pedido:
         self.parcelas         =  []
   
         pass
-
 
     async def decodificar(self,data:dict=None) -> bool:
         if data:
@@ -252,13 +253,12 @@ class Pedido:
             logger.error("Script da TGFCAB não encontrado em %s",file_path)
             return False
         else:    
-            db = dbConfig()
             with open(file_path, "r", encoding="utf-8") as f:
                 query = f.read()
                 
                 try:
                     params = {"NUNOTA": nunota or self.nunota}
-                    rows = await db.select(query=query,params=params)
+                    rows = await self.db.select(query=query,params=params)
                                         
                     if rows:
                         return await self.decodificar(rows[0])
@@ -267,31 +267,277 @@ class Pedido:
                 except:
                     logger.error("Nº único do pedido %s",self.nunota)
                     return False
+
+    async def buscar_parametros(self,**kwargs) -> tuple:     
+
+        try:
+            dhalter_top = await self.db.select(query='''
+                                                    SELECT MAX(DHALTER) DHALTER
+                                                    FROM TGFTOP
+                                                    WHERE CODTIPOPER = :CODTIPOPER
+                                                ''',
+                                                params={"CODTIPOPER":kwargs['codtipoper']})
+
+            dhalter_tpv = await self.db.select(query='''
+                                                    SELECT MAX(DHALTER) DHALTER
+                                                    FROM TGFTPV
+                                                    WHERE CODTIPVENDA = :CODTIPVENDA
+                                                ''',
+                                                params={"CODTIPVENDA":kwargs['codtipvenda']})
+
+            nunota_nextval = await self.db.select(query='''
+                                                        SELECT ULTCOD + 1 nunota_next
+                                                        FROM TGFNUM
+                                                        WHERE ARQUIVO = 'TGFCAB'
+                                                    ''')
+
+            numnota_nextval = await self.db.select(query='''
+                                                        SELECT ULTCOD + 1 numnota_next
+                                                        FROM TGFNUM
+                                                        WHERE ARQUIVO = 'PEDVEN' AND CODEMP = 31
+                                                    ''')
+
+            uf_destino = await self.db.select(query='''
+                                                    SELECT CODUF
+                                                    FROM TSIUFS
+                                                    WHERE UF = :UF
+                                            ''',
+                                            params={"UF":kwargs['ufdestino']})
+
+            uf_entrega = await self.db.select(query='''
+                                                    SELECT CODUF
+                                                    FROM TSIUFS
+                                                    WHERE UF = :UF
+                                            ''',
+                                            params={"UF":kwargs['ufentrega']})
+
+            cid_destino = await self.db.select(query='''
+                                                    SELECT CODCID
+                                                    FROM TSICID
+                                                    WHERE (DESCRICAOCORREIO =    TRANSLATE(UPPER(:CIDADE), 'ÁÀÃÂÉÈÊÍÌÓÒÕÔÚÙÛÇ','AAAAEEEIIOOOOUUUC') OR
+                                                           DESCRICAOCORREIO LIKE TRANSLATE(UPPER(:CIDADE), 'ÁÀÃÂÉÈÊÍÌÓÒÕÔÚÙÛÇ','AAAAEEEIIOOOOUUUC')||'%')
+                                                ''',
+                                                params={"CIDADE":kwargs['ciddestino']})
+
+            cid_entrega = await self.db.select(query='''
+                                                    SELECT CODCID
+                                                    FROM TSICID
+                                                    WHERE (DESCRICAOCORREIO = TRANSLATE(UPPER(:CIDADE), 'ÁÀÃÂÉÈÊÍÌÓÒÕÔÚÙÛÇ','AAAAEEEIIOOOOUUUC') OR
+                                                           DESCRICAOCORREIO LIKE TRANSLATE(UPPER(:CIDADE), 'ÁÀÃÂÉÈÊÍÌÓÒÕÔÚÙÛÇ','AAAAEEEIIOOOOUUUC')||'%')
+                                                ''',
+                                                params={"CIDADE":kwargs['cidentrega']})
+            
+
+            res = {
+                "dhalter_top":dhalter_top[0]['dhalter'].strftime('%Y-%m-%d %H:%M:%S'),
+                "dhalter_tpv":dhalter_tpv[0]['dhalter'].strftime('%Y-%m-%d %H:%M:%S'),
+                "nunota_nextval":nunota_nextval[0]['nunota_next'],
+                "numnota_nextval":numnota_nextval[0]['numnota_next'],
+                "uf_destino":uf_destino[0]['coduf'],
+                "uf_entrega":uf_entrega[0]['coduf'],
+                "cid_destino":cid_destino[0]['codcid'],
+                "cid_entrega":cid_entrega[0]['codcid']
+            }       
+
+        except Exception as e:
+            logger.error("Erro ao buscar parametros: %s",e)
+            res = {}            
+        finally:
+            return res
+
+    async def preparacao(self,payload_olist:dict=None) -> tuple[bool,dict]:
+        file_path = configSankhya.PATH_PARAMS_INS_PEDIDO_CAB
+
+        if payload_olist:
+            try:
+                if not os.path.exists(file_path):
+                    raise FileNotFoundError("Parametros de inserção de pedido não encontrados.")
+                with open(file_path, "r", encoding="utf-8") as f:
+                    ins_tgfcab = json.load(f)
+            except Exception as e:
+                print(f"Erro: {e}")    
+
+            parametros = await self.buscar_parametros( codtipoper  = ins_tgfcab['CODTIPOPER'],
+                                                       codtipvenda = ins_tgfcab['CODTIPVENDA'],
+                                                       ufdestino   = payload_olist["cliente"]["endereco"]["uf"],
+                                                       ufentrega   = payload_olist["enderecoEntrega"]["uf"] or payload_olist["cliente"]["endereco"]["uf"],
+                                                       ciddestino  = payload_olist["cliente"]["endereco"]["municipio"],
+                                                       cidentrega  = payload_olist["enderecoEntrega"]["municipio"] or payload_olist["cliente"]["endereco"]["municipio"]
+                                                    )
+            if parametros:
+                valores_insert = {
+                    "nunota"           : parametros["nunota_nextval"],
+                    "numnota"          : parametros["numnota_nextval"],
+                    "ad_mkp_id"        : int(payload_olist["id"]),
+                    "ad_mkp_numped"    : int(payload_olist["numeroPedido"]),
+                    "ad_mkp_codped"    : payload_olist["ecommerce"]["numeroPedidoEcommerce"],
+                    "ad_mkp_origem"    : int(payload_olist["ecommerce"]["id"]),
+                    "codemp"           : ins_tgfcab["CODEMP"],
+                    "codcencus"        : ins_tgfcab["CODCENCUS"],
+                    "dtneg"            : payload_olist["data"],
+                    "dtmov"            : payload_olist["data"],
+                    "dtalter"          : payload_olist["data"],
+                    "codempnegoc"      : ins_tgfcab["CODEMP"],
+                    "codparc"          : ins_tgfcab["CODPARC"],
+                    "codtipoper"       : ins_tgfcab["CODTIPOPER"],
+                    "dhtipoper"        : parametros["dhalter_top"],
+                    "tipmov"           : ins_tgfcab["TIPMOV"],
+                    "codtipvenda"      : ins_tgfcab["CODTIPVENDA"],
+                    "dhtipvenda"       : parametros["dhalter_tpv"],
+                    "codvend"          : ins_tgfcab["CODVEND"],
+                    "observacao"       : f"#{int(payload_olist["numeroPedido"])} - TESTE IMPORTAÇÃO API OLIST",
+                    "vlrdesctot"       : float(payload_olist["valorDesconto"]),
+                    "vlrdesctotitem"   : float(payload_olist["valorDesconto"]),
+                    "vlrfrete"         : float(payload_olist["valorFrete"]),
+                    "cif_fob"          : "C" if payload_olist["transportador"]["fretePorConta"] == "R" else "F" if payload_olist["transportador"]["fretePorConta"] == "D" else "",
+                    "vlrnota"          : float(payload_olist["valorTotalPedido"]),
+                    "qtdvol"           : 0,
+                    "baseicms"         : float(payload_olist["valorTotalPedido"]),
+                    "vlricms"          : float(payload_olist["valorTotalPedido"] * 0.12),
+                    "baseipi"          : float(0),
+                    "vlripi"           : float(0),
+                    "issretido"        : "N",
+                    "baseiss"          : float(0),
+                    "vlriss"           : float(0),
+                    "aprovado"         : ins_tgfcab["APROVADO"],
+                    "codusu"           : ins_tgfcab["CODUSU"],
+                    "irfretido"        : "N",
+                    "vlrirf"           : float(0),
+                    "volume"           : ins_tgfcab["VOLUME"],
+                    "vlrsubst"         : float(0),
+                    "basesubstit"      : float(0),
+                    "peso"             : 0,
+                    "codnat"           : ins_tgfcab["CODNAT"],
+                    "vlrfretecpl"      : float(0),
+                    "codusuinc"        : ins_tgfcab["CODUSU"],
+                    "baseirf"          : float(0),
+                    "aliqirf"          : float(0),
+                    "pesobruto"        : 0,
+                    "hrentsai"         : payload_olist["data"],
+                    "libconf"          : "N",
+                    "vlricmsdifaldest" : float(0),
+                    "vlricmsdifalrem"  : float(0),
+                    "vlricmsfcp"       : float(0),
+                    "codcidorigem"     : ins_tgfcab["CODCID"],
+                    "coduforigem"      : ins_tgfcab["CODUF"],
+                    "codciddestino"    : parametros["cid_destino"],
+                    "codufdestino"     : parametros["uf_destino"],
+                    "codcidentrega"    : parametros["cid_entrega"],
+                    "codufentrega"     : parametros["uf_entrega"],
+                    "classificms"      : ins_tgfcab["CLASSIFICMS"],
+                    "vlricmsfcpint"    : float(0),
+                    "vlrstfcpintant"   : float(0),
+                    "statuscfe"        : "N",
+                    "histconfig"       : "S",
+                    "ad_idshopee"      : payload_olist["ecommerce"]["numeroPedidoEcommerce"],
+                    "ad_taxashopee"    : float(0) 
+                }
+                return True, valores_insert
+            else:
+                return False, {}
+        else:
+            print("Dados olist faltantes")
+            return False, {}
+
+    async def atualiza_seqs(self,**kwargs):
+
+        seq1 = await self.db.dml(query='''
+                        UPDATE TGFNUM
+                        SET    ULTCOD = :P_PROXCOD
+                        WHERE  ARQUIVO = :P_TABELA
+                    ''',
+                    params= {"P_PROXCOD":int(kwargs["nunota_nextval"]),
+                             "P_TABELA":"TGFCAB"})
+        seq2 = await self.db.dml(query='''
+                        UPDATE TGFNUM
+                        SET    ULTCOD = :P_PROXCOD
+                        WHERE  ARQUIVO = :P_TABELA AND CODEMP = 31
+                    ''',
+                    params= {"P_PROXCOD":int(kwargs["numnota_nextval"]),
+                             "P_TABELA":"PEDVEN"})        
+        
+        return True if seq1[0] and seq2[0] else False
+    
+    async def registrar(self, payload:dict=None) -> tuple[bool,int]:
+        file_path = configSankhya.PATH_INSERT_PEDIDO_CAB
+        it = item.Item()
+        pr = parcela.Parcela()
+
+        if not os.path.exists(file_path):
+            logger.error("Script de insert da TGFCAB não encontrado em %s",file_path)
+            return False, None
+        else: 
+            print("> Preparando os dados...")
+            ack, data = await self.preparacao(payload_olist=payload)
+            if ack:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    query = f.read()
+                print("> Inserindo dados do cabeçalho...")
+                ack_cab, rows_cab = await self.db.dml(query=query,params=data)
+                if ack_cab:
+                    print(f"> Cabeçalho do pedido {data["nunota"]} inserido com sucesso!")
+                    logger.info("Cabeçalho do pedido %s inserido com sucesso.",data["nunota"])
+                    if payload.get("itens"):
+                        print("> Lançando produtos no pedido...")
+                        rows_itens = 0
+                        for i, it_dict in enumerate(payload["itens"]):
+                            #print(i)
+                            #print(it_dict)
+                            #print("")
+                            
+                            ack_ite, rows_ite = await it.registrar(payload=it_dict,
+                                                                   nunota=data["nunota"],
+                                                                   sequencia=i+1)
+                            if ack_ite:
+                                rows_itens+=rows_ite
+                        if rows_itens == len(payload["itens"]):
+                            ack_itens = True
+                            print(f"> Todos os itens do pedido {data["nunota"]} inseridos com sucesso!")
+                        else:
+                            ack_itens = False
+                            print(f"Nem todos os itens do pedido {data["nunota"]} inseridos. Verifique os logs.")
+                    else:
+                        ack_itens = True
+                        print(f"> Não tem itens no pedido!")
+
+                    if payload["pagamento"].get("parcelas"):
+                        print("> Lançando financeiro do pedido...")
+                        rows_fins = 0
+                        for i, fin_dict in enumerate(payload["pagamento"]["parcelas"]):
+                            #print(fin_dict)
+                            ack_fin, rows_fin = await pr.registrar(payload=fin_dict,
+                                                                   nunota=data["nunota"],
+                                                                   numnota=data["numnota"]
+                                                                   )
+                            if ack_fin:
+                                rows_fins+=rows_fin
+                        if rows_fins == len(payload["pagamento"]["parcelas"]):
+                            ack_fins = True
+                            print(f"> Todos os financeiros do pedido {data["nunota"]} inseridos com sucesso!")
+                        else:
+                            ack_fins = False
+                            print(f"Nem todos os financeiros do pedido {data["nunota"]} inseridos. Verifique os logs.")                            
+                    else:
+                        ack_fins = True
+                        print(f"> Não tem financeiro no pedido!")
+                    
+                    # return True, data["nunota"] if ack_cab and ack_itens and ack_fins else False, None
+                    if ack_cab and ack_itens and ack_fins:
+                        await self.atualiza_seqs(nunota_nextval=data["nunota"],numnota_nextval=data["numnota"])
+                        print(f">>> Pedido {payload['numeroPedido']} importado com sucesso! Nº único {data["nunota"]}")
+                        return True, data["nunota"]
+                    else:
+                        return False, None
+                else:
+                    print(f"Erro ao inserir cabeçalho do pedido {data["nunota"]}. Verifique os logs")
+                    logger.error("Erro ao inserir cabeçalho do pedido %s.",data["nunota"])        
+                    return False, None
+            else:
+                print(f"Erro preparar dados para inserção do pedido {payload["numeroPedido"]}. Verifique os logs")
+                logger.error("Erro preparar dados para inserção do pedido %s.",payload["numeroPedido"])        
+                return False, None
+
                 
 
 
-    async def atualizar(self, params: dict=None) -> tuple[bool,int]:
-        """
-        Atualiza os dados do produto no banco de dados com os parâmetros informados.
-
-        Args:
-            params (dict): Dicionário com os parâmetros para a atualização.
-
-        Returns:
-            tuple: Tupla contendo um booleano indicando sucesso e o número de linhas afetadas (ou None).
-        """
-
-        if not os.path.exists(configSankhya.PATH_UPDATE_PRODUTO):
-            logger.error("Script de update da TGFPRO não encontrado em %s",configSankhya.PATH_UPDATE_PRODUTO)
-            return False, None
-        else: 
-            db = dbConfig()   
-            with open(configSankhya.PATH_UPDATE_PRODUTO, "r", encoding="utf-8") as f:
-                query = f.read()
-                ack, rows = await db.dml(query=query,params=params)
-                if ack:
-                   return ack, rows
-                else:
-                    return ack, None
-        
             
