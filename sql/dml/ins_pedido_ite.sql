@@ -1,0 +1,32 @@
+INSERT INTO TGFITE
+(   NUNOTA,
+    SEQUENCIA,
+    CODEMP,
+    CODPROD,
+    CODLOCALORIG,
+    USOPROD,    
+    QTDNEG,
+    VLRUNIT,
+    VLRTOT,    
+    CODVOL,
+    ATUALESTOQUE,
+    RESERVA,
+    STATUSNOTA,
+    CODVEND
+)
+VALUES
+(   :NUNOTA,
+    :SEQUENCIA,
+    :CODEMP,
+    :CODPROD,
+    :CODLOCALORIG,
+    :USOPROD,    
+    :QTDNEG,
+    :VLRUNIT,
+    :VLRTOT,    
+    :CODVOL,
+    :ATUALESTOQUE,
+    :RESERVA,
+    :STATUSNOTA,
+    :CODVEND
+)
