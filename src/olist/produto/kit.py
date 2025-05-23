@@ -40,9 +40,9 @@ class Kit:
         """        
         if payload:
             try:
-                self.produto_id        = payload["produto_id"]
-                self.produto_sku       = payload["produto_sku"]
-                self.produto_descricao = payload["produto_descricao"]
+                self.produto_id        = payload["produto"]["id"]
+                self.produto_sku       = payload["produto"]["sku"]
+                self.produto_descricao = payload["produto"]["descricao"]
                 self.quantidade        = payload["quantidade"]
                 return True
             except Exception as e:
@@ -67,9 +67,9 @@ class Kit:
             else:    
                 with open(configOlist.PATH_OBJECT_PRODUTO_KIT, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                data["produto_id"]        = self.produto_id
-                data["produto_sku"]       = self.produto_sku
-                data["produto_descricao"] = self.produto_descricao
+                data["produto"]["id"]        = self.produto_id
+                data["produto"]["sku"]       = self.produto_sku
+                data["produto"]["descricao"] = self.produto_descricao
                 data["quantidade"]        = self.quantidade
                 return data               
         except Exception as e:
