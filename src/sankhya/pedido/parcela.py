@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from params               import config, configSankhya
 from src.sankhya.dbConfig import dbConfig
@@ -26,6 +27,7 @@ class Parcela:
                 codtipoper:int=None,
                 dhtipoper:str=None,
                 codbco:int=None,
+                codctabcoint:int=None,
                 codnat:int=None,
                 codvend:int=None,
                 codtiptit:int=None,
@@ -43,7 +45,7 @@ class Parcela:
                 dtprazo:str=None,
                 ad_taxashopee:int=None
             ):
-        
+        self.db              = dbConfig()
         self.nufin           = nufin
         self.codemp          = codemp
         self.numnota         = numnota
@@ -56,6 +58,7 @@ class Parcela:
         self.codtipoper      = codtipoper
         self.dhtipoper       = dhtipoper
         self.codbco          = codbco
+        self.codctabcoint    = codctabcoint
         self.codnat          = codnat
         self.codvend         = codvend
         self.codtiptit       = codtiptit
@@ -74,7 +77,6 @@ class Parcela:
         self.ad_taxashopee   = ad_taxashopee
         pass
 
-
     def decodificar(self,data:dict=None) -> bool:
         if data:
             try:
@@ -91,6 +93,7 @@ class Parcela:
                 self.codtipoper      = data["codtipoper"]
                 self.dhtipoper       = data["dhtipoper"]
                 self.codbco          = data["codbco"]
+                self.codctabcoint    = data["codctabcoint"]
                 self.codnat          = data["codnat"]
                 self.codvend         = data["codvend"]
                 self.codtiptit       = data["codtiptit"]
@@ -124,13 +127,12 @@ class Parcela:
             logger.error("Script da TGFFIN não encontrado em %s",file_path)
             return False
         else:    
-            db = dbConfig()
             with open(file_path, "r", encoding="utf-8") as f:
                 query = f.read()
                 
                 try:
                     params = {"NUNOTA": nunota or self.nunota}
-                    rows = await db.select(query=query,params=params)
+                    rows = await self.db.select(query=query,params=params)
                                         
                     if rows:
                         self.decodificar(rows[0])
@@ -141,3 +143,84 @@ class Parcela:
                     logger.error("Nº único do pedido %s",self.nunota)
                     return False
                 
+    async def buscar_parametros(self,**kwargs) -> tuple:   
+        try:
+            dhalter_top = await self.db.select(query='''
+                                                    SELECT MAX(DHALTER) DHALTER
+                                                    FROM TGFTOP
+                                                    WHERE CODTIPOPER = :CODTIPOPER
+                                                ''',
+                                                params={"CODTIPOPER":kwargs['codtipoper']})
+            return { "dhalter_top":dhalter_top[0]['dhalter'].strftime('%Y-%m-%d %H:%M:%S') }
+        except:
+            print("erro ao buscar parametros")
+
+    async def preparacao(self,payload_olist:dict=None,nunota:int=None,numnota:int=None) -> tuple[bool,dict]:
+        file_path = configSankhya.PATH_PARAMS_INS_PEDIDO_FIN
+
+        if payload_olist and nunota and numnota:
+            try:
+                if not os.path.exists(file_path):
+                    raise FileNotFoundError("Parametros de inserção de movimentação financeira não encontrados.")
+                with open(file_path, "r", encoding="utf-8") as f:
+                    ins_tgffin = json.load(f)
+            except Exception as e:
+                print(f"Erro: {e}")
+
+            parametros = await self.buscar_parametros( codtipoper  = ins_tgffin['CODTIPOPER'] )                
+            
+            valores_insert = {
+                "CODEMP"        : ins_tgffin["CODEMP"],
+                "NUMNOTA"       : int(numnota),
+                "DTNEG"         : payload_olist["data"],
+                "DESDOBRAMENTO" : ins_tgffin["DESDOBRAMENTO"],
+                "DTVENCINIC"    : payload_olist["data"],
+                "DTVENC"        : payload_olist["data"],
+                "CODPARC"       : ins_tgffin["CODPARC"],
+                "CODTIPOPER"    : ins_tgffin["CODTIPOPER"],
+                "DHTIPOPER"     : parametros["dhalter_top"],
+                "CODBCO"        : ins_tgffin["CODBCO"],
+                "CODCTABCOINT"  : ins_tgffin["CODCTABCOINT"],
+                "CODNAT"        : ins_tgffin["CODNAT"],
+                "CODVEND"       : ins_tgffin["CODVEND"],
+                "CODTIPTIT"     : ins_tgffin["CODTIPTIT"],
+                "VLRDESDOB"     : float(payload_olist["valor"]),
+                "RECDESP"       : ins_tgffin["RECDESP"],
+                "PROVISAO"      : ins_tgffin["PROVISAO"],
+                "ORIGEM"        : ins_tgffin["ORIGEM"],
+                "TIPMARCCHEQ"   : ins_tgffin["TIPMARCCHEQ"],
+                "NUNOTA"        : int(nunota),
+                "CODUSU"        : ins_tgffin["CODUSU"],
+                "SEQUENCIA"     : 1,
+                "TPAGNFCE"      : ins_tgffin["TPAGNFCE"],
+                "DTPRAZO"       : payload_olist["data"],
+                "AD_TAXASHOPEE" : 0
+            }
+
+            return True, valores_insert
+        else:
+            print("Dados faltantes")
+
+    async def atualiza_seqs(self,kwargs):
+
+        pass
+
+    async def registrar(self, payload:dict=None, nunota:int=None, numnota:int=None) -> tuple[bool,int]:
+        file_path = configSankhya.PATH_INSERT_PEDIDO_FIN
+
+        if not os.path.exists(file_path):
+            logger.error("Script de insert da TGFFIN não encontrado em %s",file_path)
+            return False, None
+        else: 
+            ack, data = await self.preparacao(payload_olist=payload,
+                                              nunota=nunota,
+                                              numnota=numnota)
+            if ack:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    query = f.read()
+                ack2, rows = await self.db.dml(query=query,params=data)
+                if ack2:
+                    logger.info("Financeiro inserido no pedido %s com sucesso",nunota)
+                    return ack2, rows
+                else:
+                    return ack2, None     
