@@ -197,7 +197,7 @@ class Pedido:
     def decodificar(self,payload:dict=None) -> bool:
         
         if payload:
-            print(payload)
+            #print(payload)
             try:
                 self.dataPrevista                = payload["dataPrevista"]
                 self.dataEnvio                   = payload["dataEnvio"]
@@ -346,92 +346,110 @@ class Pedido:
             logger.error("Não foram informados dados para decodificar")
             return False
 
-    def encodificar(self) -> dict:
+    async def encodificar(self) -> dict:
         obj = {}
         data = {}
-        if not os.path.exists(configOlist.PATH_OBJECT_PRODUTO):
-            logger.error("Objeto do produto não encontrado em %s",configOlist.PATH_OBJECT_PRODUTO)
+        file_path = configOlist.PATH_OBJECT_PEDIDO
+        if not os.path.exists(file_path):
+            logger.error("Objeto do pedido não encontrado em %s",file_path)
             return {"status":"Erro"}
         else:    
-            with open(configOlist.PATH_OBJECT_PRODUTO, "r", encoding="utf-8") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 obj = json.load(f)        
 
         if self.acao == 'get':
             try:
                 data = obj[self.acao]
-                data["id"]                                        = self.id                           
-                data["sku"]                                       = self.sku                          
-                data["descricao"]                                 = self.descricao                    
-                data["descricaoComplementar"]                     = self.descricaoComplementar        
-                data["tipo"]                                      = self.tipo                         
-                data["situacao"]                                  = self.situacao                     
-                data["produtoPai"]["id"]                          = self.produtoPai_id                
-                data["produtoPai"]["sku"]                         = self.produtoPai_sku               
-                data["produtoPai"]["descricao"]                   = self.produtoPai_descricao         
-                data["unidade"]                                   = self.unidade                      
-                data["unidadePorCaixa"]                           = self.unidadePorCaixa              
-                data["ncm"]                                       = self.ncm                          
-                data["gtin"]                                      = self.gtin                         
-                data["origem"]                                    = self.origem                       
-                data["codigoEspecificadorSubstituicaoTributaria"] = self.cest                           
-                data["garantia"]                                  = self.garantia                     
-                data["observacoes"]                               = self.observacoes                  
-                data["categoria"]["id"]                           = self.categoria_id                 
-                data["categoria"]["nome"]                         = self.categoria_nome               
-                data["categoria"]["caminhoCompleto"]              = self.categoria_caminhoCompleto    
-                data["marca"]["id"]                               = self.marca_id                     
-                data["marca"]["nome"]                             = self.marca_nome                   
-                data["dimensoes"]["embalagem"]["id"]              = self.dimensoes_embalagem_id       
-                data["dimensoes"]["embalagem"]["tipo"]            = self.dimensoes_embalagem_tipo     
-                data["dimensoes"]["embalagem"]["descricao"]       = self.dimensoes_embalagem_descricao
-                data["dimensoes"]["largura"]                      = self.dimensoes_largura            
-                data["dimensoes"]["altura"]                       = self.dimensoes_altura             
-                data["dimensoes"]["comprimento"]                  = self.dimensoes_comprimento        
-                data["dimensoes"]["diametro"]                     = self.dimensoes_diametro           
-                data["dimensoes"]["pesoLiquido"]                  = self.dimensoes_pesoLiquido        
-                data["dimensoes"]["pesoBruto"]                    = self.dimensoes_pesoBruto          
-                data["dimensoes"]["quantidadeVolumes"]            = self.dimensoes_quantidadeVolumes  
-                data["precos"]["preco"]                           = self.preco                        
-                data["precos"]["precoPromocional"]                = self.precoPromocional             
-                data["precos"]["precoCusto"]                      = self.precoCusto                   
-                data["precos"]["precoCustoMedio"]                 = self.precoCustoMedio              
-                data["estoque"]["controlar"]                      = self.estoque_controlar            
-                data["estoque"]["sobEncomenda"]                   = self.estoque_sobEncomenda         
-                data["estoque"]["diasPreparacao"]                 = self.estoque_diasPreparacao       
-                data["estoque"]["localizacao"]                    = self.estoque_localizacao          
-                data["estoque"]["minimo"]                         = self.estoque_minimo               
-                data["estoque"]["maximo"]                         = self.estoque_maximo               
-                data["estoque"]["quantidade"]                     = self.estoque_quantidade           
-                data["estoque"]["inicial"]                        = self.estoque_inicial           
-                data["seo"]["titulo"]                             = self.seo_titulo                   
-                data["seo"]["descricao"]                          = self.seo_descricao                
-                data["seo"]["keywords"]                           = self.seo_keywords                 
-                data["seo"]["linkVideo"]                          = self.seo_linkVideo                
-                data["seo"]["slug"]                               = self.seo_slug                     
-                data["tributacao"]["gtinEmbalagem"]               = self.tributacao_gtinEmbalagem     
-                data["tributacao"]["valorIPIFixo"]                = self.tributacao_valorIPIFixo      
-                data["tributacao"]["classeIPI"]                   = self.tributacao_classeIPI         
+                data["dataPrevista"]                        = self.dataPrevista
+                data["dataEnvio"]                           = self.dataEnvio
+                data["observacoes"]                         = self.observacoes
+                data["observacoesInternas"]                 = self.observacoesInternas
+                data["situacao"]                            = self.situacao
+                data["data"]                                = self.data
+                data["dataEntrega"]                         = self.dataEntrega
+                data["numeroOrdemCompra"]                   = self.numeroOrdemCompra
+                data["valorDesconto"]                       = self.valorDesconto
+                data["valorFrete"]                          = self.valorFrete
+                data["valorOutrasDespesas"]                 = self.valorOutrasDespesas
+                data["id"]                                  = self.id
+                data["numeroPedido"]                        = self.numeroPedido
+                data["idNotaFiscal"]                        = self.idNotaFiscal
+                data["dataFaturamento"]                     = self.dataFaturamento
+                data["valorTotalProdutos"]                  = self.valorTotalProdutos
+                data["valorTotalPedido"]                    = self.valorTotalPedido
+                data["listaPreco"]["id"]                    = self.listaPreco_id
+                data["listaPreco"]["nome"]                  = self.listaPreco_nome
+                data["listaPreco"]["acrescimoDesconto"]     = self.listaPreco_acrescimoDesconto
+                data["cliente"]["nome"]                     = self.cliente_nome
+                data["cliente"]["codigo"]                   = self.cliente_codigo
+                data["cliente"]["fantasia"]                 = self.cliente_fantasia
+                data["cliente"]["tipoPessoa"]               = self.cliente_tipoPessoa
+                data["cliente"]["cpfCnpj"]                  = self.cliente_cpfCnpj
+                data["cliente"]["inscricaoEstadual"]        = self.cliente_inscricaoEstadual
+                data["cliente"]["rg"]                       = self.cliente_rg
+                data["cliente"]["telefone"]                 = self.cliente_telefone
+                data["cliente"]["celular"]                  = self.cliente_celular
+                data["cliente"]["email"]                    = self.cliente_email
+                data["cliente"]["endereco"]["endereco"]     = self.cliente_endereco_endereco
+                data["cliente"]["endereco"]["numero"]       = self.cliente_endereco_numero
+                data["cliente"]["endereco"]["complemento"]  = self.cliente_endereco_complemento
+                data["cliente"]["endereco"]["bairro"]       = self.cliente_endereco_bairro
+                data["cliente"]["endereco"]["municipio"]    = self.cliente_endereco_municipio
+                data["cliente"]["endereco"]["cep"]          = self.cliente_endereco_cep
+                data["cliente"]["endereco"]["uf"]           = self.cliente_endereco_uf
+                data["cliente"]["endereco"]["pais"]         = self.cliente_endereco_pais
+                data["cliente"]["id"]                       = self.cliente_id
+                data["enderecoEntrega"]["endereco"]         = self.enderecoEntrega_endereco
+                data["enderecoEntrega"]["numero"]           = self.enderecoEntrega_numero
+                data["enderecoEntrega"]["complemento"]      = self.enderecoEntrega_complemento
+                data["enderecoEntrega"]["bairro"]           = self.enderecoEntrega_bairro
+                data["enderecoEntrega"]["municipio"]        = self.enderecoEntrega_municipio
+                data["enderecoEntrega"]["cep"]              = self.enderecoEntrega_cep
+                data["enderecoEntrega"]["uf"]               = self.enderecoEntrega_uf
+                data["enderecoEntrega"]["pais"]             = self.enderecoEntrega_pais
+                data["enderecoEntrega"]["nomeDestinatario"] = self.enderecoEntrega_nomeDestinatario
+                data["enderecoEntrega"]["cpfCnpj"]          = self.enderecoEntrega_cpfCnpj
+                data["enderecoEntrega"]["tipoPessoa"]       = self.enderecoEntrega_tipoPessoa
+                data["ecommerce"]["id"]                     = self.ecommerce_id
+                data["ecommerce"]["nome"]                   = self.ecommerce_nome
+                data["ecommerce"]["numeroPedidoEcommerce"]  = self.ecommerce_numeroPedidoEcommerce
+                data["ecommerce"]["numeroPedidoCanalVenda"] = self.ecommerce_numeroPedidoCanalVenda
+                data["ecommerce"]["canalVenda"]             = self.ecommerce_canalVenda
+                data["transportador"]["id"]                 = self.transportador_id
+                data["transportador"]["nome"]               = self.transportador_nome
+                data["transportador"]["fretePorConta"]      = self.transportador_fretePorConta
+                data["transportador"]["formaEnvio"]["id"]   = self.transportador_formaEnvio_id
+                data["transportador"]["formaEnvio"]["nome"] = self.transportador_formaEnvio_nome
+                data["transportador"]["formaFrete"]["id"]   = self.transportador_formaFrete_id
+                data["transportador"]["formaFrete"]["nome"] = self.transportador_formaFrete_nome
+                data["transportador"]["codigoRastreamento"] = self.transportador_codigoRastreamento
+                data["transportador"]["urlRastreamento"]    = self.transportador_urlRastreamento
+                data["deposito"]["id"]                      = self.deposito_id
+                data["deposito"]["nome"]                    = self.deposito_nome
+                data["vendedor"]["id"]                      = self.vendedor_id
+                data["vendedor"]["nome"]                    = self.vendedor_nome
+                data["naturezaOperacao"]["id"]              = self.naturezaOperacao_id
+                data["naturezaOperacao"]["nome"]            = self.naturezaOperacao_nome
+                data["intermediador"]["id"]                 = self.intermediador_id
+                data["intermediador"]["nome"]               = self.intermediador_nome
+                data["intermediador"]["cnpj"]               = self.intermediador_cnpj
+                data["pagamento"]["formaPagamento"]["id"]   = self.pagamento_formaPagamento_id
+                data["pagamento"]["formaPagamento"]["nome"] = self.pagamento_formaPagamento_nome
+                data["pagamento"]["meioPagamento"]["id"]    = self.pagamento_meioPagamento_id
+                data["pagamento"]["meioPagamento"]["nome"]  = self.pagamento_meioPagamento_nome
+                data["pagamento"]["condicaoPagamento"]      = self.pagamento_condicaoPagamento      
                 
-                fornecedores_list = list()
-                for fo in self.fornecedores:
-                    fornecedores_list.append(fo.encodificar())
+                itens_list = list()
+                for it in self.itens:
+                    itens_list.append(it.encodificar(self.acao))
                 
-                anexos_list = list()
-                for an in self.anexos:
-                    anexos_list.append(an.encodificar())
-                
-                variacoes_list = list()
-                for va in self.variacoes:
-                    variacoes_list.append(va.encodificar())
-                
-                kits_list = list()
-                for ki in self.kits:
-                    kits_list.append(ki.encodificar())
+                parcelas_list = list()
+                for pr in self.pagamento_parcelas:
+                    parcelas_list.append(pr.encodificar(self.acao))
 
-                data["fornecedores"]                        = fornecedores_list
-                data["anexos"]                              = anexos_list                       
-                data["variacoes"]                           = variacoes_list                    
-                data["kit"]                                 = kits_list
+                data["itens"]                 = itens_list
+                data["pagamento"]["parcelas"] = parcelas_list
+                
                 return data               
             except Exception as e:
                 logger.error("Erro ao formatar dict produto: %s",e)
@@ -552,7 +570,7 @@ class Pedido:
     async def buscar(self, id:int=None) -> bool:
         
         url = self.endpoint+f"/{id or self.id}"        
-        print(url)
+        #print(url)
         try:
             token = self.con.get_latest_valid_token_or_refresh()
             if url and token:                
@@ -584,7 +602,7 @@ class Pedido:
     async def buscar_novos(self) -> tuple[bool, list]:
 
         url = self.endpoint+"?situacao=0"
-        print(url)
+        #print(url)
         try:
             token = self.con.get_latest_valid_token_or_refresh()
             if url and token:                
