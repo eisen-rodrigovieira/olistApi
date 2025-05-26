@@ -54,9 +54,10 @@ class App:
             with open(configOlist.PATH_HISTORICO_PRODUTO, "w", encoding="utf-8") as f:
                 json.dump(historico, f, indent=4, ensure_ascii=False)
 
-        async def snk_atualizar_produtos(self) -> bool:
+        async def snk_atualizar_produtos(self) -> tuple[bool,list]:
 
             regex_cest_ncm = r"[.]"
+            res = []
                 
             print("Iniciando busca dos produtos com alteração no Olist.")
             _olProd = olProduto()
@@ -157,30 +158,36 @@ class App:
                                     print(f"Atualizando produto {snkProd.sku}")
                                     ack, num = await snkProd.atualizar(params=params)
                                     if ack:
+                                        res.append(f"Produto {snkProd.sku} atualizado com sucesso.")
                                         print(f"Produto {snkProd.sku} atualizado com sucesso.")
                                         self.atualiza_historico(produto_alterado=snkProd.id,sentido=1)
                                     else:
                                         raise Exception(f"Falha ao atualizar os dados do produto {snkProd.id} na base Sankhya. Verifique os logs.")
                                 else:
+                                    res.append(f"Produto {snkProd.id} sem atualizações a serem sincronizadas Olist > Sankhya")
                                     print(f"Produto {snkProd.id} sem atualizações a serem sincronizadas Olist > Sankhya") 
                             else:
                                 if olProd.tipo == 'V':
+                                    res.append(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
                                     print(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
                                 else:
+                                    res.append(f"Produto {olProd.id} não tem vínculo com o Sankhya (SKU em branco ou inválido)") 
                                     print(f"Produto {olProd.id} não tem vínculo com o Sankhya (SKU em branco ou inválido)") 
                         else:
                             raise Exception(f"Falha ao buscar os dados do produto {olProd.id} na base Olist. Verifique os logs.")
                     else:
                         pass                    
                 print("Rotina concluída.")   
-                return True         
+                return True, res        
             else: 
+                res.append("Nenhum produto com alteração")
                 print("Nenhum produto com alteração")
-                return True
+                return True, res
 
-        async def ol_atualizar_produtos(self) -> bool:
+        async def ol_atualizar_produtos(self) -> tuple[bool,list]:
             
             regex_cest_ncm = r"[.]"
+            values = []            
                 
             print("Iniciando busca das alterações no Sankhya.")
             fetch = await self.app.db.select(query='select * from MKP_SYNCPRODUTO')
@@ -261,11 +268,13 @@ class App:
                             ack, rows = await self.app.db.dml(query=query,params=params)
 
                             if ack:
+                                values.append(f"Produto {olProd.id} atualizado com sucesso.")
                                 print(f"Produto {olProd.id} atualizado com sucesso.")
                                 self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)
                             else:
                                 raise Exception(f"Erro: Produto {olProd.id} atualizado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
                         elif res and val == 0:
+                            values.append(f"Produto {olProd.id} não encontrado")                        
                             print(f"Produto {olProd.id} não encontrado")                        
                         else:
                             raise Exception(f"Falha ao atualizar os dados do produto {olProd.id} na base Olist. Verifique os logs.")         
@@ -296,6 +305,7 @@ class App:
                             ack, rows = await self.app.db.dml(query=query,params=params)
 
                             if ack:
+                                values.append(f"Produto {olProd.id} inativado com sucesso.")
                                 print(f"Produto {olProd.id} inativado com sucesso.")
                                 self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)
                             else:
@@ -391,6 +401,7 @@ class App:
                             ack2, rows2 = await self.app.db.dml(query=query,params=params)
 
                             if ack1 and ack2:
+                                values.append(f"Produto {f["codprod"]} incluído com sucesso no ID {val}.")
                                 print(f"Produto {f["codprod"]} incluído com sucesso no ID {val}.")
                                 self.atualiza_historico(produto_incluido=val)
                             else:
@@ -398,10 +409,10 @@ class App:
                         else:
                             raise Exception(f"Falha ao incluir produto {f["codprod"]} na base Olist. Verifique os logs.")
                 print("Rotina concluída.")
-                return True
+                return True, values
             else:
-                print("Nenhum produto com alteração")
-                return True
+                values.append("Nenhum produto com alteração")
+                return True, values
 
     class Pedido:
 
@@ -449,6 +460,8 @@ class App:
                     olPed = olPedido()
                     snkPed = snkPedido()
                     if not await self.app.db.select('SELECT 1 FROM TGFCAB WHERE AD_MKP_ID = :ID',{"ID":novo_pedido}):
+                        print("")
+                        time.sleep(self.app.req_sleep)
                         if await olPed.buscar(id=novo_pedido):
                             dados_pedido = await olPed.encodificar()
                             ack2, num_unico = await snkPed.registrar(dados_pedido)            
@@ -456,10 +469,9 @@ class App:
                                 lista_inclusoes.append(num_unico) 
                         else:
                             print(f"Falha ao buscar dados do pedido ID {novo_pedido}. Verifique os logs")
+                        print("")
                     else:
-                        print(f"Pedido ID {novo_pedido} já foi importado para o Sankhya.")                        
-                    time.sleep(self.app.req_sleep)
-                print("")
+                        print(f"Pedido ID {novo_pedido} já foi importado para o Sankhya.")                                            
             else:
                 print("Falha ao buscar relação dos pedidos novos")
             print("Fim da rotina :D")
