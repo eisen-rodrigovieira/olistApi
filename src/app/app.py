@@ -27,7 +27,7 @@ class App:
     class Produto:
 
         def __init__(self):
-            self.app = App()            
+            self.app = App()     
 
         def atualiza_historico(self, produto_alterado:int=None, produto_incluido:int=None, sentido:int=None):
 
@@ -68,18 +68,19 @@ class App:
 
                 for produto in produtos_com_alteracao:
                     print("")
-                    time.sleep(self.app.req_sleep)
+                    
                     
                     snkProd = snkProduto()
                     olProd  = olProduto()
-                    if produto:                
+                    if produto["sku"]:
+                        time.sleep(self.app.req_sleep)             
                         snkProd.sku = produto["sku"]
                         olProd.id   = produto["id"]
 
                         if await olProd.buscar():
                             if olProd.tipo == 'S' and olProd.sku and await snkProd.buscar():
                                                 
-                                print(f"Comparando dados do produto {snkProd.sku}")     
+                                #print(f"Comparando dados do produto {snkProd.sku}")     
                                 olProd.ncm = re.sub(regex_cest_ncm, '', olProd.ncm)
 
                                 new_id                          = olProd.id                          if int(snkProd.id or 0)                          != int(olProd.id or 0)                          else None
@@ -159,6 +160,7 @@ class App:
                                     ack, num = await snkProd.atualizar(params=params)
                                     if ack:
                                         res.append(f"Produto {snkProd.sku} atualizado com sucesso.")
+                                        
                                         print(f"Produto {snkProd.sku} atualizado com sucesso.")
                                         self.atualiza_historico(produto_alterado=snkProd.id,sentido=1)
                                     else:
@@ -176,7 +178,8 @@ class App:
                         else:
                             raise Exception(f"Falha ao buscar os dados do produto {olProd.id} na base Olist. Verifique os logs.")
                     else:
-                        pass                    
+                        res.append(f"Produto {produto["id"]} não tem vínculo com o Sankhya (sem SKU)")
+                        print(f"Produto {produto["id"]} não tem vínculo com o Sankhya (sem SKU)")
                 print("Rotina concluída.")   
                 return True, res        
             else: 
