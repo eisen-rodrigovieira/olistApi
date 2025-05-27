@@ -9,5 +9,5 @@ ENDPOINT_CLIENTES = '/contatos'
 PATH_TOKENS       = 'json/tokens_history.json'
 PATH_LOGS         = "src/logs/olistApi.log"
 LOGGER_FORMAT     = '%(asctime)s | %(levelname)s | %(name)s line:%(lineno)d >> %(message)s'
-REQ_TIME_SLEEP    = 2
+REQ_TIME_SLEEP    = 1.5
 
