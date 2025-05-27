@@ -65,6 +65,7 @@ with st.container():
 
     st.subheader("🛒 Pedidos")
     st.warning("👷🏼⚠️ Em desenvolvimento")
+    
     # col1_pd, col2_pd, col3_pd = st.columns(3)
     # with col1_pd:
     #     btn_send_pd = st.button("📤 Enviar atualizações para Olist",key='btn_send_pd',use_container_width=True,disabled=True)
