@@ -100,6 +100,7 @@ class Pedido:
         self.con                           = Connect()  
         self.req_sleep                     = config.REQ_TIME_SLEEP  
         self.endpoint                      = config.API_URL+config.ENDPOINT_PEDIDOS        
+        self.situacao_incial               = configOlist.SITUACAO_INICIAL
         self.dataPrevista = dataPrevista
         self.dataEnvio = dataEnvio
         self.observacoes = observacoes
@@ -601,8 +602,7 @@ class Pedido:
 
     async def buscar_novos(self) -> tuple[bool, list]:
 
-        url = self.endpoint+"?situacao=0"
-        #print(url)
+        url = self.endpoint+f"?situacao={self.situacao_incial}"
         try:
             token = self.con.get_latest_valid_token_or_refresh()
             if url and token:                
