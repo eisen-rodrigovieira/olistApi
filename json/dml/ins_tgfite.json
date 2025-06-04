@@ -6,5 +6,6 @@
     "CODUSU"       : 136,
     "ATUALESTOQUE" : 1,
     "RESERVA"      : "S",
-    "STATUSNOTA"   : "P"
+    "STATUSNOTA"   : "P",
+    "CSTIPI"       : -1
 }
