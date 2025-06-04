@@ -244,8 +244,8 @@ class App:
                         olProd.dimensoes_quantidadeVolumes = snkProd.dimensoes_quantidadeVolumes if int(snkProd.dimensoes_quantidadeVolumes or 0) != int(olProd.dimensoes_quantidadeVolumes or 0) else olProd.dimensoes_quantidadeVolumes
                         olProd.preco                       = snkProd.preco                       if float(snkProd.preco or 0)                     != float(olProd.preco or 0)                     else olProd.preco
                         olProd.precoCusto                  = snkProd.precoCusto                  if float(snkProd.precoCusto or 0)                != float(olProd.precoCusto or 0)                else olProd.precoCusto
-                        olProd.estoque_controlar           = bool(snkProd.estoque_controlar)     if snkProd.estoque_controlar                     != olProd.estoque_controlar                     else bool(olProd.estoque_controlar)
-                        olProd.estoque_sobEncomenda        = bool(snkProd.estoque_sobEncomenda)  if snkProd.estoque_sobEncomenda                  != olProd.estoque_sobEncomenda                  else bool(olProd.estoque_sobEncomenda)
+                        olProd.estoque_controlar           = True
+                        olProd.estoque_sobEncomenda        = False
                         olProd.estoque_diasPreparacao      = snkProd.estoque_diasPreparacao      if int(snkProd.estoque_diasPreparacao or 0)      != int(olProd.estoque_diasPreparacao or 0)      else olProd.estoque_diasPreparacao
                         olProd.estoque_localizacao         = snkProd.estoque_localizacao         if snkProd.estoque_localizacao                   != olProd.estoque_localizacao                   else olProd.estoque_localizacao
                         olProd.estoque_minimo              = snkProd.estoque_minimo              if int(snkProd.estoque_minimo or 0)              != int(olProd.estoque_minimo or 0)              else olProd.estoque_minimo
@@ -342,7 +342,7 @@ class App:
                         olProd.cest                        = str(snkProd.cest)
                         olProd.garantia                    = snkProd.garantia
                         olProd.observacoes                 = snkProd.observacoes
-                        olProd.marca_id                    = 18671 ##               
+                        olProd.marca_id                    = snkProd.marca_id     
                         olProd.categoria_id                = snkProd.categoria_id
                         olProd.preco                       = snkProd.preco
                         # olProd.precoPromocional            = None
@@ -365,8 +365,8 @@ class App:
                         # olProd.fornecedores                = None
                         olProd.descricao                   = snkProd.descricao
                         olProd.tipo                        = snkProd.tipo
-                        # olProd.estoque_controlar           = True
-                        # olProd.estoque_sobEncomenda        = False
+                        olProd.estoque_controlar           = True
+                        olProd.estoque_sobEncomenda        = False
                         olProd.estoque_minimo              = snkProd.estoque_minimo
                         olProd.estoque_maximo              = snkProd.estoque_maximo
                         olProd.estoque_diasPreparacao      = snkProd.estoque_diasPreparacao
@@ -450,34 +450,39 @@ class App:
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(historico, f, indent=4, ensure_ascii=False)
 
-        async def busca_novos(self) -> list:
+        async def busca_novos(self) -> tuple[bool,list]:
 
             olPd = olPedido()
-            lista_inclusoes = []
+            res = []
 
             ack1, novos_pedidos = await olPd.buscar_novos()
 
-            if ack1:
+            if ack1:                
                 for novo_pedido in novos_pedidos:
                     self.id = novo_pedido
                     olPed = olPedido()
                     snkPed = snkPedido()
-                    if not await self.app.db.select('SELECT 1 FROM TGFCAB WHERE AD_MKP_ID = :ID',{"ID":novo_pedido}):
+                    exists = await self.app.db.select('SELECT nunota FROM TGFCAB WHERE AD_MKP_ID = :ID',{"ID":novo_pedido})
+                    if not exists:
                         print("")
                         time.sleep(self.app.req_sleep)
                         if await olPed.buscar(id=novo_pedido):
                             dados_pedido = await olPed.encodificar()
                             ack2, num_unico = await snkPed.registrar(dados_pedido)            
                             if ack2:
-                                lista_inclusoes.append(num_unico) 
+                                res.append(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}") 
                         else:
-                            print(f"Falha ao buscar dados do pedido ID {novo_pedido}. Verifique os logs")
+                            #print(f"Falha ao buscar dados do pedido ID {novo_pedido}. Verifique os logs")
+                            res.append(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
                         print("")
                     else:
-                        print(f"Pedido ID {novo_pedido} já foi importado para o Sankhya.")                                            
+                        #res.append(f"Pedido #{dados_pedido["numeroPedido"]} já foi importado para o Sankhya.")
+                        res.append(f"Pedido ID {novo_pedido} já foi importado para o Sankhya no nº único {exists[0].get('nunota')}.")
             else:
-                print("Falha ao buscar relação dos pedidos novos")
-            print("Fim da rotina :D")
+                #print("Falha ao buscar relação dos pedidos novos")
+                res.append("Falha ao buscar relação dos pedidos novos")
+            #print("Fim da rotina :D")
+            res.append("Importação concluída ✅")
             self.atualiza_historico(pedido_incluido=novo_pedido)
-            return lista_inclusoes
+            return True, res
 
