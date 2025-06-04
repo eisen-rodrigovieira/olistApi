@@ -42,6 +42,7 @@ class Pedido:
                 cif_fob:str=None,
                 vlrnota:float=None,
                 qtdvol:int=None,
+                aliqicms:int=None,
                 baseicms:float=None,
                 vlricms:float=None,
                 baseipi:float=None,
@@ -111,6 +112,7 @@ class Pedido:
         self.cif_fob          =  cif_fob
         self.vlrnota          =  vlrnota
         self.qtdvol           =  qtdvol
+        self.aliqicms         =  aliqicms
         self.baseicms         =  baseicms
         self.vlricms          =  vlricms
         self.baseipi          =  baseipi
@@ -154,8 +156,6 @@ class Pedido:
         self.qtdfin           =  qtdfin
         self.itens            =  []
         self.parcelas         =  []
-  
-        pass
 
     async def decodificar(self,data:dict=None) -> bool:
         if data:
@@ -269,7 +269,7 @@ class Pedido:
                     logger.error("Nº único do pedido %s",self.nunota)
                     return False
 
-    async def buscar_parametros(self,**kwargs) -> tuple:     
+    async def buscar_parametros(self,**kwargs) -> dict:     
 
         try:
             dhalter_top = await self.db.select(query='''
@@ -297,20 +297,19 @@ class Pedido:
                                                         FROM TGFNUM
                                                         WHERE ARQUIVO = 'PEDVEN' AND CODEMP = 31
                                                     ''')
+            # uf_destino = await self.db.select(query='''
+            #                                         SELECT CODUF
+            #                                         FROM TSIUFS
+            #                                         WHERE UF = :UF
+            #                                 ''',
+            #                                 params={"UF":kwargs['ufdestino']})
 
-            uf_destino = await self.db.select(query='''
-                                                    SELECT CODUF
-                                                    FROM TSIUFS
-                                                    WHERE UF = :UF
-                                            ''',
-                                            params={"UF":kwargs['ufdestino']})
-
-            uf_entrega = await self.db.select(query='''
-                                                    SELECT CODUF
-                                                    FROM TSIUFS
-                                                    WHERE UF = :UF
-                                            ''',
-                                            params={"UF":kwargs['ufentrega']})
+            # uf_entrega = await self.db.select(query='''
+            #                                         SELECT CODUF
+            #                                         FROM TSIUFS
+            #                                         WHERE UF = :UF
+            #                                 ''',
+            #                                 params={"UF":kwargs['ufentrega']})
 
             cid_destino = await self.db.select(query='''
                                                     SELECT CODCID
@@ -320,24 +319,37 @@ class Pedido:
                                                 ''',
                                                 params={"CIDADE":kwargs['ciddestino']})
 
-            cid_entrega = await self.db.select(query='''
-                                                    SELECT CODCID
-                                                    FROM TSICID
-                                                    WHERE (DESCRICAOCORREIO = TRANSLATE(UPPER(:CIDADE), 'ÁÀÃÂÉÈÊÍÌÓÒÕÔÚÙÛÇ','AAAAEEEIIOOOOUUUC') OR
-                                                           DESCRICAOCORREIO LIKE TRANSLATE(UPPER(:CIDADE), 'ÁÀÃÂÉÈÊÍÌÓÒÕÔÚÙÛÇ','AAAAEEEIIOOOOUUUC')||'%')
-                                                ''',
-                                                params={"CIDADE":kwargs['cidentrega']})
+            # cid_entrega = await self.db.select(query='''
+            #                                         SELECT CODCID
+            #                                         FROM TSICID
+            #                                         WHERE (DESCRICAOCORREIO = TRANSLATE(UPPER(:CIDADE), 'ÁÀÃÂÉÈÊÍÌÓÒÕÔÚÙÛÇ','AAAAEEEIIOOOOUUUC') OR
+            #                                                DESCRICAOCORREIO LIKE TRANSLATE(UPPER(:CIDADE), 'ÁÀÃÂÉÈÊÍÌÓÒÕÔÚÙÛÇ','AAAAEEEIIOOOOUUUC')||'%')
+            #                                     ''',
+            #                                     params={"CIDADE":kwargs['cidentrega']})
+            
+            # icms = await self.db.select(query='''
+            #                                     SELECT IDALIQ, ALIQUOTA
+            #                                     FROM TGFICM 
+            #                                     WHERE 1=1
+            #                                         AND UFORIG = 15
+            #                                         AND UFDEST = :UFDEST
+            #                                         AND ( CODRESTRICAO = :NCM OR CODRESTRICAO2 = :NCM)
+            #                                         AND ( CODRESTRICAO2 = 31 OR TIPRESTRICAO2 = 'S')
+            #                                 ''',
+            #                                 params={"UFDEST":uf_destino[0]['coduf'],"NCM":kwargs['ncm']})
             
 
             res = {
                 "dhalter_top":dhalter_top[0]['dhalter'].strftime('%Y-%m-%d %H:%M:%S'),
                 "dhalter_tpv":dhalter_tpv[0]['dhalter'].strftime('%Y-%m-%d %H:%M:%S'),
                 "nunota_nextval":nunota_nextval[0]['nunota_next'],
-                "numnota_nextval":numnota_nextval[0]['numnota_next'],
-                "uf_destino":uf_destino[0]['coduf'],
-                "uf_entrega":uf_entrega[0]['coduf'],
-                "cid_destino":cid_destino[0]['codcid'],
-                "cid_entrega":cid_entrega[0]['codcid']
+                "numnota_nextval":numnota_nextval[0]['numnota_next'],                
+                # "uf_destino":uf_destino[0]['coduf'],
+                # "uf_entrega":uf_entrega[0]['coduf'],
+                "cid_destino":cid_destino[0]['codcid']
+                # "cid_entrega":cid_entrega[0]['codcid']
+                # "cod_icms":icms[0]['idaliq'],
+                # "aliq_icms":icms[0]['aliquota']
             }       
 
         except Exception as e:
@@ -360,78 +372,80 @@ class Pedido:
 
             parametros = await self.buscar_parametros( codtipoper  = ins_tgfcab['CODTIPOPER'],
                                                        codtipvenda = ins_tgfcab['CODTIPVENDA'],
-                                                       ufdestino   = payload_olist["cliente"]["endereco"]["uf"],
-                                                       ufentrega   = payload_olist["enderecoEntrega"]["uf"] or payload_olist["cliente"]["endereco"]["uf"],
+                                                       # ufdestino   = payload_olist["cliente"]["endereco"]["uf"]
+                                                       # ufentrega   = payload_olist["enderecoEntrega"]["uf"] or payload_olist["cliente"]["endereco"]["uf"],
                                                        ciddestino  = payload_olist["cliente"]["endereco"]["municipio"],
-                                                       cidentrega  = payload_olist["enderecoEntrega"]["municipio"] or payload_olist["cliente"]["endereco"]["municipio"]
+                                                       # cidentrega  = payload_olist["enderecoEntrega"]["municipio"] or payload_olist["cliente"]["endereco"]["municipio"]
                                                     )
             if parametros:
+                # print(f"parametros do pedido {parametros}")
                 valores_insert = {
-                    "nunota"           : parametros["nunota_nextval"],
-                    "numnota"          : parametros["numnota_nextval"],
-                    "ad_mkp_id"        : int(payload_olist["id"]),
-                    "ad_mkp_numped"    : int(payload_olist["numeroPedido"]),
-                    "ad_mkp_codped"    : payload_olist["ecommerce"]["numeroPedidoEcommerce"],
-                    "ad_mkp_origem"    : int(payload_olist["ecommerce"]["id"]),
-                    "codemp"           : ins_tgfcab["CODEMP"],
-                    "codcencus"        : ins_tgfcab["CODCENCUS"],
-                    "dtneg"            : payload_olist["data"],
-                    "dtmov"            : payload_olist["data"],
-                    "dtalter"          : payload_olist["data"],
-                    "codempnegoc"      : ins_tgfcab["CODEMP"],
-                    "codparc"          : ins_tgfcab["CODPARC"],
-                    "codtipoper"       : ins_tgfcab["CODTIPOPER"],
-                    "dhtipoper"        : parametros["dhalter_top"],
-                    "tipmov"           : ins_tgfcab["TIPMOV"],
-                    "codtipvenda"      : ins_tgfcab["CODTIPVENDA"],
-                    "dhtipvenda"       : parametros["dhalter_tpv"],
-                    "codvend"          : ins_tgfcab["CODVEND"],
-                    "observacao"       : f"#{int(payload_olist["numeroPedido"])} - TESTE IMPORTAÇÃO API OLIST",
-                    "vlrdesctot"       : float(payload_olist["valorDesconto"]),
-                    "vlrdesctotitem"   : float(payload_olist["valorDesconto"]),
-                    "vlrfrete"         : float(payload_olist["valorFrete"]),
-                    "cif_fob"          : "C" if payload_olist["transportador"]["fretePorConta"] == "R" else "F" if payload_olist["transportador"]["fretePorConta"] == "D" else "",
-                    "vlrnota"          : float(payload_olist["valorTotalPedido"]),
-                    "qtdvol"           : 0,
-                    "baseicms"         : float(payload_olist["valorTotalPedido"]),
-                    "vlricms"          : float(payload_olist["valorTotalPedido"] * 0.12),
-                    "baseipi"          : float(0),
-                    "vlripi"           : float(0),
-                    "issretido"        : "N",
-                    "baseiss"          : float(0),
-                    "vlriss"           : float(0),
-                    "aprovado"         : ins_tgfcab["APROVADO"],
-                    "codusu"           : ins_tgfcab["CODUSU"],
-                    "irfretido"        : "N",
-                    "vlrirf"           : float(0),
-                    "volume"           : ins_tgfcab["VOLUME"],
-                    "vlrsubst"         : float(0),
-                    "basesubstit"      : float(0),
-                    "peso"             : 0,
-                    "codnat"           : ins_tgfcab["CODNAT"],
-                    "vlrfretecpl"      : float(0),
-                    "codusuinc"        : ins_tgfcab["CODUSU"],
-                    "baseirf"          : float(0),
-                    "aliqirf"          : float(0),
-                    "pesobruto"        : 0,
-                    "hrentsai"         : payload_olist["data"],
-                    "libconf"          : "N",
-                    "vlricmsdifaldest" : float(0),
-                    "vlricmsdifalrem"  : float(0),
-                    "vlricmsfcp"       : float(0),
-                    "codcidorigem"     : ins_tgfcab["CODCID"],
-                    "coduforigem"      : ins_tgfcab["CODUF"],
-                    "codciddestino"    : parametros["cid_destino"],
-                    "codufdestino"     : parametros["uf_destino"],
-                    "codcidentrega"    : parametros["cid_entrega"],
-                    "codufentrega"     : parametros["uf_entrega"],
-                    "classificms"      : ins_tgfcab["CLASSIFICMS"],
-                    "vlricmsfcpint"    : float(0),
-                    "vlrstfcpintant"   : float(0),
-                    "statuscfe"        : "N",
-                    "histconfig"       : "S",
-                    "ad_idshopee"      : payload_olist["ecommerce"]["numeroPedidoEcommerce"],
-                    "ad_taxashopee"    : float(0) 
+                    "NUNOTA"           : parametros["nunota_nextval"],
+                    "NUMNOTA"          : parametros["numnota_nextval"],
+                    "AD_MKP_ID"        : int(payload_olist["id"]),
+                    "AD_MKP_NUMPED"    : int(payload_olist["numeroPedido"]),
+                    "AD_MKP_CODPED"    : payload_olist["ecommerce"]["numeroPedidoEcommerce"],
+                    "AD_MKP_ORIGEM"    : int(payload_olist["ecommerce"]["id"]),
+                    "CODEMP"           : ins_tgfcab["CODEMP"],
+                    "CODCENCUS"        : ins_tgfcab["CODCENCUS"],
+                    "DTNEG"            : payload_olist["data"],
+                    "DTMOV"            : payload_olist["data"],
+                    "DTALTER"          : payload_olist["data"],
+                    "CODEMPNEGOC"      : ins_tgfcab["CODEMP"],
+                    "CODPARC"          : ins_tgfcab["CODPARC"],
+                    "CODTIPOPER"       : ins_tgfcab["CODTIPOPER"],
+                    "DHTIPOPER"        : parametros["dhalter_top"],
+                    "TIPMOV"           : ins_tgfcab["TIPMOV"],
+                    "CODTIPVENDA"      : ins_tgfcab["CODTIPVENDA"],
+                    "DHTIPVENDA"       : parametros["dhalter_tpv"],
+                    "CODVEND"          : ins_tgfcab["CODVEND"],
+                    "OBSERVACAO"       : f"#{int(payload_olist["numeroPedido"])} - TESTE IMPORTAÇÃO API OLIST",
+                    "VLRDESCTOT"       : float(payload_olist["valorDesconto"]),
+                    "VLRDESCTOTITEM"   : float(payload_olist["valorDesconto"]),
+                    "VLRFRETE"         : float(payload_olist["valorFrete"]),
+                    "CIF_FOB"          : "C" if payload_olist["transportador"]["fretePorConta"] == "R" else "F" if payload_olist["transportador"]["fretePorConta"] == "D" else "",
+                    "VLRNOTA"          : float(payload_olist["valorTotalPedido"]),
+                    "QTDVOL"           : 0,
+                    "BASEICMS"         : float(payload_olist["valorTotalPedido"]),
+                    "VLRICMS"          : 0,#float(payload_olist["valorTotalPedido"] * parametros["aliq_icms"]),
+                    "BASEIPI"          : float(0),
+                    "VLRIPI"           : float(0),
+                    "ISSRETIDO"        : "N",
+                    "BASEISS"          : float(0),
+                    "VLRISS"           : float(0),
+                    "APROVADO"         : ins_tgfcab["APROVADO"],
+                    "CODUSU"           : ins_tgfcab["CODUSU"],
+                    "IRFRETIDO"        : "N",
+                    "VLRIRF"           : float(0),
+                    "VOLUME"           : ins_tgfcab["VOLUME"],
+                    "VLRSUBST"         : float(0),
+                    "BASESUBSTIT"      : float(0),
+                    "PESO"             : 0,
+                    "CODNAT"           : ins_tgfcab["CODNAT"],
+                    "VLRFRETECPL"      : float(0),
+                    "CODUSUINC"        : ins_tgfcab["CODUSU"],
+                    "BASEIRF"          : float(0),
+                    "ALIQIRF"          : float(0),
+                    "PESOBRUTO"        : 0,
+                    "HRENTSAI"         : payload_olist["data"],
+                    "LIBCONF"          : "N",
+                    "VLRICMSDIFALDEST" : float(0),
+                    "VLRICMSDIFALREM"  : float(0),
+                    "VLRICMSFCP"       : float(0),
+                    "AD_MKP_DESTINO"   : parametros["cid_destino"],
+                    # "CODCIDORIGEM"     : ins_tgfcab["CODCID"],
+                    # "CODUFORIGEM"      : ins_tgfcab["CODUF"],
+                    # "CODCIDDESTINO"    : parametros["cid_destino"],
+                    # "CODUFDESTINO"     : parametros["uf_destino"],
+                    # "CODCIDENTREGA"    : parametros["cid_entrega"],
+                    # "CODUFENTREGA"     : parametros["uf_entrega"],
+                    # "CLASSIFICMS"      : ins_tgfcab["CLASSIFICMS"],
+                    "VLRICMSFCPINT"    : float(0),
+                    "VLRSTFCPINTANT"   : float(0),
+                    "STATUSCFE"        : "N",
+                    "HISTCONFIG"       : "S",
+                    "AD_IDSHOPEE"      : payload_olist["ecommerce"]["numeroPedidoEcommerce"],
+                    "AD_TAXASHOPEE"    : float(0) 
                 }
                 return True, valores_insert
             else:
@@ -449,6 +463,7 @@ class Pedido:
                     ''',
                     params= {"P_PROXCOD":int(kwargs["nunota_nextval"]),
                              "P_TABELA":"TGFCAB"})
+
         seq2 = await self.db.dml(query='''
                         UPDATE TGFNUM
                         SET    ULTCOD = :P_PROXCOD
@@ -458,6 +473,20 @@ class Pedido:
                              "P_TABELA":"PEDVEN"})        
         
         return True if seq1[0] and seq2[0] else False
+    
+    async def atualiza_impostos(self,nunota:int=None):
+
+        res = await self.db.dml(query='''
+                                UPDATE TGFCAB CAB
+                                SET CAB.VLRICMS = (SELECT ROUND(SUM(ITE.VLRICMS),3)
+                                                   FROM TGFITE ITE
+                                                   WHERE ITE.NUNOTA = CAB.NUNOTA)
+                                WHERE CAB.NUNOTA = :NUNOTA
+                            ''',
+                            params={"NUNOTA":nunota}
+                          )
+
+        return res[0]
     
     async def registrar(self, payload:dict=None) -> tuple[bool,int]:
         file_path = configSankhya.PATH_INSERT_PEDIDO_CAB
@@ -473,15 +502,19 @@ class Pedido:
             if ack:
                 with open(file_path, "r", encoding="utf-8") as f:
                     query = f.read()
+                # print(data)
+                nunota = data["NUNOTA"]
+                numnota = data["NUMNOTA"]
                 print("> Inserindo dados do cabeçalho...")
                 ack_cab, rows_cab = await self.db.dml(query=query,params=data)
                 if ack_cab:
-                    print(f">> Cabeçalho do pedido {data["nunota"]} inserido com sucesso!")
-                    logger.info("Cabeçalho do pedido %s inserido com sucesso.",data["nunota"])
+                    print(f">> Cabeçalho do pedido {nunota} inserido com sucesso!")
+                    logger.info("Cabeçalho do pedido %s inserido com sucesso.",nunota)
                     if payload.get("itens"):
                         print("> Lançando produtos no pedido...")
                         rows_itens = 0
                         seq_pedido = 0
+                        uf_destino = payload["cliente"]["endereco"]["uf"]                        
                         for i, it_dict in enumerate(payload["itens"]):                            
                             #print(i)
                             #print(it_dict)
@@ -493,24 +526,35 @@ class Pedido:
                                 print(f">> Produto {it_dict["produto"]["id"]} é kit. Desmembrando...")
                                 for kd in kit_dict:
                                     seq_pedido+=1
-                                    #print(kd)
-                                    ack_ite, rows_ite = await it.registrar(payload=kd,
-                                                                            nunota=data["nunota"],
+                                    #print(f"seq_pedido: {seq_pedido}")
+                                    #print(f"nunota: {data["nunota"]}")
+                                    #print(f"estado destino: {uf_destino}")
+                                    #print(f"dados do item do kit {kd}")
+                                    ack_ite, rows_ite = await it.registrar( payload=kd,
+                                                                            uf=uf_destino,
+                                                                            nunota=nunota,
                                                                             sequencia=seq_pedido)                                
                                 print(f">>> Kit desmembrado em {len(kit_dict)} produtos")
                             else:
                                 seq_pedido+=1
-                                ack_ite, rows_ite = await it.registrar(payload=it_dict,
-                                                                        nunota=data["nunota"],
-                                                                        sequencia=seq_pedido+1)
+                                #print(f"seq_pedido: {seq_pedido}")
+                                #print(f"nunota: {data["nunota"]}")
+                                #print(f"estado destino: {uf_destino}")
+                                #print(f"dados do item {it_dict}")                                
+                                ack_ite, rows_ite = await it.registrar( payload=it_dict,
+                                                                        uf=uf_destino,
+                                                                        nunota=nunota,
+                                                                        sequencia=seq_pedido)
                             if ack_ite:
                                 rows_itens+=rows_ite
                         if rows_itens == len(payload["itens"]):
+                            print(f">> Todos os itens do pedido {nunota} inseridos com sucesso!")
+                            await self.atualiza_impostos(nunota)
                             ack_itens = True
-                            print(f">> Todos os itens do pedido {data["nunota"]} inseridos com sucesso!")
                         else:
                             ack_itens = False
-                            print(f">>Nem todos os itens do pedido {data["nunota"]} inseridos. Verifique os logs.")
+                            print(f">>Nem todos os itens do pedido {nunota} inseridos. Verifique os logs.")
+                            logger.error("Nem todos os itens do pedido %s inseridos.",nunota)        
                     else:
                         ack_itens = True
                         print(f">> Não tem itens no pedido!")
@@ -521,31 +565,31 @@ class Pedido:
                         for i, fin_dict in enumerate(payload["pagamento"]["parcelas"]):
                             #print(fin_dict)
                             ack_fin, rows_fin = await pr.registrar(payload=fin_dict,
-                                                                   nunota=data["nunota"],
-                                                                   numnota=data["numnota"]
-                                                                   )
+                                                                   nunota=nunota,
+                                                                   numnota=numnota)
                             if ack_fin:
                                 rows_fins+=rows_fin
                         if rows_fins == len(payload["pagamento"]["parcelas"]):
                             ack_fins = True
-                            print(f">> Todos os financeiros do pedido {data["nunota"]} inseridos com sucesso!")
+                            print(f">> Todos os financeiros do pedido {nunota} inseridos com sucesso!")
                         else:
                             ack_fins = False
-                            print(f">>Nem todos os financeiros do pedido {data["nunota"]} inseridos. Verifique os logs.")                            
+                            print(f">>Nem todos os financeiros do pedido {nunota} inseridos. Verifique os logs.")                            
                     else:
                         ack_fins = True
                         print(f">> Não tem financeiro no pedido!")
                     
                     # return True, data["nunota"] if ack_cab and ack_itens and ack_fins else False, None
                     if ack_cab and ack_itens and ack_fins:
-                        await self.atualiza_seqs(nunota_nextval=data["nunota"],numnota_nextval=data["numnota"])
-                        print(f"----------> Pedido {payload['numeroPedido']} importado com sucesso! Nº único {data["nunota"]}")
-                        return True, data["nunota"]
+                        await self.atualiza_seqs(nunota_nextval=nunota,numnota_nextval=numnota)
+                        print(f"----------> Pedido {payload['numeroPedido']} importado com sucesso! Nº único {nunota}")
+                        logger.info("Pedido %s importado com sucesso! Nº único %s",payload['numeroPedido'],nunota)
+                        return True, nunota
                     else:
                         return False, None
                 else:
-                    print(f"Erro ao inserir cabeçalho do pedido {data["nunota"]}. Verifique os logs")
-                    logger.error("Erro ao inserir cabeçalho do pedido %s.",data["nunota"])        
+                    print(f"Erro ao inserir cabeçalho do pedido {nunota}. Verifique os logs")
+                    logger.error("Erro ao inserir cabeçalho do pedido %s.",nunota)        
                     return False, None
             else:
                 print(f"Erro preparar dados para inserção do pedido {payload["numeroPedido"]}. Verifique os logs")
