@@ -75,6 +75,7 @@ class Produto:
         self.con                           = Connect()  
         self.req_sleep                     = config.REQ_TIME_SLEEP  
         self.endpoint                      = config.API_URL+config.ENDPOINT_PRODUTOS
+        self.fornecedor_padrao             = configOlist.ID_FORN_PADRAO
         self.id                            = id
         self.sku                           = sku
         self.descricao                     = descricao
@@ -479,7 +480,7 @@ class Produto:
                 data["estoque"]["localizacao"]                    = self.estoque_localizacao
                 
                 data["fornecedores"] = [{
-                    "id" : 753240684,
+                    "id" : self.fornecedor_padrao,
                     "codigoProdutoNoFornecedor" : self.sku,
                     "padrao" : True
                 }]
