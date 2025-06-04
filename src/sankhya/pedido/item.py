@@ -3,6 +3,7 @@ import json
 import logging
 from params               import config, configSankhya
 from src.sankhya.dbConfig import dbConfig
+from src.sankhya.produto.produto  import Produto
 
 logger = logging.getLogger(__name__)
 logging.basicConfig( filename = config.PATH_LOGS,
@@ -97,15 +98,52 @@ class Item:
                     logger.error("Nº único do pedido %s",self.nunota)
                     return False
 
-    async def buscar_parametros(self,**kwargs) -> tuple:     
+    async def buscar_parametros(self,**kwargs) -> dict:    
+         
+        try:
+            uf_destino = await self.db.select(query='''
+                                                    SELECT CODUF
+                                                    FROM TSIUFS
+                                                    WHERE UF = :UF
+                                                ''',
+                                                params={"UF":kwargs['ufdestino']})
+            
+            icms = await self.db.select(query='''
+                                                SELECT IDALIQ, ALIQUOTA, CODTRIB, CODANTECIPST
+                                                FROM TGFICM 
+                                                WHERE 1=1
+                                                    AND UFORIG = 15
+                                                    AND UFDEST = :UFDEST
+                                                    AND ( CODRESTRICAO = :NCM OR CODRESTRICAO2 = :NCM)
+                                                    AND ( CODRESTRICAO2 = 31 OR TIPRESTRICAO2 = 'S')
+                                            ''',
+                                            params={"UFDEST":uf_destino[0]['coduf'],"NCM":kwargs['ncm']})
+            
+            if icms:
+                res = {
+                    "cod_icms":icms[0]['idaliq'],
+                    "aliq_icms":icms[0]['aliquota'],
+                    "cod_trib":icms[0]['codtrib'],
+                    "cod_antst":icms[0]['codantecipst'],
+                }
+            else:
+                res = {
+                    "cod_icms":None,
+                    "aliq_icms":None,
+                    "cod_trib":None,
+                    "cod_antst":None
+                }
 
-        pass
+        except Exception as e:
+            logger.error("Erro ao buscar parametros: %s",e)
+            res = {}            
+        finally:
+            return res
 
-    async def preparacao(self,payload_olist:dict=None,nunota:int=None,sequencia:int=None) -> tuple[bool,dict]:
+    async def preparacao(self,payload_olist:dict=None,uf:str=None,nunota:int=None,sequencia:int=None) -> tuple[bool,dict]:
         file_path = configSankhya.PATH_PARAMS_INS_PEDIDO_ITE
 
         if payload_olist and nunota and sequencia:
-
             try:
                 if not os.path.exists(file_path):
                     raise FileNotFoundError("Parametros de inserção de item de pedido não encontrados.")
@@ -113,35 +151,50 @@ class Item:
                     ins_tgfite = json.load(f)
             except Exception as e:
                 print(f"Erro: {e}") 
-                  
-            valores_insert = {
-                "NUNOTA"        : nunota,
-                "SEQUENCIA"     : sequencia,
-                "CODEMP"        : ins_tgfite["CODEMP"],
-                "CODPROD"       : int(payload_olist["produto"]["sku"]),
-                "CODLOCALORIG"  : ins_tgfite["CODLOCALORIG"],
-                "USOPROD"       : ins_tgfite["USOPROD"],
-                "QTDNEG"        : payload_olist["quantidade"],
-                "VLRUNIT"       : payload_olist["valorUnitario"],
-                "VLRTOT"        : payload_olist["quantidade"] * payload_olist["valorUnitario"],
-                "CODVOL"        : 'UN',
-                "ATUALESTOQUE"  : ins_tgfite["ATUALESTOQUE"],
-                "RESERVA"       : ins_tgfite["RESERVA"],
-                "STATUSNOTA"    : ins_tgfite["STATUSNOTA"],
-                "CODVEND"       : ins_tgfite["CODVEND"]
-            }
 
-            return True, valores_insert
+            produto = Produto()
+            if await produto.buscar(codprod=int(payload_olist["produto"]["sku"])):    
+
+                parametros = await self.buscar_parametros( ufdestino = uf,
+                                                           ncm       = produto.ncm )
+
+                if parametros:
+                    valores_insert = {
+                        "NUNOTA"        : nunota,
+                        "SEQUENCIA"     : sequencia,
+                        "CODEMP"        : ins_tgfite["CODEMP"],
+                        "CODPROD"       : int(payload_olist["produto"]["sku"]),
+                        "CODLOCALORIG"  : ins_tgfite["CODLOCALORIG"],
+                        "USOPROD"       : ins_tgfite["USOPROD"],
+                        "QTDNEG"        : payload_olist["quantidade"],
+                        "VLRUNIT"       : payload_olist["valorUnitario"],
+                        "VLRTOT"        : payload_olist["quantidade"] * payload_olist["valorUnitario"],
+                        "CODVOL"        : 'UN',
+                        "CODTRIB"       : parametros["cod_trib"],
+                        "ALIQICMS"      : parametros["aliq_icms"],
+                        "IDALIQICMS"    : parametros["cod_icms"],
+                        "BASEICMS"      : payload_olist["quantidade"] * payload_olist["valorUnitario"],
+                        "VLRICMS"       : round(payload_olist["quantidade"] * payload_olist["valorUnitario"] * parametros["aliq_icms"] / 100, 3) if parametros["aliq_icms"] else 0,
+                        "ALIQIPI"       : 0,
+                        "CSTIPI"        : ins_tgfite["CSTIPI"],
+                        "CODANTECIPST"  : parametros["cod_antst"],
+                        "ATUALESTOQUE"  : ins_tgfite["ATUALESTOQUE"],
+                        "RESERVA"       : ins_tgfite["RESERVA"],
+                        "STATUSNOTA"    : ins_tgfite["STATUSNOTA"],
+                        "CODVEND"       : ins_tgfite["CODVEND"]
+                    }
+                    return True, valores_insert
+                else:
+                    return False, {}
         else:
             print("Dados faltantes")
-            return False, {}
-            
+            return False, {}            
 
     async def atualiza_seqs(self,kwargs):
 
         pass
 
-    async def registrar(self, payload:dict=None, nunota:int=None, sequencia:int=None) -> tuple[bool,int]:
+    async def registrar(self, payload:dict=None, uf:str=None,nunota:int=None, sequencia:int=None) -> tuple[bool,int]:
         file_path = configSankhya.PATH_INSERT_PEDIDO_ITE
 
         if not os.path.exists(file_path):
@@ -149,6 +202,7 @@ class Item:
             return False, None
         else: 
             ack, data = await self.preparacao(payload_olist=payload,
+                                              uf=uf,
                                               nunota=nunota,
                                               sequencia=sequencia)
             if ack:
