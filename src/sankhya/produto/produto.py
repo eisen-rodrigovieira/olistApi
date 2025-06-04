@@ -210,7 +210,7 @@ class Produto:
             logger.error("Não foram informados dados para decodificar")
             return False
 
-    async def buscar(self) -> bool:
+    async def buscar(self, codprod:int=None) -> bool:
         """
         Busca os dados do produto no banco de dados utilizando os scripts e configurações Sankhya.
 
@@ -228,7 +228,7 @@ class Produto:
                 
                 try:
                     params = {
-                        "COD": int(self.sku),
+                        "COD": codprod or int(self.sku),
                         "ID": self.id
                     }
                     rows = await db.select(query=query,params=params)
