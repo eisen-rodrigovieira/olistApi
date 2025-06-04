@@ -1,5 +1,5 @@
-import streamlit as st
 import asyncio
+import streamlit as st
 from src.app.app import App
 
 st.set_page_config(
@@ -14,12 +14,15 @@ st.set_page_config(
     # }
 )
 
-st.title("Painel de Controle")
+app_produto = App().Produto()
+app_pedido = App().Pedido()
+
+st.title("Painel de Controle - Olist")
 
 with st.container():
+    st.divider()
     st.subheader("📦 Produtos")
     col1_pr, col2_pr, col3_pr = st.columns(3)
-    app_produto = App().Produto()
 
     with col1_pr:
         btn_send_pr = st.button("📤 Enviar atualizações para Olist",key='btn_send_pr',use_container_width=True)
@@ -62,25 +65,26 @@ with st.container():
                     with st.expander(label="✅ Sincronização concluída com sucesso!"):
                         for v in vl:
                             st.write(v)
-
-    st.subheader("🛒 Pedidos")
-    st.warning("👷🏼⚠️ Em desenvolvimento")
+    st.divider()
+    st.subheader("🛒 Pedidos")    
     
-    # col1_pd, col2_pd, col3_pd = st.columns(3)
-    # with col1_pd:
-    #     btn_send_pd = st.button("📤 Enviar atualizações para Olist",key='btn_send_pd',use_container_width=True,disabled=True)
-    #     with st.empty():
-    #         if btn_send_pd:
-    #             st.warning("👷🏼⚠️ Em desenvolvimento")
+    col1_pd, col2_pd = st.columns(2)
+    with col1_pd:
+        btn_receive_pd = st.button("📥 Receber pedidos novos",key='btn_receive_pd',use_container_width=True)
+        with st.empty():
+            if btn_receive_pd:    
+                with st.spinner("Aguarde",show_time=True):
+                    status_receive, values_receive = asyncio.run(app_pedido.busca_novos())
+                if status_receive:
+                    with st.expander(label="✅ Atualizações recebidas com sucesso!"):
+                        for v in values_receive:
+                            st.caption(v)    
+                else:
+                    st.error("Falha na sincronização! Verifique os logs.")   
 
-    # with col2_pd:
-    #     btn_receive_pd = st.button("📥 Receber atualizações do Olist",key='btn_receive_pd',use_container_width=True,disabled=True)
-    #     with st.empty():
-    #         if btn_receive_pd:
-    #             st.warning("👷🏼⚠️ Em desenvolvimento")
-
-    # with col3_pd:
-    #     btn_update_all_pd = st.button("🔄 Atualizar tudo",key='btn_update_all_pd',use_container_width=True,disabled=True)
-    #     with st.empty():
-    #         if btn_update_all_pd:
-    #             st.warning("👷🏼⚠️ Em desenvolvimento")   
+    with col2_pd:
+        btn_update_all_pd = st.button("🔄 Atualizar pedidos",key='btn_update_all_pd',use_container_width=True,disabled=True)
+        with st.empty():
+            if btn_update_all_pd:
+                st.warning("👷🏼⚠️ Em desenvolvimento")   
+        st.warning("👷🏼⚠️ Em desenvolvimento")
