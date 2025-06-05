@@ -8,6 +8,9 @@ PATH_PARAMS_INS_PEDIDO_FIN = "json/dml/ins_tgffin.json"
 PATH_SCRIPT_PEDIDO_CAB     = "sql/dql/pedido_cab.sql"
 PATH_SCRIPT_PEDIDO_ITE     = "sql/dql/pedido_ite.sql"
 PATH_SCRIPT_PEDIDO_FIN     = "sql/dql/pedido_fin.sql"
+PATH_PARAMS_PEDIDO         = "sql/dql/pedido_params.sql"
 PATH_INSERT_PEDIDO_CAB     = "sql/dml/ins_pedido_cab.sql"
 PATH_INSERT_PEDIDO_ITE     = "sql/dml/ins_pedido_ite.sql"
 PATH_INSERT_PEDIDO_FIN     = "sql/dml/ins_pedido_fin.sql"
+
+CODEMP                     = 31
