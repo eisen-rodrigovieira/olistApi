@@ -87,3 +87,27 @@ class dbConfig(object):
         except oracledb.DatabaseError as e:
             print("Erro ao executar script:", e)
             raise
+
+    async def call(self, query: str, params: str=None) -> bool:
+        """
+        Executa uma chamada de procedure no banco de dados Oracle.
+
+        Args:
+            query (str): Comando SQL a ser executado.
+            params (str, opcional): Parâmetros para o comando.
+
+        Returns:
+            bool: Um booleano indicando sucesso
+        """        
+        try:
+            with oracledb.connect(user=self.usr, password=self.pwd, dsn=self.dns) as connection:
+                with connection.cursor() as cursor:
+                    if params:
+                        cursor.execute(query, params)
+                    else:
+                        cursor.execute(query)
+                    connection.commit()
+                    return True
+        except oracledb.DatabaseError as e:
+            print("Erro ao executar script:", e)
+            raise
