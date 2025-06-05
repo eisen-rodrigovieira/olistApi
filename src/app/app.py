@@ -5,11 +5,12 @@ import json
 import logging
 from datetime                    import datetime
 from src.sankhya.dbConfig        import dbConfig
-from params                      import config,configOlist,configSankhya
+from params                      import config,configUtils,configOlist,configSankhya
 from src.olist.produto.produto   import Produto as olProduto
 from src.olist.pedido.pedido     import Pedido  as olPedido
 from src.sankhya.produto.produto import Produto as snkProduto
 from src.sankhya.pedido.pedido   import Pedido  as snkPedido
+from src.utils.sendMail          import sendMail
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -21,8 +22,24 @@ logging.basicConfig(filename=config.PATH_LOGS,
 class App:
 
     def __init__(self):
-        self.req_sleep = config.REQ_TIME_SLEEP
-        self.db        = dbConfig()
+        self.req_sleep       = config.REQ_TIME_SLEEP
+        self.db              = dbConfig()
+        self.email_body_path = configUtils.BODY_HTML
+
+    def notificar(self):
+        if not os.path.exists(self.email_body_path):
+            raise FileNotFoundError("Modelo do corpo do email não encontrado.")
+        with open(self.email_body_path, "r", encoding="utf-8") as f:
+            body = f.read() 
+
+        if not os.path.exists(config.PATH_LOGS):
+            raise FileNotFoundError("Arquivo de log não encontrado.")
+        with open(config.PATH_LOGS, "r", encoding="utf-8") as f:
+            log_data = f.readlines()
+        
+        if body and log_data:
+            sendMail.enviar(destinatario='rodrigo.vieira@grupoeisen.com.br',
+                            corpo=body.format(log_data[-1]))        
 
     class Produto:
 
@@ -422,7 +439,7 @@ class App:
         def __init__(self, id:int=None):
             self.app = App()
             self.id = id
-            pass
+            
 
         def atualiza_historico(self, pedido_alterado:int=None, pedido_incluido:int=None, sentido:int=None):
             file_path = configOlist.PATH_HISTORICO_PEDIDO
@@ -472,16 +489,17 @@ class App:
                             ack2, num_unico = await snkPed.registrar(dados_pedido)            
                             if ack2:
                                 res.append(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}") 
+                            else:
+                                self.app.notificar()
                         else:
-                            #print(f"Falha ao buscar dados do pedido ID {novo_pedido}. Verifique os logs")
+                            self.app.notificar()
                             res.append(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
                         print("")
                     else:
-                        #res.append(f"Pedido #{dados_pedido["numeroPedido"]} já foi importado para o Sankhya.")
                         res.append(f"Pedido ID {novo_pedido} já foi importado para o Sankhya no nº único {exists[0].get('nunota')}.")
                     self.atualiza_historico(pedido_incluido=novo_pedido)
             else:
-                #print("Falha ao buscar relação dos pedidos novos")
+                self.app.notificar()
                 res.append("Falha ao buscar relação dos pedidos novos")
             #print("Fim da rotina :D")
 
@@ -500,8 +518,10 @@ class App:
                             if ack2:
                                 await snkPed.confirmar_nota(nunota=num_unico)
                                 res.append(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}") 
+                            else:
+                                self.app.notificar()
                         else:
-                            #print(f"Falha ao buscar dados do pedido ID {novo_pedido}. Verifique os logs")
+                            self.app.notificar()
                             res.append(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
                         print("")
                     else:
@@ -512,9 +532,9 @@ class App:
                             res.append(f"Sem alterações necessárias no pedido ID {pedido}. Nº único {exists[0].get('nunota')}.")
                     self.atualiza_historico(pedido_alterado=pedido,sentido=1)
             else:
-                #print("Falha ao buscar relação dos pedidos novos")
+                self.app.notificar()
                 res.append("Falha ao buscar relação dos pedidos em separação")
-            #print("Fim da rotina :D")
+            
             res.append("Importação concluída ✅")
             
             return True, res
