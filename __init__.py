@@ -56,8 +56,10 @@ with st.container():
             if btn_update_all_pr:
                 status_sinc = []
                 with st.spinner("Sincronizando",show_time=True):
-                    status_sinc[0], values_send2 = asyncio.run(app_produto.ol_atualizar_produtos())
-                    status_sinc[1], values_receive2 = asyncio.run(app_produto.snk_atualizar_produtos())
+                    status_ol, values_send2 = asyncio.run(app_produto.ol_atualizar_produtos())
+                    status_sinc.append(status_ol)
+                    status_snk, values_receive2 = asyncio.run(app_produto.snk_atualizar_produtos())
+                    status_sinc.append(status_snk)
                 if False in status_sinc:
                     st.error("Falha na sincronização! Verifique os logs.")
                 else:
