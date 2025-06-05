@@ -596,7 +596,10 @@ class Pedido:
                 logger.error("Erro preparar dados para inserção do pedido %s.",payload["numeroPedido"])        
                 return False, None
 
-                
-
-
+    async def confirmar_nota(self, nunota:int=None):
+        ack = await self.db.call(query='''call STP_CONFIRMANOTA2(:NUNOTA,'S',1)''',
+                                 params={"NUNOTA":nunota})
+        print(f"----------> Pedido {nunota} confirmado com sucesso!")
+        logger.info("Pedido %s confirmado com sucesso!",nunota)        
+        return ack
             
