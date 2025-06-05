@@ -11,5 +11,6 @@ PATH_OBJECT_PEDIDO_PARCELA     = "json/objects/pedido/parcela.json"
 PATH_HISTORICO_PEDIDO          = "json/objects/pedido/historico.json"
 PATH_OBJECT_PEDIDO             = "json/objects/pedido/pedido.json"
 
-SITUACAO_INICIAL = 3 # 3:"Aprovado"
+SITUACAO_PEDIDO_APROVADO = 3
+SITUACAO_PEDIDO_PREP_ENVIO = 4
 ID_FORN_PADRAO = 753053887
