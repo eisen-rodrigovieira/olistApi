@@ -100,7 +100,8 @@ class Pedido:
         self.con                           = Connect()  
         self.req_sleep                     = config.REQ_TIME_SLEEP  
         self.endpoint                      = config.API_URL+config.ENDPOINT_PEDIDOS        
-        self.situacao_incial               = configOlist.SITUACAO_INICIAL
+        self.situacao_aprovado             = configOlist.SITUACAO_PEDIDO_APROVADO
+        self.situacao_preparando_envio     = configOlist.SITUACAO_PEDIDO_PREP_ENVIO
         self.dataPrevista = dataPrevista
         self.dataEnvio = dataEnvio
         self.observacoes = observacoes
@@ -600,9 +601,9 @@ class Pedido:
             logger.error("Erro relacionado ao token de acesso. %s",e)
             return False     
 
-    async def buscar_novos(self) -> tuple[bool, list]:
+    async def buscar_aprovados(self) -> tuple[bool, list]:
 
-        url = self.endpoint+f"?situacao={self.situacao_incial}"
+        url = self.endpoint+f"?situacao={self.situacao_aprovado}"
         try:
             token = self.con.get_latest_valid_token_or_refresh()
             if url and token:                
@@ -615,7 +616,37 @@ class Pedido:
                     }
                 )
                 if get_pedido.status_code == 200:
-                    return True, [p["id"] for p in get_pedido.json()['itens']]
+                    lista_novos = [p["id"] for p in get_pedido.json()['itens']]
+                    lista_novos.reverse()
+                    return True, lista_novos
+                else:                      
+                    logger.error("Erro %s: %s cod %s", get_pedido.status_code, get_pedido.json().get("mensagem","Erro desconhecido"), self.id)
+                    return False, []
+            else:
+                logger.warning("Endpoint da API ou token de acesso faltantes")
+                return False, []
+        except Exception as e:
+            logger.error("Erro relacionado ao token de acesso. %s",e)
+            return False, []
+
+    async def buscar_preparando_envio(self) -> tuple[bool, list]:
+
+        url = self.endpoint+f"?situacao={self.situacao_preparando_envio}"
+        try:
+            token = self.con.get_latest_valid_token_or_refresh()
+            if url and token:                
+                get_pedido = requests.get(
+                    url=url,
+                    headers={
+                        "Authorization":f"Bearer {token}",
+                        "Content-Type":"application/json",
+                        "Accept":"application/json"
+                    }
+                )
+                if get_pedido.status_code == 200:
+                    lista_prep_envio = [p["id"] for p in get_pedido.json()['itens']]
+                    lista_prep_envio.reverse()
+                    return True, lista_prep_envio
                 else:                      
                     logger.error("Erro %s: %s cod %s", get_pedido.status_code, get_pedido.json().get("mensagem","Erro desconhecido"), self.id)
                     return False, []
