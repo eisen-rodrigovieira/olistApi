@@ -434,7 +434,7 @@ class App:
                 with open(file_path, "r", encoding="utf-8") as f:
                     historico = json.load(f)
 
-            if pedido_alterado and not pedido_incluido:
+            if pedido_alterado: # and not pedido_incluido:
                 if sentido == 0: # SANKHYA > OLIST
                     historico["ultima_atualizacao_sankhya_olist"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     historico["ultima_atualizacao_sankhya_olist"]["id"] = pedido_alterado
@@ -443,7 +443,7 @@ class App:
                     historico["ultima_atualizacao_olist_sankhya"]["id"] = pedido_alterado
                 else:
                     pass
-            elif pedido_incluido and not pedido_alterado:
+            if pedido_incluido: # and not pedido_alterado:
                 historico["ultima_importacao"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 historico["ultima_importacao"]["id"] = pedido_incluido
 
@@ -455,10 +455,11 @@ class App:
             olPd = olPedido()
             res = []
 
-            ack1, novos_pedidos = await olPd.buscar_novos()
+            ack_novos, pedidos_novos = await olPd.buscar_aprovados()
+            ack_prep_envio, pedidos_prep_envio = await olPd.buscar_preparando_envio()
 
-            if ack1:                
-                for novo_pedido in novos_pedidos:
+            if ack_novos:                
+                for novo_pedido in pedidos_novos:
                     self.id = novo_pedido
                     olPed = olPedido()
                     snkPed = snkPedido()
@@ -478,11 +479,43 @@ class App:
                     else:
                         #res.append(f"Pedido #{dados_pedido["numeroPedido"]} já foi importado para o Sankhya.")
                         res.append(f"Pedido ID {novo_pedido} já foi importado para o Sankhya no nº único {exists[0].get('nunota')}.")
+                    self.atualiza_historico(pedido_incluido=novo_pedido)
             else:
                 #print("Falha ao buscar relação dos pedidos novos")
                 res.append("Falha ao buscar relação dos pedidos novos")
             #print("Fim da rotina :D")
+
+            if ack_prep_envio:                
+                for pedido in pedidos_prep_envio:
+                    self.id = pedido
+                    olPed   = olPedido()
+                    snkPed  = snkPedido()
+                    exists  = await self.app.db.select('SELECT nunota, decode(dtfatur,NULL,0,1) confirmado FROM TGFCAB WHERE AD_MKP_ID = :ID',{"ID":pedido})
+                    if not exists:
+                        print("")
+                        time.sleep(self.app.req_sleep)
+                        if await olPed.buscar(id=pedido):
+                            dados_pedido = await olPed.encodificar()
+                            ack2, num_unico = await snkPed.registrar(dados_pedido)            
+                            if ack2:
+                                await snkPed.confirmar_nota(nunota=num_unico)
+                                res.append(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}") 
+                        else:
+                            #print(f"Falha ao buscar dados do pedido ID {novo_pedido}. Verifique os logs")
+                            res.append(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
+                        print("")
+                    else:
+                        if not bool(exists[0].get('confirmado')):
+                            await snkPed.confirmar_nota(nunota=exists[0].get('nunota'))
+                            res.append(f"Pedido ID {pedido} atualizado para confirmado. Nº único {exists[0].get('nunota')}.")
+                        else:
+                            res.append(f"Sem alterações necessárias no pedido ID {pedido}. Nº único {exists[0].get('nunota')}.")
+                    self.atualiza_historico(pedido_alterado=pedido,sentido=1)
+            else:
+                #print("Falha ao buscar relação dos pedidos novos")
+                res.append("Falha ao buscar relação dos pedidos em separação")
+            #print("Fim da rotina :D")
             res.append("Importação concluída ✅")
-            self.atualiza_historico(pedido_incluido=novo_pedido)
+            
             return True, res
 
