@@ -10,6 +10,8 @@ from src.olist.produto.produto   import Produto as olProduto
 from src.olist.pedido.pedido     import Pedido  as olPedido
 from src.sankhya.produto.produto import Produto as snkProduto
 from src.sankhya.pedido.pedido   import Pedido  as snkPedido
+from src.olist.estoque.estoque   import Estoque as olEstoque
+from src.sankhya.estoque.estoque import Estoque as snkEstoque
 from src.utils.sendMail          import sendMail
 from src.utils.validaPath        import validaPath
 
@@ -552,3 +554,40 @@ class App:
             res.append("Importação concluída ✅")            
             return True, res
 
+    class Estoque:
+
+        def __init__(self):
+            self.app = App()
+
+        async def atualizar(self):
+            
+            olEst = olEstoque()
+            snkEst = snkEstoque()
+
+            mvto_sankhya = await snkEst.buscar_movimentacoes()
+
+            for mvto in mvto_sankhya:
+                snk_qtd_est = await snkEst.buscar_disponivel(codprod=mvto.get('codprod'))
+                olEst = olEstoque()
+                await olEst.buscar(id=mvto.get('idprod'))
+                estoque_olist = await olEst.encodificar()
+                ol_qtd_est = estoque_olist.get('disponivel')
+
+                if ol_qtd_est != snk_qtd_est:
+                    variacao = ol_qtd_est - snk_qtd_est
+                    ajuste_estoque = {
+                            "id": int(mvto.get('idprod')),
+                            "deposito": int(estoque_olist.get('depositos')[0].get('id')),
+                            "tipo":None,
+                            "quantidade":abs(variacao)
+                        }    
+                    if variacao > 0:
+                        ajuste_estoque["tipo"] = "S"
+                    elif variacao < 0:
+                        ajuste_estoque["tipo"] = "E"
+                    else:
+                        pass                    
+
+                    ######## TODO FINALIZAR SINCRONIZACAO DO SALDO DO ESTOQUE
+
+            pass

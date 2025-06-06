@@ -18,6 +18,9 @@ PATH_UPDATE_PEDIDO_IMP     = "sql/dml/upd_pedido_imp.sql"
 PATH_SCRIPT_SYNCPROD       = "sql/dql/syncproduto.sql"
 PATH_DELETE_SYNCPROD       = "sql/dml/del_syncproduto.sql"
 
+PATH_SCRIPT_SYNCESTOQUE    = "sql/dql/syncestoque.sql"
+PATH_SCRIPT_ESTOQUE_DISP   = "sql/dql/estoque_qtd_disp.sql"
+
 PATH_SCRIPT_SYNCPED_NOVO   = "sql/dql/syncpedido_novo.sql"
 PATH_SCRIPT_SYNCPED_CONF   = "sql/dql/syncpedido_confirmado.sql"
 
