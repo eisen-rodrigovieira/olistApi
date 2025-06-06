@@ -11,6 +11,10 @@ PATH_OBJECT_PEDIDO_PARCELA     = "json/objects/pedido/parcela.json"
 PATH_HISTORICO_PEDIDO          = "json/objects/pedido/historico.json"
 PATH_OBJECT_PEDIDO             = "json/objects/pedido/pedido.json"
 
-SITUACAO_PEDIDO_APROVADO = 3
-SITUACAO_PEDIDO_PREP_ENVIO = 4
-ID_FORN_PADRAO = 753053887
+PATH_HISTORICO_ESTOQUE         = "json/objects/estoque/historico.json"
+PATH_OBJECT_ESTOQUE_DEPOSITO   = "json/objects/estoque/deposito.json"
+PATH_OBJECT_ESTOQUE            = "json/objects/estoque/estoque.json"
+
+SITUACAO_PEDIDO_APROVADO       = 3
+SITUACAO_PEDIDO_PREP_ENVIO     = 4
+ID_FORN_PADRAO                 = 753053887
