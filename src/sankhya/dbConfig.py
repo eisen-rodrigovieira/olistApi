@@ -56,8 +56,8 @@ class dbConfig(object):
                                 r[k] = r[k].read()                    
             return rows
         except oracledb.DatabaseError as e:
-            print("Erro ao executar a consulta:", e)
-            raise
+            logger.error("Erro ao executar a consulta:", e)
+            return []
 
     async def dml(self, query: str, params: str=None) -> tuple[bool,int]:
         """
@@ -85,8 +85,8 @@ class dbConfig(object):
                         connection.rollback()
                         return False, None            
         except oracledb.DatabaseError as e:
-            print("Erro ao executar script:", e)
-            raise
+            logger.error("Erro ao executar script:", e)
+            return False, None
 
     async def call(self, query: str, params: str=None) -> bool:
         """
@@ -109,5 +109,5 @@ class dbConfig(object):
                     connection.commit()
                     return True
         except oracledb.DatabaseError as e:
-            print("Erro ao executar script:", e)
-            raise
+            logger.error("Erro ao executar chamada de procedure:", e)
+            return False
