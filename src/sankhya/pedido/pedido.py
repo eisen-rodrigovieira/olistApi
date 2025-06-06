@@ -2,9 +2,10 @@ import os
 import json
 import logging
 from params                    import config, configSankhya
-from src.olist.pedido.item import Item
+from src.olist.pedido.item     import Item
 from src.sankhya.pedido        import item, parcela
 from src.sankhya.dbConfig      import dbConfig
+from src.utils.validaPath      import validaPath
 
 logger = logging.getLogger(__name__)
 logging.basicConfig( filename = config.PATH_LOGS,
@@ -86,6 +87,7 @@ class Pedido:
                  qtdfin           :int   = None
                  ):
         self.db               = dbConfig()
+        self.valida_path      = validaPath()         
         self.nunota           = nunota
         self.numnota          = numnota
         self.ad_mkp_id        = ad_mkp_id
@@ -248,32 +250,27 @@ class Pedido:
 
     async def buscar(self,nunota:int=None) -> bool:
         file_path = configSankhya.PATH_SCRIPT_PEDIDO_CAB
+        query = await self.valida_path.validar(path=file_path,mode='r',method='full')
 
-        if not os.path.exists(file_path):
-            logger.error("Script da TGFCAB não encontrado em %s",file_path)
-            return False
-        else:    
-            with open(file_path, "r", encoding="utf-8") as f:
-                query = f.read()
-                
-                try:
-                    params = {"NUNOTA": nunota or self.nunota}
-                    rows = await self.db.select(query=query,params=params)
-                                        
-                    if rows: return await self.decodificar(rows[0])
-                    else:    return False
-                except:
-                    logger.error("Nº único do pedido %s",self.nunota)
+        if query:                
+            try:
+                params = {"NUNOTA": nunota or self.nunota}
+                rows = await self.db.select(query=query,params=params)
+                                    
+                if rows:
+                    return await self.decodificar(rows[0])
+                else:
                     return False
+            except:
+                logger.error("Erro ao buscar dados do pedido Nº único %s",self.nunota)
+                return False
 
     async def buscar_parametros(self,**kwargs) -> dict: 
         file_path = configSankhya.PATH_PARAMS_PEDIDO
         empresa_padrao = configSankhya.CODEMP
 
-        if not os.path.exists(file_path):
-            raise FileNotFoundError("Script de parâmetros não encontrado em %s.",file_path)
-        with open(file_path, "r", encoding="utf-8") as f:
-            query_tipoper, query_tipvenda, query_nunota, query_numnota, query_destino = f.read().splitlines()
+        queries = await self.valida_path.validar(path=file_path,mode='r',method='q-split')
+        query_tipoper, query_tipvenda, query_nunota, query_numnota, query_destino = queries
 
         if query_tipoper and query_tipvenda and query_nunota and query_numnota and query_destino:
             try:
@@ -297,20 +294,14 @@ class Pedido:
             finally:
                 return res
         else:
-            raise ValueError("Erro ao extrair scripts de consulta dos parâmetros.")
+            logger.error("Erro ao extrair scripts de consulta dos parâmetros.")
+            return {}
 
     async def preparacao(self,payload_olist:dict=None) -> tuple[bool,dict]:
         file_path = configSankhya.PATH_PARAMS_INS_PEDIDO_CAB
 
         if payload_olist:
-            try:
-                if not os.path.exists(file_path):
-                    raise FileNotFoundError("Parametros de inserção de pedido não encontrados.")
-                with open(file_path, "r", encoding="utf-8") as f:
-                    ins_tgfcab = json.load(f)
-            except Exception as e:
-                print(f"Erro: {e}")    
-
+            ins_tgfcab = await self.valida_path.validar(path=file_path,mode='r',method='json')
             parametros = await self.buscar_parametros( codtipoper  = ins_tgfcab['CODTIPOPER'],
                                                        codtipvenda = ins_tgfcab['CODTIPVENDA'],
                                                        ciddestino  = payload_olist["cliente"]["endereco"]["municipio"]
@@ -381,139 +372,131 @@ class Pedido:
             else:
                 return False, {}
         else:
-            print("Dados olist faltantes")
+            logger.error("Erro. Dados olist faltantes.")
             return False, {}
 
     async def atualiza_seqs(self,**kwargs):
-
-        seq1 = await self.db.dml(query='''
-                        UPDATE TGFNUM
-                        SET    ULTCOD = :P_PROXCOD
-                        WHERE  ARQUIVO = :P_TABELA
-                    ''',
-                    params= {"P_PROXCOD":int(kwargs["nunota_nextval"]),
-                             "P_TABELA":"TGFCAB"})
-
-        seq2 = await self.db.dml(query='''
-                        UPDATE TGFNUM
-                        SET    ULTCOD = :P_PROXCOD
-                        WHERE  ARQUIVO = :P_TABELA AND CODEMP = 31
-                    ''',
-                    params= {"P_PROXCOD":int(kwargs["numnota_nextval"]),
-                             "P_TABELA":"PEDVEN"})        
+        file_path = configSankhya.PATH_UPDATE_TGFNUM
+        query = await self.valida_path.validar(path=file_path,mode='r',method='full')
+        ack_seq_nunota, res_seq_nunota = await self.db.dml(query=query,
+                                                           params= {"P_PROXCOD":int(kwargs["nunota_nextval"]),
+                                                                    "P_TABELA":"TGFCAB",
+                                                                    "P_CODEMP":None})
+        ack_seq_numnota, res_seq_numnota = await self.db.dml(query=query,
+                                                             params={"P_PROXCOD":int(kwargs["numnota_nextval"]),
+                                                                     "P_TABELA":"PEDVEN",
+                                                                     "P_CODEMP":31})        
         
-        return True if seq1[0] and seq2[0] else False
+        return True if ack_seq_nunota and ack_seq_numnota else False
     
     async def atualiza_impostos(self,nunota:int=None):
+        file_path = configSankhya.PATH_UPDATE_PEDIDO_IMP
+        query = await self.valida_path.validar(path=file_path,mode='r',method='full')
+        ack_upd_impostos, res_upd_impostos = await self.db.dml(query=query,
+                                             params={"P_NUNOTA":nunota})
 
-        res = await self.db.dml(query='''
-                                UPDATE TGFCAB CAB
-                                SET CAB.VLRICMS = (SELECT ROUND(SUM(ITE.VLRICMS),3)
-                                                   FROM TGFITE ITE
-                                                   WHERE ITE.NUNOTA = CAB.NUNOTA)
-                                WHERE CAB.NUNOTA = :NUNOTA
-                            ''',
-                            params={"NUNOTA":nunota}
-                          )
-
-        return res[0]
+        return ack_upd_impostos
     
     async def registrar(self, payload:dict=None) -> tuple[bool,int]:
         file_path = configSankhya.PATH_INSERT_PEDIDO_CAB
         it = item.Item()
         pr = parcela.Parcela()
 
-        if not os.path.exists(file_path):
-            logger.error("Script de insert da TGFCAB não encontrado em %s",file_path)
-            return False, None
-        else: 
-            print("> Preparando os dados...")
-            ack, data = await self.preparacao(payload_olist=payload)
-            if ack:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    query = f.read()
-                nunota = data["NUNOTA"]
-                numnota = data["NUMNOTA"]
-                print("> Inserindo dados do cabeçalho...")
-                ack_cab, rows_cab = await self.db.dml(query=query,params=data)
-                if ack_cab:
-                    print(f">> Cabeçalho do pedido {nunota} inserido com sucesso!")
-                    logger.info("Cabeçalho do pedido %s inserido com sucesso.",nunota)
-                    if payload.get("itens"):
-                        print("> Lançando produtos no pedido...")
-                        rows_itens = 0
-                        seq_pedido = 0
-                        uf_destino = payload["cliente"]["endereco"]["uf"]                        
-                        for i, it_dict in enumerate(payload["itens"]): 
-                            olItm = Item()
-                            ack_kit, kit_dict = olItm.valida_kit(id=int(it_dict["produto"]["id"]),lcto_item=it_dict)
-                            if ack_kit:
-                                print(f">> Produto {it_dict["produto"]["id"]} é kit. Desmembrando...")
-                                for kd in kit_dict:
-                                    seq_pedido+=1
-                                    ack_ite, rows_ite = await it.registrar( payload=kd,
-                                                                            uf=uf_destino,
-                                                                            nunota=nunota,
-                                                                            sequencia=seq_pedido)                                
-                                print(f">>> Kit desmembrado em {len(kit_dict)} produtos")
-                            else:
-                                seq_pedido+=1                          
-                                ack_ite, rows_ite = await it.registrar( payload=it_dict,
+        ack, data = await self.preparacao(payload_olist=payload)
+        if ack:
+            query = await self.valida_path.validar(path=file_path,mode='r',method='full')
+            nunota = data["NUNOTA"]
+            numnota = data["NUMNOTA"]
+            #print("> Inserindo dados do cabeçalho...")
+            ack_cab, rows_cab = await self.db.dml(query=query,params=data)
+            if ack_cab:
+                #print(f">> Cabeçalho do pedido {nunota} inserido com sucesso!")
+                logger.info("Cabeçalho do pedido %s inserido com sucesso.",nunota)
+                if payload.get("itens"):
+                    #print("> Lançando produtos no pedido...")
+                    rows_itens = 0
+                    seq_pedido = 0
+                    uf_destino = payload["cliente"]["endereco"]["uf"]                        
+                    for i, it_dict in enumerate(payload["itens"]): 
+                        olItm = Item()
+                        ack_kit, kit_dict = olItm.valida_kit(id=int(it_dict["produto"]["id"]),lcto_item=it_dict)
+                        if ack_kit:
+                            #print(f">> Produto {it_dict["produto"]["id"]} é kit. Desmembrando...")
+                            for kd in kit_dict:
+                                seq_pedido+=1
+                                ack_ite, rows_ite = await it.registrar( payload=kd,
                                                                         uf=uf_destino,
                                                                         nunota=nunota,
-                                                                        sequencia=seq_pedido)
-                            if ack_ite:
-                                rows_itens+=rows_ite
-                        if rows_itens == len(payload["itens"]):
-                            print(f">> Todos os itens do pedido {nunota} inseridos com sucesso!")
-                            await self.atualiza_impostos(nunota)
-                            ack_itens = True
+                                                                        sequencia=seq_pedido)                                
+                            #print(f">>> Kit desmembrado em {len(kit_dict)} produtos")
                         else:
-                            ack_itens = False
-                            print(f">>Nem todos os itens do pedido {nunota} inseridos. Verifique os logs.")
-                            logger.error("Nem todos os itens do pedido %s inseridos.",nunota)        
-                    else:
+                            seq_pedido+=1                          
+                            ack_ite, rows_ite = await it.registrar( payload=it_dict,
+                                                                    uf=uf_destino,
+                                                                    nunota=nunota,
+                                                                    sequencia=seq_pedido)
+                        if ack_ite:
+                            rows_itens+=rows_ite
+                    if rows_itens == len(payload["itens"]):
+                        #print(f">> Todos os itens do pedido {nunota} inseridos com sucesso!")
+                        await self.atualiza_impostos(nunota)
                         ack_itens = True
-                        print(f">> Não tem itens no pedido!")
-
-                    if payload["pagamento"].get("parcelas"):
-                        print("> Lançando financeiro do pedido...")
-                        rows_fins = 0
-                        for i, fin_dict in enumerate(payload["pagamento"]["parcelas"]):
-                            ack_fin, rows_fin = await pr.registrar(payload=fin_dict,
-                                                                   nunota=nunota,
-                                                                   numnota=numnota)
-                            if ack_fin:
-                                rows_fins+=rows_fin
-                        if rows_fins == len(payload["pagamento"]["parcelas"]):
-                            ack_fins = True
-                            print(f">> Todos os financeiros do pedido {nunota} inseridos com sucesso!")
-                        else:
-                            ack_fins = False
-                            print(f">>Nem todos os financeiros do pedido {nunota} inseridos. Verifique os logs.")                            
                     else:
+                        ack_itens = False
+                        #print(f">>Nem todos os itens do pedido {nunota} inseridos. Verifique os logs.")
+                        logger.error("Nem todos os itens do pedido %s inseridos.",nunota)        
+                else:
+                    ack_itens = True
+                    #print(f">> Não tem itens no pedido!")
+
+                if payload["pagamento"].get("parcelas"):
+                    #print("> Lançando financeiro do pedido...")
+                    rows_fins = 0
+                    for i, fin_dict in enumerate(payload["pagamento"]["parcelas"]):
+                        ack_fin, rows_fin = await pr.registrar(payload=fin_dict,
+                                                                nunota=nunota,
+                                                                numnota=numnota)
+                        if ack_fin:
+                            rows_fins+=rows_fin
+                    if rows_fins == len(payload["pagamento"]["parcelas"]):
                         ack_fins = True
-                        print(f">> Não tem financeiro no pedido!")
-                    if ack_cab and ack_itens and ack_fins:
-                        await self.atualiza_seqs(nunota_nextval=nunota,numnota_nextval=numnota)
+                        #print(f">> Todos os financeiros do pedido {nunota} inseridos com sucesso!")
+                    else:
+                        ack_fins = False
+                        #print(f">>Nem todos os financeiros do pedido {nunota} inseridos. Verifique os logs.")                            
+                else:
+                    ack_fins = True
+                    #print(f">> Não tem financeiro no pedido!")
+                if ack_cab and ack_itens and ack_fins:
+                    if await self.atualiza_seqs(nunota_nextval=nunota,numnota_nextval=numnota):
                         print(f"----------> Pedido {payload['numeroPedido']} importado com sucesso! Nº único {nunota}")
                         logger.info("Pedido %s importado com sucesso! Nº único %s",payload['numeroPedido'],nunota)
                         return True, nunota
                     else:
-                        return False, None
+                        logger.error("Erro ao atualizar sequencial NUNOTA e/ou NUMNOTA. Pedido %s importado com sucesso! Nº único %s",payload['numeroPedido'],nunota)
+                        return False, nunota    
                 else:
-                    print(f"Erro ao inserir cabeçalho do pedido {nunota}. Verifique os logs")
-                    logger.error("Erro ao inserir cabeçalho do pedido %s.",nunota)        
                     return False, None
             else:
-                print(f"Erro ao preparar dados para inserção do pedido {payload["numeroPedido"]}. Verifique os logs")
-                logger.error("Erro ao preparar dados para inserção do pedido %s.",payload["numeroPedido"])        
-                return False, None
+                #print(f"Erro ao inserir cabeçalho do pedido {nunota}. Verifique os logs")
+                logger.error("Erro ao inserir cabeçalho do pedido %s.",nunota)        
+                return False, nunota
+        else:
+            #print(f"Erro ao preparar dados para inserção do pedido {payload["numeroPedido"]}. Verifique os logs")
+            logger.error("Erro ao preparar dados para inserção do pedido %s.",payload["numeroPedido"])        
+            return False, None
 
-    async def confirmar_nota(self, nunota:int=None):
-        ack = await self.db.call(query='''call STP_CONFIRMANOTA2(:NUNOTA,'S',1)''',
-                                 params={"NUNOTA":nunota})
-        print(f"----------> Pedido {nunota} confirmado com sucesso!")
-        logger.info("Pedido %s confirmado com sucesso!",nunota)        
-        return ack
+    async def confirmar_nota(self, nunota:int=None, provisao:str=None) -> bool:
+        file_path = configSankhya.PATH_CALL_CONFIRMA_NOTA
+        query = await self.valida_path.validar(path=file_path,mode='r',method='full')
+        ack = await self.db.call(query=query,
+                                 params={"P_NUNOTA":nunota,
+                                         "P_PROVISAO":provisao})
+        #print(f"----------> Pedido {nunota} confirmado com sucesso!")
+        if ack:
+            logger.info("Pedido %s confirmado com sucesso!",nunota)        
+            return ack
+        else:
+            logger.error("Erro ao confirmar pedido %s",nunota)        
+            return False
             
