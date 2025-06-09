@@ -595,15 +595,41 @@ class App:
         def __init__(self):
             self.app = App()
 
-        async def atualizar(self):
+        async def atualiza_historico(self, produto:int=None):
+            file_path = configOlist.PATH_HISTORICO_ESTOQUE
+            historico = await self.app.valida_path.validar(path=file_path,mode='r',method='json')
+
+            if produto:
+                historico["ultima_atualizacao"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                historico["ultima_atualizacao"]["id"] = int(produto)
+
+            await self.app.valida_path.validar(path=file_path,mode='w',method='json',content=historico)            
+
+        async def remove_syncestoque(self,produto:int=None,dhevento:datetime=None) -> bool:
+            if produto and dhevento:
+                file_path_del   = configSankhya.PATH_DELETE_SYNCESTOQUE
+                delete_syncest = await self.app.valida_path.validar(path=file_path_del,method='full',mode='r')
+                params = {
+                    "CODPROD" : produto,
+                    "DHEVENTO" : dhevento
+                }
+                ack, rows = await self.app.db.dml(query=delete_syncest,params=params)
+                return ack
+            else:
+                return False            
+
+        async def atualizar(self) -> tuple[bool,list]:
             
             olEst = olEstoque()
             snkEst = snkEstoque()
+            values = []
 
             mvto_sankhya = await snkEst.buscar_movimentacoes()
+            print(f"Encontrados {len(mvto_sankhya)} produtos")
 
             for mvto in mvto_sankhya:
-                snk_qtd_est = await snkEst.buscar_disponivel(codprod=mvto.get('codprod'))
+                estoque_snk = await snkEst.buscar_disponivel(codprod=mvto.get('codprod'))
+                snk_qtd_est = estoque_snk[0].get('qtd')
                 olEst = olEstoque()
                 await olEst.buscar(id=mvto.get('idprod'))
                 estoque_olist = await olEst.encodificar()
@@ -622,8 +648,115 @@ class App:
                     elif variacao < 0:
                         ajuste_estoque["tipo"] = "E"
                     else:
-                        pass                    
+                        pass
 
-                    ######## TODO FINALIZAR SINCRONIZACAO DO SALDO DO ESTOQUE
+                    olEst.tipo = ajuste_estoque.get('tipo')
+                    olEst.quantidade = ajuste_estoque.get('quantidade')
+                    olEst.acao = 'post'
 
-            pass
+                    if await olEst.enviar_saldo():                        
+                        ackSync = await self.remove_syncestoque(produto=mvto["codprod"],dhevento=mvto["dhevento"])
+                        if ackSync:
+                            await self.atualiza_historico(produto=estoque_olist.get('codigo'))
+                            values.append(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso.")
+                            print(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso")
+                            #await self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)                        
+                        else:
+                            logger.error("Erro: Estoque do produto %s sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.",estoque_olist.get('codigo'))
+                            await self.app.email.notificar()
+                            values.append(f"Erro: Estoque do produto {estoque_olist.get('codigo')} sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")
+                    else:
+                        print("Falha ao sincronizar estoque. Verifique os logs.")
+                        logger.error("Erro: Falha ao sincronizar estoque do produto %s. Verifique os logs.",estoque_olist.get('codigo'))
+                        await self.app.email.notificar()
+                        values.append(f"Erro: Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
+            print(f"Sincronização concluída!")
+            return True, values
+
+        async def balanco(self,produto:int=None) -> tuple[bool,list]:
+            
+            values = []            
+
+            if produto:
+                snkEst = snkEstoque()                
+                estoque_snk = await snkEst.buscar_disponivel(codprod=produto)
+                snk_qtd_disponivel = estoque_snk[0].get('qtd')
+                olEst = olEstoque()
+                await olEst.buscar(id=estoque_snk[0].get('ad_mkp_idprod'))
+                estoque_olist = await olEst.encodificar()
+                ol_qtd_disponivel = estoque_olist.get('disponivel')
+                
+                if ol_qtd_disponivel != snk_qtd_disponivel:
+                    ol_qtd_reservado = estoque_olist.get('reservado')
+                    saldo = snk_qtd_disponivel + ol_qtd_reservado
+                    ajuste_estoque = {
+                        "id": int(estoque_snk[0].get('ad_mkp_idprod')),
+                        "deposito": int(estoque_olist.get('depositos')[0].get('id')),
+                        "tipo":"B",
+                        "quantidade":saldo
+                    }  
+
+                    olEst.tipo = ajuste_estoque.get('tipo')
+                    olEst.quantidade = ajuste_estoque.get('quantidade')
+                    olEst.acao = 'post'
+
+                    if await olEst.enviar_saldo():
+                        await self.remove_syncestoque(produto=estoque_snk[0].get('codprod'))
+                        await self.atualiza_historico(produto=produto)
+                        values.append(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso.")
+                        print(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso")
+                    else:
+                        print(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
+                        logger.error("Erro: Falha ao sincronizar estoque do produto %s. Verifique os logs.",estoque_olist.get('codigo'))
+                        await self.app.email.notificar()
+                        values.append(f"Erro: Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
+                else: 
+                    await self.atualiza_historico(produto=estoque_snk[0].get('codprod'))
+                    values.append(f"Estoque do produto {estoque_snk[0].get('codprod')} já está atualizado. Atual {estoque_olist.get('disponivel')}.")
+                    print(f"Estoque do produto {estoque_snk[0].get('codprod')} já está atualizado. Atual {estoque_olist.get('disponivel')}.")                                           
+            else:                
+                snkEstoques = snkEstoque()                
+                estoques_snk = await snkEstoques.buscar_disponivel()
+                for e in estoques_snk:
+                    time.sleep(self.app.req_sleep)                   
+                    snk_qtd_disponivel = e.get('qtd')
+                    olEst = olEstoque()
+                    if await olEst.buscar(id=e.get('ad_mkp_idprod')):
+                        estoque_olist = await olEst.encodificar()
+                        ol_qtd_disponivel = estoque_olist.get('disponivel')
+                        
+                        if ol_qtd_disponivel != snk_qtd_disponivel:
+                            ol_qtd_reservado = estoque_olist.get('reservado')
+                            saldo = snk_qtd_disponivel + ol_qtd_reservado
+                            ajuste_estoque = {
+                                "id": int(e.get('ad_mkp_idprod')),
+                                "deposito": int(estoque_olist.get('depositos')[0].get('id')),
+                                "tipo":"B",
+                                "quantidade":saldo
+                            }  
+
+                            olEst.tipo = ajuste_estoque.get('tipo')
+                            olEst.quantidade = ajuste_estoque.get('quantidade')
+                            olEst.acao = 'post'
+
+                            if await olEst.enviar_saldo():
+                                await self.remove_syncestoque(produto=e.get('codprod'))
+                                await self.atualiza_historico(produto=e.get('codprod'))
+                                values.append(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso. Atual {ajuste_estoque.get('quantidade')}.")
+                                print(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso. Atual {ajuste_estoque.get('quantidade')}.")
+                            else:
+                                print("Falha ao sincronizar estoque. Verifique os logs.")
+                                logger.error("Erro: Falha ao sincronizar estoque do produto %s. Verifique os logs.",e.get('codprod'))
+                                await self.app.email.notificar()
+                                values.append(f"Erro: Falha ao sincronizar estoque do produto {e.get('codprod')}. Verifique os logs.")                
+                        else:
+                            await self.atualiza_historico(produto=e.get('codprod'))
+                            values.append(f"Estoque do produto {e.get('codprod')} já está atualizado. Atual {estoque_olist.get('disponivel')}.")
+                            print(f"Estoque do produto {e.get('codprod')} já está atualizado. Atual {estoque_olist.get('disponivel')}.")
+                    else:
+                        print(f"Falha ao buscar dados do estoque do produto {e.get('ad_mkp_idprod')} no Olist. Verifique os logs.")
+                        logger.error("Erro: Falha ao buscar dados do estoque do produto %s no Olist. Verifique os logs.",e.get('ad_mkp_idprod'))
+                        await self.app.email.notificar()
+                        values.append(f"Falha ao buscar dados do estoque do produto {e.get('ad_mkp_idprod')} no Olist. Verifique os logs.")
+            print(f"Sincronização concluída!")
+            return True, values
