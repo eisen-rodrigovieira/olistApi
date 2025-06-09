@@ -106,12 +106,12 @@ class Estoque:
         elif self.acao == 'post':
             try:
                 data = obj[self.acao]
-                data["deposito"]                      = self.deposito.encodificar(self.acao)
+                data["deposito"]                      = await self.deposito[0].encodificar(self.acao)
                 data["tipo"]                          = self.tipo
                 data["data"]                          = self.data
                 data["quantidade"]                    = self.quantidade
-                data["precoUnitario"]                 = self.precoUnitario
-                data["observacoes"]                   = self.observacoes
+                data["precoUnitario"]                 = self.precoUnitario or 0
+                data["observacoes"]                   = self.observacoes or configOlist.OBS_MVTO_ESTOQUE
                 return data
             except Exception as e:
                 logger.error("Erro ao formatar dict estoque: %s", e)
@@ -150,12 +150,13 @@ class Estoque:
             logger.error("Erro relacionado ao token de acesso. %s",e)
             return False
         
-    async def enviar_saldo(self,id:int=None):
+    async def enviar_saldo(self,id:int=None) -> bool:
 
         url = config.API_URL+config.ENDPOINT_ESTOQUES+f"/{id or self.id}"
         try:
             token = self.con.get_latest_valid_token_or_refresh()
-            payload = self.encodificar()
+            payload = await self.encodificar()
+            # print(payload)
             if url and token:                
                 post_estoque = requests.post(
                     url=url,
