@@ -69,21 +69,21 @@ class Estoque:
                 logger.error("Erro ao buscar dados de movimentação do estoque")
                 return []
 
-    async def buscar_disponivel(self,codprod:int=None) -> bool:
+    async def buscar_disponivel(self,codprod:int=None) -> list:
 
         disp = None
         file_path = configSankhya.PATH_SCRIPT_ESTOQUE_DISP
         query = await self.valida_path.validar(path=file_path,mode='r',method='full')
                         
         try:
-            params = {"P_CODPROD": codprod or self.codprod}
+            params = {"P_CODPROD": codprod}
             rows = await self.db.select(query=query,params=params)                                    
             if rows:
-                disp = rows[0].get('qtd')
+                disp = rows
             else:
                 pass
         except:
-            logger.error("Erro ao buscar estoque disponível do produto %s",codprod or self.codprod)
+            logger.error("Erro ao buscar estoque disponível do produto %s",codprod)
         finally:
             return disp
                 
