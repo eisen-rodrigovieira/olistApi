@@ -20,6 +20,7 @@ PATH_DELETE_SYNCPROD       = "sql/dml/del_syncproduto.sql"
 
 PATH_SCRIPT_SYNCESTOQUE    = "sql/dql/syncestoque.sql"
 PATH_SCRIPT_ESTOQUE_DISP   = "sql/dql/estoque_qtd_disp.sql"
+PATH_DELETE_SYNCESTOQUE    = "sql/dml/del_syncestoque.sql"
 
 PATH_SCRIPT_SYNCPED_NOVO   = "sql/dql/syncpedido_novo.sql"
 PATH_SCRIPT_SYNCPED_CONF   = "sql/dql/syncpedido_confirmado.sql"

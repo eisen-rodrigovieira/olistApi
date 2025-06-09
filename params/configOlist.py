@@ -18,3 +18,5 @@ PATH_OBJECT_ESTOQUE            = "json/objects/estoque/estoque.json"
 SITUACAO_PEDIDO_APROVADO       = 3
 SITUACAO_PEDIDO_PREP_ENVIO     = 4
 ID_FORN_PADRAO                 = 753053887
+
+OBS_MVTO_ESTOQUE               = "Ajuste de estoque Sankhya"
