@@ -60,8 +60,8 @@ class App:
 
         async def remove_syncprod(self,produto:int=None,dhevento:datetime=None) -> bool:
             if produto and dhevento:
-                file_path_del   = configSankhya.PATH_UPDATE_PRODUTO_NEW
-                delete_syncprod = self.app.valida_path.validar(path=file_path_del,method='full',mode='r')
+                file_path_del   = configSankhya.PATH_DELETE_SYNCPROD
+                delete_syncprod = await self.app.valida_path.validar(path=file_path_del,method='full',mode='r')
                 params = {
                     "CODPROD" : produto,
                     "DHEVENTO" : dhevento
@@ -74,7 +74,7 @@ class App:
         async def atualiza_produto_novo(self,produto:int=None,id:int=None) -> bool:
             if produto and id:
                 file_path   = configSankhya.PATH_UPDATE_PRODUTO_NEW
-                new_syncprod = self.app.valida_path.validar(path=file_path,method='full',mode='r')
+                new_syncprod = await self.app.valida_path.validar(path=file_path,method='full',mode='r')
                 params = {
                     "CODPROD" : produto,
                     "AD_MKP_IDPROD" : id
@@ -89,11 +89,11 @@ class App:
             regex_cest_ncm = r"[.]"
             res = []
                 
-            #print("Iniciando busca dos produtos com alteração no Olist.")
+            print("Iniciando busca dos produtos com alteração no Olist.")
             _olProd = olProduto()
             produtos_com_alteracao = await _olProd.enviar_alteracoes()
             if produtos_com_alteracao:
-                #print(f"{len(produtos_com_alteracao)} produtos com alteração encontrados.")
+                print(f"{len(produtos_com_alteracao)} produtos com alteração encontrados.")
                 #print("Iniciando sincronização")
 
                 for produto in produtos_com_alteracao:
@@ -192,31 +192,51 @@ class App:
                                         #print(f"Produto {snkProd.sku} atualizado com sucesso.")
                                         await self.atualiza_historico(produto_alterado=snkProd.id,sentido=1)
                                     else:
+                                        logger.error("Falha ao atualizar os dados do produto %s na base Sankhya. Verifique os logs.",snkProd.id)
                                         await self.app.email.notificar()
                                         res.append(f"Falha ao atualizar os dados do produto {snkProd.id} na base Sankhya. Verifique os logs.")
+                                        #print(f"Falha ao atualizar os dados do produto {snkProd.id} na base Sankhya. Verifique os logs.")
                                 else:
                                     res.append(f"Produto {snkProd.id} sem atualizações a serem sincronizadas Olist > Sankhya")
                                     #print(f"Produto {snkProd.id} sem atualizações a serem sincronizadas Olist > Sankhya") 
                             else:
-                                if olProd.tipo == 'V':
-                                    res.append(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
-                                    #print(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
-                                else:
-                                    await self.app.email.notificar()
-                                    res.append(f"Produto {olProd.id} não tem vínculo com o Sankhya (SKU em branco ou inválido)") 
-                                    #print(f"Produto {olProd.id} não tem vínculo com o Sankhya (SKU em branco ou inválido)") 
+                                logger.warning("Produto %s não tem vínculo com o Sankhya (SKU em branco ou inválido)",olProd.id) 
+                                await self.app.email.notificar()
+                                res.append(f"Produto {olProd.id} não tem vínculo com o Sankhya (SKU em branco ou inválido)") 
+                                #print(f"Produto {olProd.id} não tem vínculo com o Sankhya (SKU em branco ou inválido)") 
                         else:
+                            logger.error("Falha ao buscar os dados do produto %s na base Olist. Verifique os logs.",olProd.id)
                             await self.app.email.notificar()
                             res.append(f"Falha ao buscar os dados do produto {olProd.id} na base Olist. Verifique os logs.")
                     else:
-                        await self.app.email.notificar()
-                        res.append(f"Produto {produto["id"]} não tem vínculo com o Sankhya (sem SKU)")
-                        #print(f"Produto {produto["id"]} não tem vínculo com o Sankhya (sem SKU)")
+                        olProd.id = produto["id"]
+                        await olProd.buscar()
+                        #print(olProd.tipo)
+                        if olProd.tipo == 'K':
+                            logger.warning("Produto %s é Kit (não tem vínculo com o Sankhya por SKU)",olProd.id) 
+                            #await self.app.email.notificar(tipo='alerta')
+                            res.append(f"Produto {olProd.id} é Kit (não tem vínculo com o Sankhya por SKU)") 
+                            #print(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
+                        elif olProd.tipo == 'V':
+                            logger.warning("Produto %s é Mestre (não tem vínculo com o Sankhya por SKU)",olProd.id) 
+                            #await self.app.email.notificar(tipo='alerta')
+                            res.append(f"Produto {olProd.id} é Mestre (não tem vínculo com o Sankhya por SKU)") 
+                            #print(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
+                        elif olProd.tipo == 'S':
+                            logger.warning("Produto %s é Simples mas não tem vínculo com o Sankhya por SKU",olProd.id) 
+                            await self.app.email.notificar(tipo='alerta')
+                            res.append(f"Produto {olProd.id} é Simples mas não tem vínculo com o Sankhya por SKU") 
+                            #print(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
+                        else:
+                            logger.warning("Produto %s não tem vínculo com o Sankhya (sem SKU)",produto["id"])
+                            await self.app.email.notificar()
+                            res.append(f"Produto {produto["id"]} não tem vínculo com o Sankhya (sem SKU)")
+                            #print(f"Produto {produto["id"]} não tem vínculo com o Sankhya (sem SKU)")
                 print("Rotina concluída.")   
                 return True, res        
             else: 
-                res.append("Nenhum produto com alteração")
-                #print("Nenhum produto com alteração")
+                res.append("Nenhuma alteração para ser importada no Sankhya")
+                print("Nenhuma alteração para ser importada no Sankhya")
                 return True, res
 
         async def ol_atualizar_produtos(self) -> tuple[bool,list]:
@@ -227,13 +247,13 @@ class App:
 
             file_path_fetch = configSankhya.PATH_SCRIPT_SYNCPROD
                 
-            #print("Iniciando busca das alterações no Sankhya.")
+            print("Iniciando busca das alterações no Sankhya.")
             query_syncprod = await self.app.valida_path.validar(path=file_path_fetch,method='full',mode='r')
 
             fetch = await self.app.db.select(query=query_syncprod)
             
             if fetch:            
-                # print(f"{len(fetch)} alterações encontradas.")
+                print(f"{len(fetch)} alterações encontradas.")
                 # print("Iniciando sincronização")                        
                 for f in fetch:
                     ackOl = ackSnk = None
@@ -247,6 +267,7 @@ class App:
                         if await olProd.buscar():
                             ackOl = True
                         else:
+                            logger.error("Falha ao buscar os dados do produto %s na base Olist. Verifique os logs.",f["idprod"])
                             await self.app.email.notificar()
                             values.append(f"Falha ao buscar os dados do produto {f["idprod"]} na base Olist. Verifique os logs.")
 
@@ -254,6 +275,7 @@ class App:
                         if await snkProd.buscar():
                             ackSnk = True
                         else: 
+                            logger.error("Falha ao buscar os dados do produto %s na base Sankhya. Verifique os logs.",f["codprod"])
                             await self.app.email.notificar()
                             values.append(f"Falha ao buscar os dados do produto {f["codprod"]} na base Sankhya. Verifique os logs.")
 
@@ -297,7 +319,7 @@ class App:
 
                             olProd.acao = 'put'                    
 
-                            # print(f"Atualizando produto {olProd.id}")
+                            print(f"Atualizando produto {olProd.id}")
                             ackReceberOlist, val = await olProd.receber_alteracoes()
                             if ackReceberOlist and bool(val):
                                 ackSync = await self.remove_syncprod(produto=f["codprod"],dhevento=f["dhevento"])
@@ -306,12 +328,15 @@ class App:
                                     #print(f"Produto {olProd.id} atualizado com sucesso.")
                                     await self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)
                                 else:
+                                    logger.error("Erro: Produto %s atualizado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.",olProd.id)
                                     await self.app.email.notificar()
                                     values.append(f"Erro: Produto {olProd.id} atualizado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
                             elif ackReceberOlist and val == 0:
-                                await self.app.email.notificar()
+                                logger.warning("Produto %s não encontrado",olProd.id)
+                                await self.app.email.notificar(tipo='alerta')
                                 values.append(f"Produto {olProd.id} não encontrado")
                             else:
+                                logger.error("Falha ao atualizar os dados do produto %s na base Olist. Verifique os logs.",olProd.id)
                                 await self.app.email.notificar()
                                 values.append(f"Falha ao atualizar os dados do produto {olProd.id} na base Olist. Verifique os logs.")
                                                     
@@ -323,6 +348,7 @@ class App:
                         if await olProd.buscar():
                             ackOl = True
                         else:
+                            logger.error("Falha ao buscar os dados do produto %s na base Olist. Verifique os logs.",f["idprod"])
                             await self.app.email.notificar()                            
                             values.append(f"Falha ao buscar os dados do produto {f["idprod"]} na base Olist. Verifique os logs.")
 
@@ -330,7 +356,7 @@ class App:
                             olProd.situacao = 'I'
                             olProd.acao = 'del'
 
-                            #print(f"Inativando produto {olProd.id}")
+                            print(f"Inativando produto {olProd.id}")
                             ackReceberOlist, val = await olProd.receber_alteracoes()
                             if ackReceberOlist and bool(val):
                                 ackSync = await self.remove_syncprod(produto=f["codprod"],dhevento=f["dhevento"])
@@ -339,12 +365,15 @@ class App:
                                     #print(f"Produto {olProd.id} inativado com sucesso.")
                                     await self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)
                                 else:
+                                    logger.error("Erro: Produto %s inativado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.",olProd.id)
                                     await self.app.email.notificar()
                                     values.append(f"Erro: Produto {olProd.id} inativado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
                             elif ackReceberOlist and val == 0:
-                                await self.app.email.notificar()
+                                logger.warning("Produto %s não encontrado",olProd.id)
+                                await self.app.email.notificar(tipo='alerta')
                                 values.append(f"Produto {olProd.id} não encontrado")
                             else:
+                                logger.error("Falha ao intivar os dados do produto %s na base Olist. Verifique os logs.",olProd.id)
                                 await self.app.email.notificar()                            
                                 values.append(f"Falha ao intivar os dados do produto {olProd.id} na base Olist. Verifique os logs.")
                         
@@ -357,7 +386,8 @@ class App:
                             # print("Produto não está cadastrado na base Olist.")
                             ackOl = True
                         else:
-                            await self.app.email.notificar() 
+                            logger.warning("Produto %s já cadastrado na base Olist com o mesmo sku %s.",olProd.id,olProd.sku)
+                            await self.app.email.notificar(tipo='alerta') 
                             values.append(f"Produto {olProd.id} já cadastrado na base Olist com o mesmo sku {olProd.sku}.")
 
                         snkProd.sku = f["codprod"]
@@ -365,6 +395,7 @@ class App:
                             # print("Busca bem sucedida")
                             ackSnk = True
                         else: 
+                            logger.error("Falha ao buscar os dados do produto %s na base Sankhya. Verifique os logs.",f["codprod"])
                             await self.app.email.notificar()
                             values.append(f"Falha ao buscar os dados do produto {f["codprod"]} na base Sankhya. Verifique os logs.")
 
@@ -418,7 +449,7 @@ class App:
 
                             olProd.acao = 'post'
 
-                            # print(f"Incluindo produto {olProd.sku}")
+                            print(f"Incluindo produto {olProd.sku}")
                             ackReceberOlist, val = await olProd.receber_alteracoes()
                             if ackReceberOlist:
                                 ackSync = await self.remove_syncprod(produto=f["codprod"],dhevento=f["dhevento"])
@@ -428,21 +459,26 @@ class App:
                                     #print(f"Produto {f["codprod"]} incluído com sucesso no ID {val}.")
                                     await self.atualiza_historico(produto_incluido=val)
                                 elif ackSync and not ackTgfpro:
+                                    logger.error("Erro: Produto %s incluído na base Olist mas não foi possível vincular o ID na base Sankhya. Verifique os logs.",f["codprod"])
                                     self.app.email.notificar()
                                     values.append(f"Erro: Produto {f["codprod"]} incluído na base Olist mas não foi possível vincular o ID na base Sankhya. Verifique os logs.")
                                 elif ackTgfpro and not ackSync:
+                                    logger.error("Erro: Produto %s incluído na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.",f["codprod"])
                                     self.app.email.notificar()
                                     values.append(f"Erro: Produto {f["codprod"]} incluído na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
                                 else:
+                                    logger.error("Erro: Produto %s incluído na base Olist mas não foi possível atualizar as informações na base Sankhya. Verifique os logs.",f["codprod"])
                                     self.app.email.notificar()
                                     values.append(f"Erro: Produto {f["codprod"]} incluído na base Olist mas não foi possível atualizar as informações na base Sankhya. Verifique os logs.")
                             else:
+                                logger.error("Falha ao incluir produto %s na base Olist. Verifique os logs.",f["codprod"])
                                 self.app.email.notificar()
                                 values.append(f"Falha ao incluir produto {f["codprod"]} na base Olist. Verifique os logs.")
-                #print("Rotina concluída.")
+                print("Rotina concluída.")
                 return True, values
             else:
-                values.append("Nenhum produto com alteração")
+                values.append("Nenhuma alteração para ser enviada para Tiny/Olist")
+                print("Nenhuma alteração para ser enviada para Tiny/Olist")
                 return True, values
 
     class Pedido:
