@@ -495,13 +495,13 @@ class Produto:
             return {"status":"Ação não configurada"} 
 
     async def buscar(self,id:int=None,sku:int=None) -> bool:
-
+        url = None
         if id or self.id:
             url = self.endpoint+f"/{id or self.id}"
         elif sku or self.sku:
             url = self.endpoint+f"/?codigo={sku or self.sku}"
         
-        print(url)
+        #print(url)
         try:
             token = self.con.get_latest_valid_token_or_refresh()
             if url and token:                
