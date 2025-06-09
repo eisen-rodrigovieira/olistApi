@@ -20,12 +20,11 @@ class sendMail:
         self.smtp_server     = configUtils.SMTP_SERVER
         self.smtp_port       = configUtils.SMTP_PORT 
         self.email           = keys.SENDER_MAIL
-        self.pwd             = keys.SENDER_PASSWORD
-        self.subject         = configUtils.SUBJECT_ERROR
+        self.pwd             = keys.SENDER_PASSWORD        
         self.default_to      = configUtils.TO_DEFAULT
         
         
-    async def enviar(self,destinatario:str=None, corpo=None):
+    async def enviar(self,destinatario:str=None, corpo=None, assunto:str=None):
         """
         Envia um e-mail usando SMTP
         
@@ -38,7 +37,7 @@ class sendMail:
         msg = MIMEMultipart()
         msg['From']    = self.email
         msg['To']      = destinatario
-        msg['Subject'] = self.subject
+        msg['Subject'] = assunto
         msg.attach(MIMEText(corpo, 'html'))
 
         try:
@@ -50,7 +49,9 @@ class sendMail:
         except Exception as e:
             logger.error("Falha ao enviar e-mail: %s",e)
 
-    async def notificar(self, destinatario:str=None):
+    async def notificar(self, destinatario:str=None, tipo:str='erro'):
+
+        assunto = None
         if not os.path.exists(self.email_body_path):
             logger.error("Arquivo não encontrado em %s.",self.email_body_path)            
         else:
@@ -62,7 +63,19 @@ class sendMail:
         else:
             with open(file=config.PATH_LOGS, mode='r', encoding='utf-8') as f:
                 log_data = f.readlines()
+
+        match tipo:
+            case 'erro':
+                assunto = configUtils.SUBJECT_ERROR["text"]
+                cor = configUtils.SUBJECT_ERROR["color"]
+            case 'alerta':
+                assunto = configUtils.SUBJECT_WARN["text"]
+                cor = configUtils.SUBJECT_WARN["color"]
+            case _:
+                None
         
-        if body and log_data:
-            self.enviar(destinatario=destinatario or self.default_to,
-                        corpo=body.format(log_data[-1]))  
+        if body and log_data and assunto:
+
+            await self.enviar(destinatario=destinatario or self.default_to,
+                              corpo=body.format(cor,log_data[-1]),
+                              assunto=assunto)
