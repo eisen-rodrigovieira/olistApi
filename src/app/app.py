@@ -319,7 +319,7 @@ class App:
 
                             olProd.acao = 'put'                    
 
-                            print(f"Atualizando produto {olProd.id}")
+                            # print(f"Atualizando produto {olProd.id}")
                             ackReceberOlist, val = await olProd.receber_alteracoes()
                             if ackReceberOlist and bool(val):
                                 ackSync = await self.remove_syncprod(produto=f["codprod"],dhevento=f["dhevento"])
@@ -356,7 +356,7 @@ class App:
                             olProd.situacao = 'I'
                             olProd.acao = 'del'
 
-                            print(f"Inativando produto {olProd.id}")
+                            # print(f"Inativando produto {olProd.id}")
                             ackReceberOlist, val = await olProd.receber_alteracoes()
                             if ackReceberOlist and bool(val):
                                 ackSync = await self.remove_syncprod(produto=f["codprod"],dhevento=f["dhevento"])
@@ -449,7 +449,7 @@ class App:
 
                             olProd.acao = 'post'
 
-                            print(f"Incluindo produto {olProd.sku}")
+                            # print(f"Incluindo produto {olProd.sku}")
                             ackReceberOlist, val = await olProd.receber_alteracoes()
                             if ackReceberOlist:
                                 ackSync = await self.remove_syncprod(produto=f["codprod"],dhevento=f["dhevento"])
@@ -628,17 +628,22 @@ class App:
             print(f"Encontrados {len(mvto_sankhya)} produtos")
 
             for mvto in mvto_sankhya:
+                print(mvto)
                 estoque_snk = await snkEst.buscar_disponivel(codprod=mvto.get('codprod'))
-                snk_qtd_est = estoque_snk[0].get('qtd')
+                estoque_snk = estoque_snk[0]
+                print(estoque_snk)
+                snk_qtd_est = estoque_snk.get('qtd')
                 olEst = olEstoque()
-                await olEst.buscar(id=mvto.get('idprod'))
+                await olEst.buscar(id=estoque_snk.get('ad_mkp_idprod'))
                 estoque_olist = await olEst.encodificar()
                 ol_qtd_est = estoque_olist.get('disponivel')
+
+                print(f"Produto {mvto.get('codprod')}: {snk_qtd_est} snk x {ol_qtd_est} ol")
 
                 if ol_qtd_est != snk_qtd_est:
                     variacao = ol_qtd_est - snk_qtd_est
                     ajuste_estoque = {
-                            "id": int(mvto.get('idprod')),
+                            "id": int(estoque_snk.get('ad_mkp_idprod')),
                             "deposito": int(estoque_olist.get('depositos')[0].get('id')),
                             "tipo":None,
                             "quantidade":abs(variacao)
@@ -670,6 +675,16 @@ class App:
                         logger.error("Erro: Falha ao sincronizar estoque do produto %s. Verifique os logs.",estoque_olist.get('codigo'))
                         await self.app.email.notificar()
                         values.append(f"Erro: Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
+                else:
+                    print(f"Estoque do produto {estoque_olist.get('codigo')} sem alteração.")
+                    ackSync = await self.remove_syncestoque(produto=mvto["codprod"],dhevento=mvto["dhevento"])
+                    if ackSync:
+                        await self.atualiza_historico(produto=estoque_olist.get('codigo'))
+                        values.append(f"Estoque do produto {estoque_olist.get('codigo')} sem alteração.")                    
+                    else:
+                        logger.error("Erro: Estoque do produto %s sem alteração mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.",estoque_olist.get('codigo'))
+                        await self.app.email.notificar()
+                        values.append(f"Erro: Estoque do produto {estoque_olist.get('codigo')} sem alteração mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")                        
             print(f"Sincronização concluída!")
             return True, values
 
@@ -745,18 +760,18 @@ class App:
                                 values.append(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso. Atual {ajuste_estoque.get('quantidade')}.")
                                 print(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso. Atual {ajuste_estoque.get('quantidade')}.")
                             else:
-                                print("Falha ao sincronizar estoque. Verifique os logs.")
                                 logger.error("Erro: Falha ao sincronizar estoque do produto %s. Verifique os logs.",e.get('codprod'))
                                 await self.app.email.notificar()
                                 values.append(f"Erro: Falha ao sincronizar estoque do produto {e.get('codprod')}. Verifique os logs.")                
+                                print(f"Erro: Falha ao sincronizar estoque do produto {e.get('codprod')}. Verifique os logs.")
                         else:
                             await self.atualiza_historico(produto=e.get('codprod'))
                             values.append(f"Estoque do produto {e.get('codprod')} já está atualizado. Atual {estoque_olist.get('disponivel')}.")
                             print(f"Estoque do produto {e.get('codprod')} já está atualizado. Atual {estoque_olist.get('disponivel')}.")
                     else:
-                        print(f"Falha ao buscar dados do estoque do produto {e.get('ad_mkp_idprod')} no Olist. Verifique os logs.")
                         logger.error("Erro: Falha ao buscar dados do estoque do produto %s no Olist. Verifique os logs.",e.get('ad_mkp_idprod'))
                         await self.app.email.notificar()
                         values.append(f"Falha ao buscar dados do estoque do produto {e.get('ad_mkp_idprod')} no Olist. Verifique os logs.")
+                        print(f"Falha ao buscar dados do estoque do produto {e.get('ad_mkp_idprod')} no Olist. Verifique os logs.")
             print(f"Sincronização concluída!")
             return True, values
