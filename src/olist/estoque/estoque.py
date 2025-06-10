@@ -156,7 +156,6 @@ class Estoque:
         try:
             token = self.con.get_latest_valid_token_or_refresh()
             payload = await self.encodificar()
-            # print(payload)
             if url and token:                
                 post_estoque = requests.post(
                     url=url,
