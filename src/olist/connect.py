@@ -38,9 +38,7 @@ class Connect(object):
         """
         Realiza login automatizado e extrai código de autorização da URL.
         """
-
         url = config.AUTH_URL+f'/auth?scope=openid&response_type=code&client_id={keys.CLIENT_ID}&redirect_uri={config.REDIRECT_URI}'
-
         try:
             driver = webdriver.Firefox()
             driver.get(url)
@@ -74,7 +72,6 @@ class Connect(object):
         if not authorization_code and not refresh_token:
             logger.error("authorization_code ou refresh_token não informado")
             return {"erro":"authorization_code ou refresh_token não informado"}
-
         header = {
             "Content-Type": "application/x-www-form-urlencoded"
         }
@@ -113,7 +110,6 @@ class Connect(object):
         Salva o token criptografado com timestamp.
         """
         try:
-            # Converte o token em string JSON e criptografa
             access_token = json.dumps(token_data['access_token']).encode("utf-8")
             refresh_token = json.dumps(token_data['refresh_token']).encode("utf-8")
             id_token = json.dumps(token_data['id_token']).encode("utf-8")
@@ -121,14 +117,12 @@ class Connect(object):
             encrypted_refresh_token = self.fernet.encrypt(refresh_token).decode()
             encrypted_id_token = self.fernet.encrypt(id_token).decode()
 
-            # Carrega histórico se existir
             if os.path.exists(filename):
                 with open(filename, "r", encoding="utf-8") as f:
                     history = json.load(f)
             else:
                 history = []
 
-            # Adiciona nova entrada
             history.append({
                 "timestamp": datetime.now().isoformat(),
                 "access_token_encrypted": encrypted_access_token,
@@ -138,10 +132,8 @@ class Connect(object):
                 "id_token_encrypted": encrypted_id_token,
             })
 
-            # Salva novamente
             with open(filename, "w", encoding="utf-8") as f:
                 json.dump(history, f, indent=4, ensure_ascii=False)
-            logger.info("Token criptografado salvo em %s",filename)
             return True
         except Exception as e:
             logger.error("Erro ao salvar token criptografado: %s",e)
@@ -157,7 +149,6 @@ class Connect(object):
             history = json.load(f)                       
 
         latest = history[-1]
-
         latest["access_token_raw"] = self.fernet.decrypt(latest["access_token_encrypted"].encode()).decode()
         latest["refresh_token_raw"] = self.fernet.decrypt(latest["refresh_token_encrypted"].encode()).decode()
 
@@ -177,68 +168,43 @@ class Connect(object):
             with open(filename, "r", encoding="utf-8") as f:
                 history = json.load(f)
 
-            #logger.debug("Json carregado")
-
             latest = history[-1]
             access_token_expires = datetime.fromisoformat(latest["access_token_expires_at"])
             refresh_token_expires = datetime.fromisoformat(latest["refresh_token_expires_at"])
             now = datetime.now()
 
-            #logger.debug("Dados de expiracao carregados")
-
             if now < access_token_expires:   
-                
-                #logger.debug("Access token valido")
-
                 decrypted_access_token = self.fernet.decrypt(latest["access_token_encrypted"].encode()).decode()
-                return json.loads(decrypted_access_token)
-            
+                return json.loads(decrypted_access_token)            
             elif now < refresh_token_expires:
-
-                #logger.debug("Access token vencido")
-
                 decrypted_refresh_token = self.fernet.decrypt(latest["refresh_token_encrypted"].encode()).decode()                
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
                     coro = self.get_token(refresh_token=json.loads(decrypted_refresh_token))
                     new_token = asyncio.ensure_future(coro)
-                    # Use nest_asyncio para rodar em notebooks (opcional)
                     import nest_asyncio
                     nest_asyncio.apply()
-                    #logger.debug("Rodando busca 2 com refresh token 1")
                     new_token = loop.run_until_complete(new_token)     
-                    #logger.debug("Retorno da busca com refresh token 1")               
                 else:
-                    #logger.debug("Buscando com refresh token 2")
                     new_token = loop.run_until_complete(self.get_token(refresh_token=decrypted_refresh_token))                
-                
-                #logger.debug("Solicitado com refresh_token")
-
                 if new_token.get("erro"):
-                    logger.error("Retorno do token de acesso invalido. Tentando no")
-
+                    logger.error("Retorno do token de acesso invalido. Tentando novamente")
                     return ''               
                 else:
                     self.save_token_to_file(new_token)                
-                    logger.warning("Token de acesso atualizado.")
+                    logger.info("Token de acesso atualizado.")
                     return new_token["access_token"]
             else:
-                logger.debug("Refresh token vencido")
-
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
                     coro = self.login()
                     new_token = asyncio.ensure_future(coro)
-                    #logger.debug("Rodando busca com novo login")
-                    # Use nest_asyncio para rodar em notebooks (opcional)
                     import nest_asyncio
                     nest_asyncio.apply()
-                    #logger.debug("Rodando busca com novo loginn")
                     new_token = loop.run_until_complete(new_token)     
                     logger.debug("Retorno da busca com novo login") 
                     return new_token            
                 else:
-                    #logger.debug("Rodando busca com novo login 2")
                     new_token = loop.run_until_complete(self.login())
                     return new_token
         except Exception as e:
@@ -253,7 +219,7 @@ class Connect(object):
             authcode = await self.get_auth_code()
             token = await self.get_token(authorization_code=authcode)
             self.save_token_to_file(token)
-            logger.warning("Token de acesso recuperado via login.")
+            logger.info("Token de acesso recuperado via login.")
             return token["access_token"]
         except Exception as e:
             logger.error("Erro no login: %s",e)            
