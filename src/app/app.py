@@ -201,7 +201,7 @@ class App:
                                     #print(f"Produto {snkProd.id} sem atualizações a serem sincronizadas Olist > Sankhya") 
                             else:
                                 logger.warning("Produto %s não tem vínculo com o Sankhya (SKU em branco ou inválido)",olProd.id) 
-                                await self.app.email.notificar()
+                                await self.app.email.notificar(tipo='alerta')
                                 res.append(f"Produto {olProd.id} não tem vínculo com o Sankhya (SKU em branco ou inválido)") 
                                 #print(f"Produto {olProd.id} não tem vínculo com o Sankhya (SKU em branco ou inválido)") 
                         else:
@@ -628,17 +628,17 @@ class App:
             print(f"Encontrados {len(mvto_sankhya)} produtos")
 
             for mvto in mvto_sankhya:
-                print(mvto)
+                #print(mvto)
                 estoque_snk = await snkEst.buscar_disponivel(codprod=mvto.get('codprod'))
                 estoque_snk = estoque_snk[0]
-                print(estoque_snk)
+                #print(estoque_snk)
                 snk_qtd_est = estoque_snk.get('qtd')
                 olEst = olEstoque()
                 await olEst.buscar(id=estoque_snk.get('ad_mkp_idprod'))
                 estoque_olist = await olEst.encodificar()
                 ol_qtd_est = estoque_olist.get('disponivel')
 
-                print(f"Produto {mvto.get('codprod')}: {snk_qtd_est} snk x {ol_qtd_est} ol")
+                #print(f"Produto {mvto.get('codprod')}: {snk_qtd_est} snk x {ol_qtd_est} ol")
 
                 if ol_qtd_est != snk_qtd_est:
                     variacao = ol_qtd_est - snk_qtd_est

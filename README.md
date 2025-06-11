@@ -29,6 +29,7 @@ olistApi/
 │   ├── olist/                 # Código-fonte da classe olist
 │   ├── sankhya/               # Código-fonte da classe sankhya
 │   ├── __init__.py            # Inicializador da interface da aplicação no Streamlit
+│   ├── atualiza_estoque.py    # Script para atualização de estoque
 │   ├── atualiza_pedidos.py    # Script para atualização de pedidos
 │   └── atualiza_produtos.py   # Script para atualização de produtos
 ├── .gitignore
