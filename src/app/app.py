@@ -1,17 +1,16 @@
-import os
 import re
 import time
 import json
 import logging
 from datetime                    import datetime
-from src.sankhya.dbConfig        import dbConfig
 from params                      import config,configUtils,configOlist,configSankhya
 from src.olist.produto.produto   import Produto as olProduto
 from src.olist.pedido.pedido     import Pedido  as olPedido
+from src.olist.estoque.estoque   import Estoque as olEstoque
 from src.sankhya.produto.produto import Produto as snkProduto
 from src.sankhya.pedido.pedido   import Pedido  as snkPedido
-from src.olist.estoque.estoque   import Estoque as olEstoque
 from src.sankhya.estoque.estoque import Estoque as snkEstoque
+from src.sankhya.dbConfig        import dbConfig
 from src.utils.sendMail          import sendMail
 from src.utils.validaPath        import validaPath
 
@@ -34,7 +33,8 @@ class App:
     class Produto:
 
         def __init__(self):
-            self.app = App()            
+            self.app = App()
+            self.contexto = '#Produtos#'
 
         async def atualiza_historico(self, produto_alterado:int=None, produto_incluido:int=None, sentido:int=None):
             file_path = configOlist.PATH_HISTORICO_PRODUTO
@@ -94,24 +94,16 @@ class App:
             produtos_com_alteracao = await _olProd.enviar_alteracoes()
             if produtos_com_alteracao:
                 print(f"{len(produtos_com_alteracao)} produtos com alteração encontrados.")
-                #print("Iniciando sincronização")
-
                 for produto in produtos_com_alteracao:
-                    #print("")                   
-                    
                     snkProd = snkProduto()
                     olProd  = olProduto()
                     if produto["sku"]:
                         time.sleep(self.app.req_sleep)             
                         snkProd.sku = produto["sku"]
                         olProd.id   = produto["id"]
-
                         if await olProd.buscar():
                             if olProd.tipo == 'S' and olProd.sku and await snkProd.buscar():
-                                                
-                                #print(f"Comparando dados do produto {snkProd.sku}")     
                                 olProd.ncm = re.sub(regex_cest_ncm, '', olProd.ncm)
-
                                 new_id                          = olProd.id                          if int(snkProd.id or 0)                          != int(olProd.id or 0)                          else None
                                 # new_sku                         = olProd.sku                         if int(snkProd.sku or 0)                         != int(olProd.sku or 0)                         else None
                                 new_descricao                   = olProd.descricao                   if snkProd.descricao                             != olProd.descricao                             else None
@@ -159,79 +151,78 @@ class App:
 
                                 with open(configSankhya.PATH_PARAMS_UPDATE_PRODUTO, "r", encoding="utf-8") as f:
                                     params = json.load(f)
-                                    params['COD']                       = snkProd.sku
-                                    params['ID']                        = new_id
-                                    params['DESCRICAO']                 = new_descricao
-                                    params['DESCRICAO_COMPLEMENTAR']    = new_descricaoComplementar
-                                    params['PRODUTO_PAI_ID']            = new_produtoPai_id
-                                    params['UNIDADE']                   = new_unidade
-                                    params['ID_MARCA']                  = new_marca_id
-                                    params['NCM']                       = new_ncm
-                                    params['GTIN']                      = new_gtin
-                                    params['ORIGEM']                    = new_origem
-                                    params['CEST']                      = snkProd.cest
-                                    params['ID_CATEGORIA']              = new_categoria_id
-                                    params['LARGURA']                   = new_dimensoes_largura
-                                    params['ALTURA']                    = new_dimensoes_altura
-                                    params['ESPESSURA']                 = new_dimensoes_comprimento
-                                    params['PESO_LIQUIDO']              = new_dimensoes_pesoLiquido
-                                    params['PESO_BRUTO']                = new_dimensoes_pesoBruto
-                                    params['QUANTIDADE_VOLUMES']        = new_dimensoes_quantidadeVolumes
-                                    params['ESTOQUE_MINIMO']            = new_estoque_minimo
-                                    params['ESTOQUE_MAXIMO']            = new_estoque_maximo                                
-                                    params['FORNECEDOR_CODIGO_PRODUTO'] = new_fornecedor_codigo_produto     
+                                params['COD']                       = snkProd.sku
+                                params['ID']                        = new_id
+                                params['DESCRICAO']                 = new_descricao
+                                params['DESCRICAO_COMPLEMENTAR']    = new_descricaoComplementar
+                                params['PRODUTO_PAI_ID']            = new_produtoPai_id
+                                params['UNIDADE']                   = new_unidade
+                                params['ID_MARCA']                  = new_marca_id
+                                params['NCM']                       = new_ncm
+                                params['GTIN']                      = new_gtin
+                                params['ORIGEM']                    = new_origem
+                                params['CEST']                      = snkProd.cest
+                                params['ID_CATEGORIA']              = new_categoria_id
+                                params['LARGURA']                   = new_dimensoes_largura
+                                params['ALTURA']                    = new_dimensoes_altura
+                                params['ESPESSURA']                 = new_dimensoes_comprimento
+                                params['PESO_LIQUIDO']              = new_dimensoes_pesoLiquido
+                                params['PESO_BRUTO']                = new_dimensoes_pesoBruto
+                                params['QUANTIDADE_VOLUMES']        = new_dimensoes_quantidadeVolumes
+                                params['ESTOQUE_MINIMO']            = new_estoque_minimo
+                                params['ESTOQUE_MAXIMO']            = new_estoque_maximo                                
+                                params['FORNECEDOR_CODIGO_PRODUTO'] = new_fornecedor_codigo_produto     
 
                                 necessita_atualizar = 0
                                 for value in params.values():
                                     if not (value is None or value == ''): necessita_atualizar+=1
                                 if necessita_atualizar > 1:
-                                    #print(f"Atualizando produto {snkProd.sku}")
                                     ack, num = await snkProd.atualizar(params=params)
                                     if ack:
+                                        logger.info(self.contexto+" Produto %s atualizado com sucesso.",snkProd.sku)
                                         res.append(f"Produto {snkProd.sku} atualizado com sucesso.")                                        
-                                        #print(f"Produto {snkProd.sku} atualizado com sucesso.")
+                                        print(f"Produto {snkProd.sku} atualizado com sucesso.")
                                         await self.atualiza_historico(produto_alterado=snkProd.id,sentido=1)
                                     else:
-                                        logger.error("Falha ao atualizar os dados do produto %s na base Sankhya. Verifique os logs.",snkProd.id)
+                                        logger.error(self.contexto+" Falha ao atualizar os dados do produto %s na base Sankhya. Verifique os logs.",snkProd.id)
                                         await self.app.email.notificar()
                                         res.append(f"Falha ao atualizar os dados do produto {snkProd.id} na base Sankhya. Verifique os logs.")
-                                        #print(f"Falha ao atualizar os dados do produto {snkProd.id} na base Sankhya. Verifique os logs.")
+                                        print(f"Falha ao atualizar os dados do produto {snkProd.id} na base Sankhya. Verifique os logs.")
                                 else:
+                                    logger.info(self.contexto+" Produto %s sem atualizações a serem sincronizadas Olist > Sankhya",snkProd.id) 
                                     res.append(f"Produto {snkProd.id} sem atualizações a serem sincronizadas Olist > Sankhya")
-                                    #print(f"Produto {snkProd.id} sem atualizações a serem sincronizadas Olist > Sankhya") 
+                                    print(f"Produto {snkProd.id} sem atualizações a serem sincronizadas Olist > Sankhya") 
                             else:
-                                logger.warning("Produto %s não tem vínculo com o Sankhya (SKU em branco ou inválido)",olProd.id) 
+                                logger.warning(self.contexto+" Produto %s não tem vínculo com o Sankhya (SKU em branco ou inválido)",olProd.id) 
                                 await self.app.email.notificar(tipo='alerta')
                                 res.append(f"Produto {olProd.id} não tem vínculo com o Sankhya (SKU em branco ou inválido)") 
-                                #print(f"Produto {olProd.id} não tem vínculo com o Sankhya (SKU em branco ou inválido)") 
+                                print(f"Produto {olProd.id} não tem vínculo com o Sankhya (SKU em branco ou inválido)") 
                         else:
-                            logger.error("Falha ao buscar os dados do produto %s na base Olist. Verifique os logs.",olProd.id)
+                            logger.error(self.contexto+" Falha ao buscar os dados do produto %s na base Olist. Verifique os logs.",olProd.id)
                             await self.app.email.notificar()
                             res.append(f"Falha ao buscar os dados do produto {olProd.id} na base Olist. Verifique os logs.")
+                            print(f"Falha ao buscar os dados do produto {olProd.id} na base Olist. Verifique os logs.")
                     else:
                         olProd.id = produto["id"]
                         await olProd.buscar()
-                        #print(olProd.tipo)
                         if olProd.tipo == 'K':
-                            logger.warning("Produto %s é Kit (não tem vínculo com o Sankhya por SKU)",olProd.id) 
-                            #await self.app.email.notificar(tipo='alerta')
+                            logger.warning(self.contexto+" Produto %s é Kit (não tem vínculo com o Sankhya por SKU)",olProd.id)
                             res.append(f"Produto {olProd.id} é Kit (não tem vínculo com o Sankhya por SKU)") 
-                            #print(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
+                            print(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
                         elif olProd.tipo == 'V':
-                            logger.warning("Produto %s é Mestre (não tem vínculo com o Sankhya por SKU)",olProd.id) 
-                            #await self.app.email.notificar(tipo='alerta')
+                            logger.warning(self.contexto+" Produto %s é Mestre (não tem vínculo com o Sankhya por SKU)",olProd.id)
                             res.append(f"Produto {olProd.id} é Mestre (não tem vínculo com o Sankhya por SKU)") 
-                            #print(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
+                            print(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
                         elif olProd.tipo == 'S':
-                            logger.warning("Produto %s é Simples mas não tem vínculo com o Sankhya por SKU",olProd.id) 
+                            logger.warning(self.contexto+" Produto %s é Simples mas não tem vínculo com o Sankhya por SKU",olProd.id) 
                             await self.app.email.notificar(tipo='alerta')
-                            res.append(f"Produto {olProd.id} é Simples mas não tem vínculo com o Sankhya por SKU") 
-                            #print(f"Produto {olProd.id} é mestre (não tem vínculo com o Sankhya por SKU)") 
+                            res.append(f"Produto {olProd.id} é Simples mas não tem vínculo com o Sankhya por SKU")
+                            print(f"Produto {olProd.id} é Simples mas não tem vínculo com o Sankhya por SKU")
                         else:
-                            logger.warning("Produto %s não tem vínculo com o Sankhya (sem SKU)",produto["id"])
-                            await self.app.email.notificar()
+                            logger.warning(self.contexto+" Produto %s não tem vínculo com o Sankhya (sem SKU)",produto["id"])
+                            await self.app.email.notificar(tipo='alerta')
                             res.append(f"Produto {produto["id"]} não tem vínculo com o Sankhya (sem SKU)")
-                            #print(f"Produto {produto["id"]} não tem vínculo com o Sankhya (sem SKU)")
+                            print(f"Produto {produto["id"]} não tem vínculo com o Sankhya (sem SKU)")
                 print("Rotina concluída.")   
                 return True, res        
             else: 
@@ -244,42 +235,33 @@ class App:
             regex_cest_ncm = r"[.]"
             values = []
             fetch = None
-
-            file_path_fetch = configSankhya.PATH_SCRIPT_SYNCPROD
-                
-            print("Iniciando busca das alterações no Sankhya.")
+            file_path_fetch = configSankhya.PATH_SCRIPT_SYNCPROD 
             query_syncprod = await self.app.valida_path.validar(path=file_path_fetch,method='full',mode='r')
-
-            fetch = await self.app.db.select(query=query_syncprod)
-            
+            fetch = await self.app.db.select(query=query_syncprod)            
             if fetch:            
-                print(f"{len(fetch)} alterações encontradas.")
-                # print("Iniciando sincronização")                        
+                print(f"{len(fetch)} alterações encontradas.")           
                 for f in fetch:
                     ackOl = ackSnk = None
-                    # print("")
                     time.sleep(self.app.req_sleep)
                     if f["evento"] == 'A':                        
                         olProd  = olProduto()
                         snkProd = snkProduto()
-
                         olProd.id = f["idprod"]
                         if await olProd.buscar():
                             ackOl = True
                         else:
-                            logger.error("Falha ao buscar os dados do produto %s na base Olist. Verifique os logs.",f["idprod"])
+                            logger.error(self.contexto+" Falha ao buscar os dados do produto %s na base Olist. Verifique os logs.",f["idprod"])
                             await self.app.email.notificar()
                             values.append(f"Falha ao buscar os dados do produto {f["idprod"]} na base Olist. Verifique os logs.")
-
+                            print(f"Falha ao buscar os dados do produto {f["idprod"]} na base Olist. Verifique os logs.")
                         snkProd.sku = f["codprod"]
                         if await snkProd.buscar():
                             ackSnk = True
                         else: 
-                            logger.error("Falha ao buscar os dados do produto %s na base Sankhya. Verifique os logs.",f["codprod"])
+                            logger.error(self.contexto+" Falha ao buscar os dados do produto %s na base Sankhya. Verifique os logs.",f["codprod"])
                             await self.app.email.notificar()
                             values.append(f"Falha ao buscar os dados do produto {f["codprod"]} na base Sankhya. Verifique os logs.")
-
-                        # print(f"Comparando dados do produto {olProd.id}")  
+                            print(f"Falha ao buscar os dados do produto {f["codprod"]} na base Sankhya. Verifique os logs.")
                         if ackOl and ackSnk:
                             olProd.ncm = re.sub(regex_cest_ncm, '', olProd.ncm)
                             olProd.descricao                   = snkProd.descricao                   if snkProd.descricao                             != olProd.descricao                             else olProd.descricao
@@ -316,89 +298,86 @@ class App:
                             olProd.estoque_inicial             = snkProd.estoque_inicial             if int(snkProd.estoque_inicial or 0)             != int(olProd.estoque_inicial or 0)             else olProd.estoque_inicial
                             olProd.tributacao_gtinEmbalagem    = snkProd.tributacao_gtinEmbalagem    if snkProd.tributacao_gtinEmbalagem              != olProd.tributacao_gtinEmbalagem              else olProd.tributacao_gtinEmbalagem
                             olProd.seo_keywords = ["produto"]
-
-                            olProd.acao = 'put'                    
-
-                            # print(f"Atualizando produto {olProd.id}")
+                            olProd.acao = 'put'
                             ackReceberOlist, val = await olProd.receber_alteracoes()
                             if ackReceberOlist and bool(val):
                                 ackSync = await self.remove_syncprod(produto=f["codprod"],dhevento=f["dhevento"])
                                 if ackSync:
+                                    logger.info(self.contexto+" Produto %s atualizado com sucesso.",olProd.id)
                                     values.append(f"Produto {olProd.id} atualizado com sucesso.")
-                                    #print(f"Produto {olProd.id} atualizado com sucesso.")
+                                    print(f"Produto {olProd.id} atualizado com sucesso.")
                                     await self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)
                                 else:
-                                    logger.error("Erro: Produto %s atualizado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.",olProd.id)
+                                    logger.error(self.contexto+" Erro: Produto %s atualizado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.",olProd.id)
                                     await self.app.email.notificar()
                                     values.append(f"Erro: Produto {olProd.id} atualizado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
+                                    print(f"Erro: Produto {olProd.id} atualizado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
                             elif ackReceberOlist and val == 0:
-                                logger.warning("Produto %s não encontrado",olProd.id)
+                                logger.warning(self.contexto+" Produto %s não encontrado",olProd.id)
                                 await self.app.email.notificar(tipo='alerta')
                                 values.append(f"Produto {olProd.id} não encontrado")
+                                print(f"Produto {olProd.id} não encontrado")
                             else:
-                                logger.error("Falha ao atualizar os dados do produto %s na base Olist. Verifique os logs.",olProd.id)
+                                logger.error(self.contexto+" Falha ao atualizar os dados do produto %s na base Olist. Verifique os logs.",olProd.id)
                                 await self.app.email.notificar()
                                 values.append(f"Falha ao atualizar os dados do produto {olProd.id} na base Olist. Verifique os logs.")
-                                                    
+                                print(f"Falha ao atualizar os dados do produto {olProd.id} na base Olist. Verifique os logs.")                                                    
                     elif f["evento"] == 'E':
-                        olProd  = olProduto()
-                        snkProd = snkProduto()
-
-                        olProd.id = f["idprod"]
-                        if await olProd.buscar():
-                            ackOl = True
-                        else:
-                            logger.error("Falha ao buscar os dados do produto %s na base Olist. Verifique os logs.",f["idprod"])
-                            await self.app.email.notificar()                            
-                            values.append(f"Falha ao buscar os dados do produto {f["idprod"]} na base Olist. Verifique os logs.")
-
-                        if ackOl:
-                            olProd.situacao = 'I'
-                            olProd.acao = 'del'
-
-                            # print(f"Inativando produto {olProd.id}")
-                            ackReceberOlist, val = await olProd.receber_alteracoes()
-                            if ackReceberOlist and bool(val):
-                                ackSync = await self.remove_syncprod(produto=f["codprod"],dhevento=f["dhevento"])
-                                if ackSync:
-                                    values.append(f"Produto {olProd.id} inativado com sucesso.")
-                                    #print(f"Produto {olProd.id} inativado com sucesso.")
-                                    await self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)
-                                else:
-                                    logger.error("Erro: Produto %s inativado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.",olProd.id)
-                                    await self.app.email.notificar()
-                                    values.append(f"Erro: Produto {olProd.id} inativado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
-                            elif ackReceberOlist and val == 0:
-                                logger.warning("Produto %s não encontrado",olProd.id)
-                                await self.app.email.notificar(tipo='alerta')
-                                values.append(f"Produto {olProd.id} não encontrado")
-                            else:
-                                logger.error("Falha ao intivar os dados do produto %s na base Olist. Verifique os logs.",olProd.id)
-                                await self.app.email.notificar()                            
-                                values.append(f"Falha ao intivar os dados do produto {olProd.id} na base Olist. Verifique os logs.")
+                        logger.warning(self.contexto+" Evento de inativação não disponível via API. Inative o produto %s manualmente no site.",f["idprod"])
+                        await self.app.email.notificar(tipo='alerta')
+                        values.append(f"Evento de inativação não disponível via API. Inative o produto {f["idprod"]} manualmente no site.")
+                        print(f"Evento de inativação não disponível via API. Inative o produto {f["idprod"]} manualmente no site.")
+                        
+                        # olProd  = olProduto()
+                        # snkProd = snkProduto()
+                        # olProd.id = f["idprod"]
+                        # if await olProd.buscar():
+                        #     ackOl = True
+                        # else:
+                        #     logger.error(self.contexto+" Falha ao buscar os dados do produto %s na base Olist. Verifique os logs.",f["idprod"])
+                        #     await self.app.email.notificar()                            
+                        #     values.append(f"Falha ao buscar os dados do produto {f["idprod"]} na base Olist. Verifique os logs.")
+                        # if ackOl:
+                        #     olProd.situacao = 'I'
+                        #     olProd.acao = 'del'
+                        #     ackReceberOlist, val = await olProd.receber_alteracoes()
+                        #     if ackReceberOlist and bool(val):
+                        #         ackSync = await self.remove_syncprod(produto=f["codprod"],dhevento=f["dhevento"])
+                        #         if ackSync:
+                        #             values.append(f"Produto {olProd.id} inativado com sucesso.")
+                        #             await self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)
+                        #         else:
+                        #             logger.error(self.contexto+" Erro: Produto %s inativado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.",olProd.id)
+                        #             await self.app.email.notificar()
+                        #             values.append(f"Erro: Produto {olProd.id} inativado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
+                        #     elif ackReceberOlist and val == 0:
+                        #         logger.warning(self.contexto+" Produto %s não encontrado",olProd.id)
+                        #         await self.app.email.notificar(tipo='alerta')
+                        #         values.append(f"Produto {olProd.id} não encontrado")
+                        #     else:
+                        #         logger.error(self.contexto+" Falha ao intivar os dados do produto %s na base Olist. Verifique os logs.",olProd.id)
+                        #         await self.app.email.notificar()                            
+                        #         values.append(f"Falha ao intivar os dados do produto {olProd.id} na base Olist. Verifique os logs.")
                         
                     elif f["evento"] == 'I':
                         olP  = olProduto()
                         snkProd = snkProduto()
-
                         olP.sku = f["codprod"]
                         if not await olP.buscar():
-                            # print("Produto não está cadastrado na base Olist.")
                             ackOl = True
                         else:
-                            logger.warning("Produto %s já cadastrado na base Olist com o mesmo sku %s.",olProd.id,olProd.sku)
+                            logger.warning(self.contexto+" Produto %s já cadastrado na base Olist com o mesmo sku %s.",olProd.id,olProd.sku)
                             await self.app.email.notificar(tipo='alerta') 
                             values.append(f"Produto {olProd.id} já cadastrado na base Olist com o mesmo sku {olProd.sku}.")
-
+                            print(f"Produto {olProd.id} já cadastrado na base Olist com o mesmo sku {olProd.sku}.")
                         snkProd.sku = f["codprod"]
                         if await snkProd.buscar():
-                            # print("Busca bem sucedida")
                             ackSnk = True
                         else: 
-                            logger.error("Falha ao buscar os dados do produto %s na base Sankhya. Verifique os logs.",f["codprod"])
+                            logger.error(self.contexto+" Falha ao buscar os dados do produto %s na base Sankhya. Verifique os logs.",f["codprod"])
                             await self.app.email.notificar()
                             values.append(f"Falha ao buscar os dados do produto {f["codprod"]} na base Sankhya. Verifique os logs.")
-
+                            print(f"Falha ao buscar os dados do produto {f["codprod"]} na base Sankhya. Verifique os logs.")
                         if ackOl and ackSnk:
                             olProd = olProduto()
                             olProd.sku                         = snkProd.sku
@@ -446,34 +425,36 @@ class App:
                             # olProd.producao
                             # olProd.kits
                             # olProd.variacoes
-
                             olProd.acao = 'post'
-
-                            # print(f"Incluindo produto {olProd.sku}")
                             ackReceberOlist, val = await olProd.receber_alteracoes()
                             if ackReceberOlist:
                                 ackSync = await self.remove_syncprod(produto=f["codprod"],dhevento=f["dhevento"])
                                 ackTgfpro = await self.atualiza_produto_novo(produto=f["codprod"],id=val)
                                 if ackSync and ackTgfpro:
+                                    logger.info(self.contexto+" Produto %s incluído com sucesso no ID %s.",f["codprod"],val)
                                     values.append(f"Produto {f["codprod"]} incluído com sucesso no ID {val}.")
-                                    #print(f"Produto {f["codprod"]} incluído com sucesso no ID {val}.")
+                                    print(f"Produto {f["codprod"]} incluído com sucesso no ID {val}.")
                                     await self.atualiza_historico(produto_incluido=val)
                                 elif ackSync and not ackTgfpro:
-                                    logger.error("Erro: Produto %s incluído na base Olist mas não foi possível vincular o ID na base Sankhya. Verifique os logs.",f["codprod"])
+                                    logger.error(self.contexto+" Erro: Produto %s incluído na base Olist mas não foi possível vincular o ID na base Sankhya. Verifique os logs.",f["codprod"])
                                     self.app.email.notificar()
                                     values.append(f"Erro: Produto {f["codprod"]} incluído na base Olist mas não foi possível vincular o ID na base Sankhya. Verifique os logs.")
+                                    print(f"Erro: Produto {f["codprod"]} incluído na base Olist mas não foi possível vincular o ID na base Sankhya. Verifique os logs.")
                                 elif ackTgfpro and not ackSync:
-                                    logger.error("Erro: Produto %s incluído na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.",f["codprod"])
+                                    logger.error(self.contexto+" Erro: Produto %s incluído na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.",f["codprod"])
                                     self.app.email.notificar()
                                     values.append(f"Erro: Produto {f["codprod"]} incluído na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
+                                    print(f"Erro: Produto {f["codprod"]} incluído na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
                                 else:
-                                    logger.error("Erro: Produto %s incluído na base Olist mas não foi possível atualizar as informações na base Sankhya. Verifique os logs.",f["codprod"])
+                                    logger.error(self.contexto+" Erro: Produto %s incluído na base Olist mas não foi possível atualizar as informações na base Sankhya. Verifique os logs.",f["codprod"])
                                     self.app.email.notificar()
                                     values.append(f"Erro: Produto {f["codprod"]} incluído na base Olist mas não foi possível atualizar as informações na base Sankhya. Verifique os logs.")
+                                    print(f"Erro: Produto {f["codprod"]} incluído na base Olist mas não foi possível atualizar as informações na base Sankhya. Verifique os logs.")
                             else:
-                                logger.error("Falha ao incluir produto %s na base Olist. Verifique os logs.",f["codprod"])
+                                logger.error(self.contexto+" Falha ao incluir produto %s na base Olist. Verifique os logs.",f["codprod"])
                                 self.app.email.notificar()
                                 values.append(f"Falha ao incluir produto {f["codprod"]} na base Olist. Verifique os logs.")
+                                print(f"Falha ao incluir produto {f["codprod"]} na base Olist. Verifique os logs.")
                 print("Rotina concluída.")
                 return True, values
             else:
@@ -486,12 +467,12 @@ class App:
         def __init__(self, id:int=None):
             self.app = App()
             self.id = id
+            self.contexto = '#Pedidos#'            
             
         async def atualiza_historico(self, pedido_alterado:int=None, pedido_incluido:int=None, sentido:int=None):
             file_path = configOlist.PATH_HISTORICO_PEDIDO
             historico = await self.app.valida_path.validar(path=file_path,mode='r',method='json')
-
-            if pedido_alterado: # and not pedido_incluido:
+            if pedido_alterado:
                 if sentido == 0: # SANKHYA > OLIST
                     historico["ultima_atualizacao_sankhya_olist"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     historico["ultima_atualizacao_sankhya_olist"]["id"] = pedido_alterado
@@ -500,20 +481,17 @@ class App:
                     historico["ultima_atualizacao_olist_sankhya"]["id"] = pedido_alterado
                 else:
                     pass
-            if pedido_incluido: # and not pedido_alterado:
+            if pedido_incluido:
                 historico["ultima_importacao"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 historico["ultima_importacao"]["id"] = pedido_incluido
-
             await self.app.valida_path.validar(path=file_path,mode='w',method='json',content=historico)
 
         async def busca_novos(self) -> tuple[bool,list]:
 
             olPd = olPedido()
             res = []
-
             ack_novos, pedidos_novos = await olPd.buscar_aprovados()
             ack_prep_envio, pedidos_prep_envio = await olPd.buscar_preparando_envio()
-
             if ack_novos:                
                 file_path_exists = configSankhya.PATH_SCRIPT_SYNCPED_NOVO
                 query_syncpedido_novo = await self.app.valida_path.validar(path=file_path_exists,method='full',mode='r')
@@ -521,30 +499,36 @@ class App:
                     self.id = novo_pedido
                     olPed = olPedido()
                     snkPed = snkPedido()
-                    exists = await self.app.db.select(query=query_syncpedido_novo,
-                                                      params={"AD_MKP_ID":novo_pedido})
+                    exists = await self.app.db.select(query=query_syncpedido_novo, params={"AD_MKP_ID":novo_pedido})
                     if not exists:
-                        #print("")
                         time.sleep(self.app.req_sleep)
                         if await olPed.buscar(id=novo_pedido):
                             dados_pedido = await olPed.encodificar()
                             ack2, num_unico = await snkPed.registrar(dados_pedido)            
                             if ack2:
+                                logger.info(self.contexto+" Pedido #%s importado no nº único %s",dados_pedido["numeroPedido"],num_unico) 
                                 res.append(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}") 
+                                print(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}") 
                             else:
-                                await self.app.email.notificar()
-                                res.append(f"Falha ao registrar pedido #{dados_pedido["numeroPedido"]}") 
+                                logger.error(self.contexto+" Falha ao registrar pedido #%s. Verifique os logs.",dados_pedido["numeroPedido"]) 
+                                await self.app.email.notificar()                                
+                                res.append(f"Falha ao registrar pedido #{dados_pedido["numeroPedido"]}. Verifique os logs.") 
+                                print(f"Falha ao registrar pedido #{dados_pedido["numeroPedido"]}. Verifique os logs.") 
                         else:
-                            await self.app.email.notificar()
+                            logger.warning(self.contexto+" Falha ao buscar dados do pedido #%s. Verifique os logs.",dados_pedido["numeroPedido"])
+                            await self.app.email.notificar(tipo='alerta')
                             res.append(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
-                        #print("")
+                            print(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
+                        await self.atualiza_historico(pedido_incluido=novo_pedido)
                     else:
-                        res.append(f"Pedido ID {novo_pedido} já foi importado para o Sankhya no nº único {exists[0].get('nunota')}.")
-                    await self.atualiza_historico(pedido_incluido=novo_pedido)
+                        logger.info(self.contexto+" Pedido ID %s já foi importado para o Sankhya no nº único %s.",novo_pedido,exists[0].get('nunota')) 
+                        res.append(f"Pedido ID {novo_pedido} já foi importado para o Sankhya no nº único {exists[0].get('nunota')}.")                    
+                        print(f"Pedido ID {novo_pedido} já foi importado para o Sankhya no nº único {exists[0].get('nunota')}.")                    
             else:
+                logger.error(self.contexto+" Falha ao buscar relação dos pedidos novos. Verifique os logs.")
                 await self.app.email.notificar()
                 res.append("Falha ao buscar relação dos pedidos novos")
-            #print("Fim da rotina :D")
+                print("Falha ao buscar relação dos pedidos novos")
 
             if ack_prep_envio:    
                 file_path_exists = configSankhya.PATH_SCRIPT_SYNCPED_CONF
@@ -553,40 +537,52 @@ class App:
                     self.id = pedido
                     olPed   = olPedido()
                     snkPed  = snkPedido()
-                    exists  = await self.app.db.select(query=query_syncpedido_conf,
-                                                       params={"AD_MKP_ID":pedido})
+                    exists  = await self.app.db.select(query=query_syncpedido_conf,params={"AD_MKP_ID":pedido})
                     if not exists:
-                        #print("")
                         time.sleep(self.app.req_sleep)
                         if await olPed.buscar(id=pedido):
                             dados_pedido = await olPed.encodificar()
                             ack2, num_unico = await snkPed.registrar(dados_pedido)            
                             if ack2:
                                 if await snkPed.confirmar_nota(nunota=num_unico,provisao='S'):
+                                    logger.info(self.contexto+" Pedido #%s importado no nº único %s",dados_pedido["numeroPedido"],num_unico)
                                     res.append(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}")
+                                    print(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}")
                                 else:
-                                    await self.app.email.notificar()
-                                    res.append(f"Falha confirmar pedido. Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}.")
+                                    logger.warning(self.contexto+" Falha ao confirmar pedido. Pedido #%s importado no nº único %s.",dados_pedido["numeroPedido"],num_unico)
+                                    await self.app.email.notificar(tipo='alerta')
+                                    res.append(f"Falha ao confirmar pedido. Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}.")
+                                    print(f"Falha ao confirmar pedido. Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}.")
                             else:
+                                logger.error(self.contexto+" Falha ao registrar pedido #%s.",dados_pedido["numeroPedido"])
                                 await self.app.email.notificar()
                                 res.append(f"Falha ao registrar pedido #{dados_pedido["numeroPedido"]}") 
+                                print(f"Falha ao registrar pedido #{dados_pedido["numeroPedido"]}") 
                         else:
+                            logger.error(self.contexto+" Falha ao buscar dados do pedido #%s.",dados_pedido["numeroPedido"])
                             await self.app.email.notificar()
                             res.append(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
-                        #print("")
+                            print(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
                     else:
                         if not bool(exists[0].get('confirmado')):
                             if await snkPed.confirmar_nota(nunota=exists[0].get('nunota'),provisao='S'):
+                                logger.info(self.contexto+" Pedido ID %s atualizado para confirmado. Nº único %s.",pedido,exists[0].get('nunota'))
                                 res.append(f"Pedido ID {pedido} atualizado para confirmado. Nº único {exists[0].get('nunota')}.")
+                                print(f"Pedido ID {pedido} atualizado para confirmado. Nº único {exists[0].get('nunota')}.")
                             else:
-                                await self.app.email.notificar()
-                                res.append(f"Falha ao confirmar pedido ID {pedido} nº único {num_unico}.")                                
+                                logger.warning(self.contexto+" Falha ao confirmar pedido ID %s Nº único %s.",pedido,exists[0].get('nunota'))
+                                await self.app.email.notificar(tipo='alerta')
+                                res.append(f"Falha ao confirmar pedido ID {pedido} nº único {exists[0].get('nunota')}.")
+                                print(f"Falha ao confirmar pedido ID {pedido} nº único {exists[0].get('nunota')}.")
                         else:
                             res.append(f"Sem alterações necessárias no pedido ID {pedido}. Nº único {exists[0].get('nunota')}.")
+                            print(f"Sem alterações necessárias no pedido ID {pedido}. Nº único {exists[0].get('nunota')}.")
                     await self.atualiza_historico(pedido_alterado=pedido,sentido=1)
             else:
+                logger.error(self.contexto+" Falha ao buscar relação dos pedidos em separação")
                 await self.app.email.notificar()
-                res.append("Falha ao buscar relação dos pedidos em separação")            
+                res.append("Falha ao buscar relação dos pedidos em separação")
+                print("Falha ao buscar relação dos pedidos em separação")
             res.append("Importação concluída ✅")            
             return True, res
 
@@ -594,15 +590,14 @@ class App:
 
         def __init__(self):
             self.app = App()
+            self.contexto = '#Estoque#'            
 
         async def atualiza_historico(self, produto:int=None):
             file_path = configOlist.PATH_HISTORICO_ESTOQUE
             historico = await self.app.valida_path.validar(path=file_path,mode='r',method='json')
-
             if produto:
                 historico["ultima_atualizacao"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 historico["ultima_atualizacao"]["id"] = int(produto)
-
             await self.app.valida_path.validar(path=file_path,mode='w',method='json',content=historico)            
 
         async def remove_syncestoque(self,produto:int=None,dhevento:datetime=None) -> bool:
@@ -623,112 +618,115 @@ class App:
             olEst = olEstoque()
             snkEst = snkEstoque()
             values = []
-
             mvto_sankhya = await snkEst.buscar_movimentacoes()
             print(f"Encontrados {len(mvto_sankhya)} produtos")
-
             for mvto in mvto_sankhya:
-                #print(mvto)
-                estoque_snk = await snkEst.buscar_disponivel(codprod=mvto.get('codprod'))
-                estoque_snk = estoque_snk[0]
-                #print(estoque_snk)
-                snk_qtd_est = estoque_snk.get('qtd')
-                olEst = olEstoque()
-                await olEst.buscar(id=estoque_snk.get('ad_mkp_idprod'))
-                estoque_olist = await olEst.encodificar()
-                ol_qtd_est = estoque_olist.get('disponivel')
-
-                #print(f"Produto {mvto.get('codprod')}: {snk_qtd_est} snk x {ol_qtd_est} ol")
-
-                if ol_qtd_est != snk_qtd_est:
-                    variacao = ol_qtd_est - snk_qtd_est
-                    ajuste_estoque = {
-                            "id": int(estoque_snk.get('ad_mkp_idprod')),
-                            "deposito": int(estoque_olist.get('depositos')[0].get('id')),
-                            "tipo":None,
-                            "quantidade":abs(variacao)
-                        }    
-                    if variacao > 0:
-                        ajuste_estoque["tipo"] = "S"
-                    elif variacao < 0:
-                        ajuste_estoque["tipo"] = "E"
-                    else:
-                        pass
-
-                    olEst.tipo = ajuste_estoque.get('tipo')
-                    olEst.quantidade = ajuste_estoque.get('quantidade')
-                    olEst.acao = 'post'
-
-                    if await olEst.enviar_saldo():                        
-                        ackSync = await self.remove_syncestoque(produto=mvto["codprod"],dhevento=mvto["dhevento"])
-                        if ackSync:
-                            await self.atualiza_historico(produto=estoque_olist.get('codigo'))
-                            values.append(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso.")
-                            print(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso")
-                            #await self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)                        
+                    estoque_snk = await snkEst.buscar_disponivel(codprod=mvto.get('codprod'))
+                    estoque_snk = estoque_snk[0]
+                    snk_qtd_est = estoque_snk.get('qtd')
+                    olEst = olEstoque()
+                    if await olEst.buscar(id=estoque_snk.get('ad_mkp_idprod')):
+                        estoque_olist = await olEst.encodificar()
+                        ol_qtd_est = estoque_olist.get('disponivel')
+                        if ol_qtd_est != snk_qtd_est:
+                            variacao = ol_qtd_est - snk_qtd_est
+                            ajuste_estoque = {
+                                    "id": int(estoque_snk.get('ad_mkp_idprod')),
+                                    "deposito": int(estoque_olist.get('depositos')[0].get('id')),
+                                    "tipo":None,
+                                    "quantidade":abs(variacao)
+                                }    
+                            if variacao > 0:
+                                ajuste_estoque["tipo"] = "S"
+                            elif variacao < 0:
+                                ajuste_estoque["tipo"] = "E"
+                            else:
+                                pass
+                            olEst.tipo = ajuste_estoque.get('tipo')
+                            olEst.quantidade = ajuste_estoque.get('quantidade')
+                            olEst.acao = 'post'
+                            if await olEst.enviar_saldo():                        
+                                ackSync = await self.remove_syncestoque(produto=mvto["codprod"],dhevento=mvto["dhevento"])
+                                if ackSync:
+                                    await self.atualiza_historico(produto=estoque_olist.get('codigo'))
+                                    logger.info(self.contexto+" Estoque do produto %s sincronizado com sucesso",estoque_olist.get('codigo'))
+                                    values.append(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso.")                                    
+                                    print(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso")                                    
+                                else:
+                                    logger.error(self.contexto+" Estoque do produto %s sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.",estoque_olist.get('codigo'))
+                                    await self.app.email.notificar()
+                                    values.append(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")
+                                    print(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")
+                            else:
+                                logger.error(self.contexto+" Falha ao sincronizar estoque do produto %s. Verifique os logs.",estoque_olist.get('codigo'))
+                                await self.app.email.notificar()
+                                values.append(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
+                                print(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
                         else:
-                            logger.error("Erro: Estoque do produto %s sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.",estoque_olist.get('codigo'))
-                            await self.app.email.notificar()
-                            values.append(f"Erro: Estoque do produto {estoque_olist.get('codigo')} sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")
+                            ackSync = await self.remove_syncestoque(produto=mvto["codprod"],dhevento=mvto["dhevento"])
+                            if ackSync:
+                                await self.atualiza_historico(produto=estoque_olist.get('codigo'))
+                                logger.info(self.contexto+" Estoque do produto %s sem alteração.",estoque_olist.get('codigo'))
+                                values.append(f"Estoque do produto {estoque_olist.get('codigo')} sem alteração.")
+                                print(f"Estoque do produto {estoque_olist.get('codigo')} sem alteração.")
+                            else:
+                                logger.warning(self.contexto+" Estoque do produto %s sem alteração mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.",estoque_olist.get('codigo'))
+                                await self.app.email.notificar(tipo='alerta')
+                                values.append(f"Estoque do produto {estoque_olist.get('codigo')} sem alteração mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")                        
+                                print(f"Estoque do produto {estoque_olist.get('codigo')} sem alteração mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")                        
                     else:
-                        print("Falha ao sincronizar estoque. Verifique os logs.")
-                        logger.error("Erro: Falha ao sincronizar estoque do produto %s. Verifique os logs.",estoque_olist.get('codigo'))
+                        logger.error(self.contexto+"Falha ao buscar dados de estoque do produto %s na base Olist. Verifique os logs.",mvto.get('codprod'))
                         await self.app.email.notificar()
-                        values.append(f"Erro: Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
-                else:
-                    print(f"Estoque do produto {estoque_olist.get('codigo')} sem alteração.")
-                    ackSync = await self.remove_syncestoque(produto=mvto["codprod"],dhevento=mvto["dhevento"])
-                    if ackSync:
-                        await self.atualiza_historico(produto=estoque_olist.get('codigo'))
-                        values.append(f"Estoque do produto {estoque_olist.get('codigo')} sem alteração.")                    
-                    else:
-                        logger.error("Erro: Estoque do produto %s sem alteração mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.",estoque_olist.get('codigo'))
-                        await self.app.email.notificar()
-                        values.append(f"Erro: Estoque do produto {estoque_olist.get('codigo')} sem alteração mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")                        
+                        values.append(f"Falha ao buscar dados de estoque do produto {mvto.get('codprod')} na base Olist. Verifique os logs.")
+                        print(f"Falha ao buscar dados de estoque do produto {mvto.get('codprod')} na base Olist. Verifique os logs.")                        
             print(f"Sincronização concluída!")
             return True, values
 
-        async def balanco(self,produto:int=None) -> tuple[bool,list]:
-            
-            values = []            
-
+        async def balanco(self,produto:int=None) -> tuple[bool,list]:            
+            values = []
             if produto:
                 snkEst = snkEstoque()                
                 estoque_snk = await snkEst.buscar_disponivel(codprod=produto)
-                snk_qtd_disponivel = estoque_snk[0].get('qtd')
+                estoque_snk = estoque_snk[0]
+                snk_qtd_disponivel = estoque_snk.get('qtd')
                 olEst = olEstoque()
-                await olEst.buscar(id=estoque_snk[0].get('ad_mkp_idprod'))
-                estoque_olist = await olEst.encodificar()
-                ol_qtd_disponivel = estoque_olist.get('disponivel')
-                
-                if ol_qtd_disponivel != snk_qtd_disponivel:
-                    ol_qtd_reservado = estoque_olist.get('reservado')
-                    saldo = snk_qtd_disponivel + ol_qtd_reservado
-                    ajuste_estoque = {
-                        "id": int(estoque_snk[0].get('ad_mkp_idprod')),
-                        "deposito": int(estoque_olist.get('depositos')[0].get('id')),
-                        "tipo":"B",
-                        "quantidade":saldo
-                    }  
-
-                    olEst.tipo = ajuste_estoque.get('tipo')
-                    olEst.quantidade = ajuste_estoque.get('quantidade')
-                    olEst.acao = 'post'
-
-                    if await olEst.enviar_saldo():
-                        await self.remove_syncestoque(produto=estoque_snk[0].get('codprod'))
-                        await self.atualiza_historico(produto=produto)
-                        values.append(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso.")
-                        print(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso")
-                    else:
-                        print(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
-                        logger.error("Erro: Falha ao sincronizar estoque do produto %s. Verifique os logs.",estoque_olist.get('codigo'))
-                        await self.app.email.notificar()
-                        values.append(f"Erro: Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
-                else: 
-                    await self.atualiza_historico(produto=estoque_snk[0].get('codprod'))
-                    values.append(f"Estoque do produto {estoque_snk[0].get('codprod')} já está atualizado. Atual {estoque_olist.get('disponivel')}.")
-                    print(f"Estoque do produto {estoque_snk[0].get('codprod')} já está atualizado. Atual {estoque_olist.get('disponivel')}.")                                           
+                if await olEst.buscar(id=estoque_snk.get('ad_mkp_idprod')):
+                    estoque_olist = await olEst.encodificar()
+                    ol_qtd_disponivel = estoque_olist.get('disponivel')                    
+                    if ol_qtd_disponivel != snk_qtd_disponivel:
+                        ol_qtd_reservado = estoque_olist.get('reservado')
+                        saldo = snk_qtd_disponivel + ol_qtd_reservado
+                        ajuste_estoque = {
+                            "id": int(estoque_snk.get('ad_mkp_idprod')),
+                            "deposito": int(estoque_olist.get('depositos')[0].get('id')),
+                            "tipo":"B",
+                            "quantidade":saldo
+                        }
+                        olEst.tipo = ajuste_estoque.get('tipo')
+                        olEst.quantidade = ajuste_estoque.get('quantidade')
+                        olEst.acao = 'post'
+                        if await olEst.enviar_saldo():
+                            await self.remove_syncestoque(produto=estoque_snk.get('codprod'))
+                            await self.atualiza_historico(produto=produto)
+                            logger.info(self.contexto+" Estoque do produto %s sincronizado com sucesso",estoque_olist.get('codigo'))
+                            values.append(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso.")
+                            print(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso")
+                        else:
+                            print(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
+                            logger.error(self.contexto+" Falha ao sincronizar estoque do produto %s. Verifique os logs.",estoque_olist.get('codigo'))
+                            await self.app.email.notificar()
+                            values.append(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
+                            print(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
+                    else: 
+                        await self.atualiza_historico(produto=estoque_snk.get('codprod'))
+                        logger.info(self.contexto+" Estoque do produto %s já está atualizado.",estoque_snk.get('codprod'))
+                        values.append(f"Estoque do produto {estoque_snk.get('codprod')} já está atualizado.")
+                        print(f"Estoque do produto {estoque_snk.get('codprod')} já está atualizado.")
+                else:
+                    logger.error(self.contexto+" Falha ao buscar dados de estoque do produto %s na base Olist. Verifique os logs.",produto)
+                    await self.app.email.notificar()
+                    values.append(f"Falha ao buscar dados de estoque do produto {produto} na base Olist. Verifique os logs.")
+                    print(f"Falha ao buscar dados de estoque do produto {produto} na base Olist. Verifique os logs.")
             else:                
                 snkEstoques = snkEstoque()                
                 estoques_snk = await snkEstoques.buscar_disponivel()
@@ -738,8 +736,7 @@ class App:
                     olEst = olEstoque()
                     if await olEst.buscar(id=e.get('ad_mkp_idprod')):
                         estoque_olist = await olEst.encodificar()
-                        ol_qtd_disponivel = estoque_olist.get('disponivel')
-                        
+                        ol_qtd_disponivel = estoque_olist.get('disponivel')                        
                         if ol_qtd_disponivel != snk_qtd_disponivel:
                             ol_qtd_reservado = estoque_olist.get('reservado')
                             saldo = snk_qtd_disponivel + ol_qtd_reservado
@@ -748,28 +745,28 @@ class App:
                                 "deposito": int(estoque_olist.get('depositos')[0].get('id')),
                                 "tipo":"B",
                                 "quantidade":saldo
-                            }  
-
+                            }
                             olEst.tipo = ajuste_estoque.get('tipo')
                             olEst.quantidade = ajuste_estoque.get('quantidade')
                             olEst.acao = 'post'
-
                             if await olEst.enviar_saldo():
                                 await self.remove_syncestoque(produto=e.get('codprod'))
                                 await self.atualiza_historico(produto=e.get('codprod'))
-                                values.append(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso. Atual {ajuste_estoque.get('quantidade')}.")
-                                print(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso. Atual {ajuste_estoque.get('quantidade')}.")
+                                logger.info(self.contexto+" Estoque do produto %s sincronizado com sucesso.",e.get('codprod'))
+                                values.append(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso.")                                
+                                print(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso.")
                             else:
-                                logger.error("Erro: Falha ao sincronizar estoque do produto %s. Verifique os logs.",e.get('codprod'))
+                                logger.error(self.contexto+" Erro: Falha ao sincronizar estoque do produto %s. Verifique os logs.",e.get('codprod'))
                                 await self.app.email.notificar()
                                 values.append(f"Erro: Falha ao sincronizar estoque do produto {e.get('codprod')}. Verifique os logs.")                
                                 print(f"Erro: Falha ao sincronizar estoque do produto {e.get('codprod')}. Verifique os logs.")
                         else:
                             await self.atualiza_historico(produto=e.get('codprod'))
-                            values.append(f"Estoque do produto {e.get('codprod')} já está atualizado. Atual {estoque_olist.get('disponivel')}.")
-                            print(f"Estoque do produto {e.get('codprod')} já está atualizado. Atual {estoque_olist.get('disponivel')}.")
+                            logger.info(self.contexto+" Estoque do produto %s já está atualizado.",e.get('codprod'))
+                            values.append(f"Estoque do produto {e.get('codprod')} já está atualizado.")
+                            print(f"Estoque do produto {e.get('codprod')} já está atualizado.")
                     else:
-                        logger.error("Erro: Falha ao buscar dados do estoque do produto %s no Olist. Verifique os logs.",e.get('ad_mkp_idprod'))
+                        logger.error(self.contexto+" Erro: Falha ao buscar dados do estoque do produto %s no Olist. Verifique os logs.",e.get('ad_mkp_idprod'))
                         await self.app.email.notificar()
                         values.append(f"Falha ao buscar dados do estoque do produto {e.get('ad_mkp_idprod')} no Olist. Verifique os logs.")
                         print(f"Falha ao buscar dados do estoque do produto {e.get('ad_mkp_idprod')} no Olist. Verifique os logs.")
