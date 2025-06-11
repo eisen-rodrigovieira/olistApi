@@ -1,17 +1,16 @@
+import re
 import asyncio
 import streamlit as st
+from datetime import datetime
+from params import config
 from src.app.app import App
+from src.utils.validaPath import validaPath
 
 st.set_page_config(
     page_title="Integração Olist",
     page_icon="🔗",
-    layout="wide"
-    # initial_sidebar_state="expanded",
-    # menu_items={
-    #     'Get Help': 'https://www.extremelycoolapp.com/help',
-    #     'Report a bug': "https://www.extremelycoolapp.com/bug",
-    #     'About': "# This is a header. This is an *extremely* cool app!"
-    # }
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 app_produto = App().Produto()
@@ -19,6 +18,42 @@ app_pedido = App().Pedido()
 app_estoque = App().Estoque()
 
 st.title("Painel de Controle - Olist")
+
+with st.sidebar:
+    st.header("📰 Logs do sistema")
+
+    load = validaPath()
+    logs = asyncio.run(load.validar(path=config.PATH_LOGS,mode='r',method='lines'))
+    logs.reverse()
+
+    regex_dates    = r'^\d{4}-\d{2}-\d{2}'
+    regex_log      = r'\#\w+#.+'
+    regex_contexto = r'\w+'
+    regex_texto    = r'#\w+#\s'
+    regex_data     = r'^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}'
+
+    date_ini = datetime.strptime(re.match(regex_dates,logs[-1]).group(),'%Y-%m-%d')
+    date_fim = datetime.strptime(re.match(regex_dates,logs[0]).group(),'%Y-%m-%d')
+
+    data = st.date_input(label="Período",value=(date_ini,date_fim),min_value=date_ini,max_value=date_fim,format='DD/MM/YYYY')
+    contexto = st.pills("Contexto",options=["Todos","Produtos","Pedidos","Estoque"])
+
+    with st.container(height=500):
+        valLog = 0
+        for l in logs:
+            try:
+                dt        = datetime.strptime(re.match(regex_dates,l).group(),'%Y-%m-%d').date()
+                log       = re.search(regex_log,l).group()
+                contexto_ = re.search(regex_contexto,log).group()
+                texto     = re.sub(regex_texto,'',log)
+                data_     = datetime.strptime(re.match(regex_data,l).group(),'%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
+                if contexto in ['Todos',contexto_] and (dt >= data[0] and dt <= data[1]):
+                    valLog+=1
+                    st.caption(f"{data_} - {texto}")
+            except:
+                pass
+        if not valLog:
+            st.caption("Nenhum registro pra exibir")  
 
 with st.container():
     st.divider()
