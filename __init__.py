@@ -36,7 +36,7 @@ with st.sidebar:
     date_fim = datetime.strptime(re.match(regex_dates,logs[0]).group(),'%Y-%m-%d')
 
     data = st.date_input(label="Período",value=(date_ini,date_fim),min_value=date_ini,max_value=date_fim,format='DD/MM/YYYY')
-    contexto = st.pills("Contexto",options=["Todos","Produtos","Pedidos","Estoque"])
+    contexto = st.pills("Contexto",options=["Todos","Produtos","Pedidos","Estoque"],default="Todos",label_visibility="collapsed")
 
     with st.container(height=500):
         valLog = 0
