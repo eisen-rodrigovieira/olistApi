@@ -15,8 +15,13 @@ PATH_HISTORICO_ESTOQUE         = "json/objects/estoque/historico.json"
 PATH_OBJECT_ESTOQUE_DEPOSITO   = "json/objects/estoque/deposito.json"
 PATH_OBJECT_ESTOQUE            = "json/objects/estoque/estoque.json"
 
+PATH_OBJECT_SEPARACAO_ITEM     = "json/objects/separacao/item.json"
+PATH_HISTORICO_SEPARACAO       = "json/objects/separacao/historico.json"
+PATH_OBJECT_SEPARACAO          = "json/objects/separacao/separacao.json"
+
 SITUACAO_PEDIDO_APROVADO       = 3
 SITUACAO_PEDIDO_PREP_ENVIO     = 4
 ID_FORN_PADRAO                 = 753053887
+SITUACAO_SEPARACAO             = [1,4]
 
 OBS_MVTO_ESTOQUE               = "Ajuste de estoque Sankhya"

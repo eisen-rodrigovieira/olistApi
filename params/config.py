@@ -5,6 +5,7 @@ ENDPOINT_TOKEN    = '/token'
 ENDPOINT_PRODUTOS = '/produtos'
 ENDPOINT_ESTOQUES = '/estoque'
 ENDPOINT_PEDIDOS  = '/pedidos'
+ENDPOINT_SEPARACAO = '/separacao'
 ENDPOINT_CLIENTES = '/contatos'
 PATH_TOKENS       = 'json/tokens_history.json'
 PATH_LOGS         = "src/logs/olistApi.log"
