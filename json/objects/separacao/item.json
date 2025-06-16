@@ -1,0 +1,15 @@
+{
+    "get":{
+        "produto": {
+            "id": 0,
+            "sku": "",
+            "descricao": ""
+        },
+        "quantidade": 0,
+        "unidade": "",
+        "localizacao": "",
+        "infoAdicional": ""        
+    },
+    "post":{},
+    "put":{}
+}
