@@ -75,7 +75,6 @@ class sendMail:
                 None
         
         if body and log_data and assunto:
-
             await self.enviar(destinatario=destinatario or self.default_to,
-                              corpo=body.format(cor,log_data[-1]),
+                              corpo=body.format(cor=cor,texto=log_data[-1]),
                               assunto=assunto)
