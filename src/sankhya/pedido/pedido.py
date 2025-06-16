@@ -19,216 +19,167 @@ class Pedido:
     def __init__(self,
                  nunota           :int   = None,
                  numnota          :int   = None,
-                 ad_mkp_id        :int   = None,
-                 ad_mkp_numped    :int   = None,
-                 ad_mkp_codped    :str   = None,
-                 ad_mkp_origem    :str   = None,
-                 codemp           :int   = None,
-                 codcencus        :int   = None,
-                 dtneg            :str   = None,
-                 dtmov            :str   = None,
-                 dtalter          :str   = None,
-                 codempnegoc      :int   = None,
-                 codparc          :int   = None,
-                 codtipoper       :int   = None,
-                 dhtipoper        :str   = None,
-                 tipmov           :str   = None,
-                 codtipvenda      :int   = None,
-                 dhtipvenda       :str   = None,
-                 codvend          :int   = None,
-                 observacao       :str   = None,
-                 vlrdesctot       :float = None,
-                 vlrdesctotitem   :float = None,
-                 vlrfrete         :float = None,
-                 cif_fob          :str   = None,
-                 vlrnota          :float = None,
-                 qtdvol           :int   = None,
-                 aliqicms         :int   = None,
-                 baseicms         :float = None,
-                 vlricms          :float = None,
-                 baseipi          :float = None,
-                 vlripi           :float = None,
-                 issretido        :str   = None,
-                 baseiss          :float = None,
-                 vlriss           :float = None,
-                 aprovado         :str   = None,
-                 codusu           :int   = None,
-                 irfretido        :str   = None,
-                 vlrirf           :float = None,
-                 volume           :str   = None,
-                 vlrsubst         :float = None,
-                 basesubstit      :float = None,
-                 peso             :float = None,
-                 codnat           :int   = None,
-                 vlrfretecpl      :float = None,
-                 codusuinc        :int   = None,
-                 baseirf          :float = None,
-                 aliqirf          :float = None,
-                 pesobruto        :float = None,
-                 hrentsai         :str   = None,
-                 libconf          :str   = None,
-                 vlricmsdifaldest :float = None,
-                 vlricmsdifalrem  :float = None,
-                 vlricmsfcp       :float = None,
-                 codcidorigem     :int   = None,
-                 codciddestino    :int   = None,
-                 codcidentrega    :int   = None,
-                 coduforigem      :int   = None,
-                 codufdestino     :int   = None,
-                 codufentrega     :int   = None,
-                 classificms      :str   = None,
-                 vlricmsfcpint    :float = None,
-                 vlrstfcpintant   :float = None,
-                 statuscfe        :str   = None,
-                 histconfig       :str   = None,
-                 ad_idshopee      :str   = None,
-                 ad_taxashopee    :float = None,
-                 qtdite           :int   = None,
-                 qtdfin           :int   = None
+                 ad_mkp_id           : int = None,
+                 ad_mkp_idseparacao  : int = None,
+                 ad_mkp_numped       : int = None
                  ):
-        self.db               = dbConfig()
-        self.valida_path      = validaPath()         
-        self.nunota           = nunota
-        self.numnota          = numnota
-        self.ad_mkp_id        = ad_mkp_id
-        self.ad_mkp_numped    = ad_mkp_numped
-        self.ad_mkp_codped    = ad_mkp_codped
-        self.ad_mkp_origem    = ad_mkp_origem
-        self.codemp           = codemp
-        self.codcencus        = codcencus
-        self.dtneg            = dtneg
-        self.dtmov            = dtmov
-        self.dtalter          = dtalter
-        self.codempnegoc      = codempnegoc
-        self.codparc          = codparc
-        self.codtipoper       = codtipoper
-        self.dhtipoper        = dhtipoper
-        self.tipmov           = tipmov
-        self.codtipvenda      = codtipvenda
-        self.dhtipvenda       = dhtipvenda
-        self.codvend          = codvend
-        self.observacao       = observacao
-        self.vlrdesctot       = vlrdesctot
-        self.vlrdesctotitem   = vlrdesctotitem
-        self.vlrfrete         = vlrfrete
-        self.cif_fob          = cif_fob
-        self.vlrnota          = vlrnota
-        self.qtdvol           = qtdvol
-        self.aliqicms         = aliqicms
-        self.baseicms         = baseicms
-        self.vlricms          = vlricms
-        self.baseipi          = baseipi
-        self.vlripi           = vlripi
-        self.issretido        = issretido
-        self.baseiss          = baseiss
-        self.vlriss           = vlriss
-        self.aprovado         = aprovado
-        self.codusu           = codusu
-        self.irfretido        = irfretido
-        self.vlrirf           = vlrirf
-        self.volume           = volume
-        self.vlrsubst         = vlrsubst
-        self.basesubstit      = basesubstit
-        self.peso             = peso
-        self.codnat           = codnat
-        self.vlrfretecpl      = vlrfretecpl
-        self.codusuinc        = codusuinc
-        self.baseirf          = baseirf
-        self.aliqirf          = aliqirf
-        self.pesobruto        = pesobruto
-        self.hrentsai         = hrentsai
-        self.libconf          = libconf
-        self.vlricmsdifaldest = vlricmsdifaldest
-        self.vlricmsdifalrem  = vlricmsdifalrem
-        self.vlricmsfcp       = vlricmsfcp
-        self.codcidorigem     = codcidorigem
-        self.codciddestino    = codciddestino
-        self.codcidentrega    = codcidentrega
-        self.coduforigem      = coduforigem
-        self.codufdestino     = codufdestino
-        self.codufentrega     = codufentrega
-        self.classificms      = classificms
-        self.vlricmsfcpint    = vlricmsfcpint
-        self.vlrstfcpintant   = vlrstfcpintant
-        self.statuscfe        = statuscfe
-        self.histconfig       = histconfig
-        self.ad_idshopee      = ad_idshopee
-        self.ad_taxashopee    = ad_taxashopee
-        self.qtdite           = qtdite
-        self.qtdfin           = qtdfin
+        self.db                 = dbConfig()
+        self.valida_path        = validaPath()         
+        self.nunota             = nunota
+        self.numnota            = numnota
+        self.ad_mkp_codped      = None
+        self.ad_mkp_destino     = None
+        self.ad_mkp_dhcheckout  = None
+        self.ad_mkp_dhseparacao = None
+        self.ad_mkp_id          = ad_mkp_id
+        self.ad_mkp_idnfe       = None
+        self.ad_mkp_idseparacao = ad_mkp_idseparacao
+        self.ad_mkp_numped      = ad_mkp_numped        
+        self.ad_mkp_origem    = None
+        self.codemp           = None
+        self.codcencus        = None
+        self.dtneg            = None
+        self.dtmov            = None
+        self.dtalter          = None
+        self.confirmada       = None
+        self.pendente         = None
+        self.codempnegoc      = None
+        self.codparc          = None
+        self.codtipoper       = None
+        self.dhtipoper        = None
+        self.tipmov           = None
+        self.codtipvenda      = None
+        self.dhtipvenda       = None
+        self.codvend          = None
+        self.observacao       = None
+        self.vlrdesctot       = None
+        self.vlrdesctotitem   = None
+        self.vlrfrete         = None
+        self.cif_fob          = None
+        self.vlrnota          = None
+        self.qtdvol           = None
+        self.aliqicms         = None
+        self.baseicms         = None
+        self.vlricms          = None
+        self.baseipi          = None
+        self.vlripi           = None
+        self.issretido        = None
+        self.baseiss          = None
+        self.vlriss           = None
+        self.aprovado         = None
+        self.codusu           = None
+        self.irfretido        = None
+        self.vlrirf           = None
+        self.volume           = None
+        self.vlrsubst         = None
+        self.basesubstit      = None
+        self.peso             = None
+        self.codnat           = None
+        self.vlrfretecpl      = None
+        self.codusuinc        = None
+        self.baseirf          = None
+        self.aliqirf          = None
+        self.pesobruto        = None
+        self.hrentsai         = None
+        self.libconf          = None
+        self.vlricmsdifaldest = None
+        self.vlricmsdifalrem  = None
+        self.vlricmsfcp       = None
+        self.codcidorigem     = None
+        self.codciddestino    = None
+        self.codcidentrega    = None
+        self.coduforigem      = None
+        self.codufdestino     = None
+        self.codufentrega     = None
+        self.classificms      = None
+        self.vlricmsfcpint    = None
+        self.vlrstfcpintant   = None
+        self.statuscfe        = None
+        self.histconfig       = None
+        self.ad_idshopee      = None
+        self.ad_taxashopee    = None
+        self.qtdite           = None
+        self.qtdfin           = None
         self.itens            = []
         self.parcelas         = []
 
     async def decodificar(self,data:dict=None) -> bool:
         if data:
             try:
-                self.nunota           = data["nunota"]
-                self.numnota          = data["numnota"]
-                self.ad_mkp_id        = data["ad_mkp_id"]
-                self.ad_mkp_numped    = data["ad_mkp_numped"]
-                self.ad_mkp_codped    = data["ad_mkp_codped"]
-                self.ad_mkp_origem    = data["ad_mkp_origem"]
-                self.codemp           = data["codemp"]
-                self.codcencus        = data["codcencus"]
-                self.dtneg            = data["dtneg"]
-                self.dtmov            = data["dtmov"]
-                self.dtalter          = data["dtalter"]
-                self.codempnegoc      = data["codempnegoc"]
-                self.codparc          = data["codparc"]
-                self.codtipoper       = data["codtipoper"]
-                self.dhtipoper        = data["dhtipoper"]
-                self.tipmov           = data["tipmov"]
-                self.codtipvenda      = data["codtipvenda"]
-                self.dhtipvenda       = data["dhtipvenda"]
-                self.codvend          = data["codvend"]
-                self.observacao       = data["observacao"]
-                self.vlrdesctot       = data["vlrdesctot"]
-                self.vlrdesctotitem   = data["vlrdesctotitem"]
-                self.vlrfrete         = data["vlrfrete"]
-                self.cif_fob          = data["cif_fob"]
-                self.vlrnota          = data["vlrnota"]
-                self.qtdvol           = data["qtdvol"]
-                self.baseicms         = data["baseicms"]
-                self.vlricms          = data["vlricms"]
-                self.baseipi          = data["baseipi"]
-                self.vlripi           = data["vlripi"]
-                self.issretido        = data["issretido"]
-                self.baseiss          = data["baseiss"]
-                self.vlriss           = data["vlriss"]
-                self.aprovado         = data["aprovado"]
-                self.codusu           = data["codusu"]
-                self.irfretido        = data["irfretido"]
-                self.vlrirf           = data["vlrirf"]
-                self.volume           = data["volume"]
-                self.vlrsubst         = data["vlrsubst"]
-                self.basesubstit      = data["basesubstit"]
-                self.peso             = data["peso"]
-                self.codnat           = data["codnat"]
-                self.vlrfretecpl      = data["vlrfretecpl"]
-                self.codusuinc        = data["codusuinc"]
-                self.baseirf          = data["baseirf"]
-                self.aliqirf          = data["aliqirf"]
-                self.pesobruto        = data["pesobruto"]
-                self.hrentsai         = data["hrentsai"]
-                self.libconf          = data["libconf"]
-                self.vlricmsdifaldest = data["vlricmsdifaldest"]
-                self.vlricmsdifalrem  = data["vlricmsdifalrem"]
-                self.vlricmsfcp       = data["vlricmsfcp"]
-                self.codcidorigem     = data["codcidorigem"]
-                self.codciddestino    = data["codciddestino"]
-                self.codcidentrega    = data["codcidentrega"]
-                self.coduforigem      = data["coduforigem"]
-                self.codufdestino     = data["codufdestino"]
-                self.codufentrega     = data["codufentrega"]
-                self.classificms      = data["classificms"]
-                self.vlricmsfcpint    = data["vlricmsfcpint"]
-                self.vlrstfcpintant   = data["vlrstfcpintant"]
-                self.statuscfe        = data["statuscfe"]
-                self.histconfig       = data["histconfig"]
-                self.ad_idshopee      = data["ad_idshopee"]
-                self.ad_taxashopee    = data["ad_taxashopee"]
-                self.qtdite           = data["qtdite"]
-                self.qtdfin           = data["qtdfin"]
+                self.nunota             = data["nunota"]
+                self.numnota            = data["numnota"]
+                self.ad_mkp_codped      = data["ad_mkp_codped"]
+                self.ad_mkp_destino     = data["ad_mkp_destino"]
+                self.ad_mkp_dhcheckout  = data["ad_mkp_dhcheckout"]
+                self.ad_mkp_dhseparacao = data["ad_mkp_dhseparacao"]
+                self.ad_mkp_id          = data["ad_mkp_id"]
+                self.ad_mkp_idnfe       = data["ad_mkp_idnfe"]
+                self.ad_mkp_idseparacao = data["ad_mkp_idseparacao"]
+                self.ad_mkp_numped      = data["ad_mkp_numped"]
+                self.ad_mkp_origem      = data["ad_mkp_origem"]                
+                self.codemp             = data["codemp"]
+                self.codcencus          = data["codcencus"]
+                self.dtneg              = data["dtneg"]
+                self.dtmov              = data["dtmov"]
+                self.dtalter            = data["dtalter"]
+                self.confirmada         = data["confirmada"]
+                self.pendente           = data["pendente"]
+                self.codempnegoc        = data["codempnegoc"]
+                self.codparc            = data["codparc"]
+                self.codtipoper         = data["codtipoper"]
+                self.dhtipoper          = data["dhtipoper"]
+                self.tipmov             = data["tipmov"]
+                self.codtipvenda        = data["codtipvenda"]
+                self.dhtipvenda         = data["dhtipvenda"]
+                self.codvend            = data["codvend"]
+                self.observacao         = data["observacao"]
+                self.vlrdesctot         = data["vlrdesctot"]
+                self.vlrdesctotitem     = data["vlrdesctotitem"]
+                self.vlrfrete           = data["vlrfrete"]
+                self.cif_fob            = data["cif_fob"]
+                self.vlrnota            = data["vlrnota"]
+                self.qtdvol             = data["qtdvol"]
+                self.baseicms           = data["baseicms"]
+                self.vlricms            = data["vlricms"]
+                self.baseipi            = data["baseipi"]
+                self.vlripi             = data["vlripi"]
+                self.issretido          = data["issretido"]
+                self.baseiss            = data["baseiss"]
+                self.vlriss             = data["vlriss"]
+                self.aprovado           = data["aprovado"]
+                self.codusu             = data["codusu"]
+                self.irfretido          = data["irfretido"]
+                self.vlrirf             = data["vlrirf"]
+                self.volume             = data["volume"]
+                self.vlrsubst           = data["vlrsubst"]
+                self.basesubstit        = data["basesubstit"]
+                self.peso               = data["peso"]
+                self.codnat             = data["codnat"]
+                self.vlrfretecpl        = data["vlrfretecpl"]
+                self.codusuinc          = data["codusuinc"]
+                self.baseirf            = data["baseirf"]
+                self.aliqirf            = data["aliqirf"]
+                self.pesobruto          = data["pesobruto"]
+                self.hrentsai           = data["hrentsai"]
+                self.libconf            = data["libconf"]
+                self.vlricmsdifaldest   = data["vlricmsdifaldest"]
+                self.vlricmsdifalrem    = data["vlricmsdifalrem"]
+                self.vlricmsfcp         = data["vlricmsfcp"]
+                self.codcidorigem       = data["codcidorigem"]
+                self.codciddestino      = data["codciddestino"]
+                self.codcidentrega      = data["codcidentrega"]
+                self.coduforigem        = data["coduforigem"]
+                self.codufdestino       = data["codufdestino"]
+                self.codufentrega       = data["codufentrega"]
+                self.classificms        = data["classificms"]
+                self.vlricmsfcpint      = data["vlricmsfcpint"]
+                self.vlrstfcpintant     = data["vlrstfcpintant"]
+                self.statuscfe          = data["statuscfe"]
+                self.histconfig         = data["histconfig"]
+                self.ad_idshopee        = data["ad_idshopee"]
+                self.ad_taxashopee      = data["ad_taxashopee"]
+                self.qtdite             = data["qtdite"]
+                self.qtdfin             = data["qtdfin"]
 
                 for i in range(self.qtdite):
                     it = item.Item()
@@ -248,16 +199,20 @@ class Pedido:
             logger.error("Não foram informados dados para decodificar")
             return False
 
-    async def buscar(self,nunota:int=None) -> bool:
+    async def buscar(self,nunota:int=None,id:int=None) -> bool:
         file_path = configSankhya.PATH_SCRIPT_PEDIDO_CAB
         query = await self.valida_path.validar(path=file_path,mode='r',method='full')
 
         if query:                
             try:
-                params = {"NUNOTA": nunota or self.nunota}
+                params = {
+                    "NUNOTA": nunota or self.nunota,
+                    "ID": id or self.ad_mkp_id
+                }
                 rows = await self.db.select(query=query,params=params)
                                     
                 if rows:
+                    print(rows)
                     return await self.decodificar(rows[0])
                 else:
                     return False
@@ -310,9 +265,14 @@ class Pedido:
                 valores_insert = {
                     "NUNOTA"           : parametros["nunota_nextval"],
                     "NUMNOTA"          : parametros["numnota_nextval"],
-                    "AD_MKP_ID"        : int(payload_olist["id"]),
-                    "AD_MKP_NUMPED"    : int(payload_olist["numeroPedido"]),
                     "AD_MKP_CODPED"    : payload_olist["ecommerce"]["numeroPedidoEcommerce"],
+                    "AD_MKP_DESTINO"   : parametros["cid_destino"],
+                    # "AD_MKP_DHCHECKOUT"
+                    # "AD_MKP_DHSEPARACAO"
+                    "AD_MKP_ID"        : int(payload_olist["id"]),
+                    # "AD_MKP_IDNFE"
+                    # "AD_MKP_IDSEPARACAO"
+                    "AD_MKP_NUMPED"    : int(payload_olist["numeroPedido"]),
                     "AD_MKP_ORIGEM"    : int(payload_olist["ecommerce"]["id"]),
                     "CODEMP"           : ins_tgfcab["CODEMP"],
                     "CODCENCUS"        : ins_tgfcab["CODCENCUS"],
@@ -360,7 +320,6 @@ class Pedido:
                     "VLRICMSDIFALDEST" : float(0),
                     "VLRICMSDIFALREM"  : float(0),
                     "VLRICMSFCP"       : float(0),
-                    "AD_MKP_DESTINO"   : parametros["cid_destino"],
                     "VLRICMSFCPINT"    : float(0),
                     "VLRSTFCPINTANT"   : float(0),
                     "STATUSCFE"        : "N",
@@ -452,7 +411,7 @@ class Pedido:
                 if payload["pagamento"].get("parcelas"):
                     #print("> Lançando financeiro do pedido...")
                     rows_fins = 0
-                    for i, fin_dict in enumerate(payload["pagamento"]["parcelas"]):
+                    for i, fin_dict in enumerate(payload["pagamento"]["parcelas"]):                        
                         ack_fin, rows_fin = await pr.registrar(payload=fin_dict,
                                                                 nunota=nunota,
                                                                 numnota=numnota)
@@ -486,7 +445,7 @@ class Pedido:
             logger.error("Erro ao preparar dados para inserção do pedido %s.",payload["numeroPedido"])        
             return False, None
 
-    async def confirmar_nota(self, nunota:int=None, provisao:str=None) -> bool:
+    async def confirmar(self, nunota:int=None, provisao:str=None) -> bool:
         file_path = configSankhya.PATH_CALL_CONFIRMA_NOTA
         query = await self.valida_path.validar(path=file_path,mode='r',method='full')
         ack = await self.db.call(query=query,
@@ -498,5 +457,23 @@ class Pedido:
             return ack
         else:
             logger.error("Erro ao confirmar pedido %s",nunota)        
+            return False
+        
+    async def gerar_nota(self, nunota_pedido:int=None, id_separacao:int=None, dt_separacao:str=None, dt_faturado:str=None, id_nfe:int=None, num_nfe:int=None) -> bool:
+        file_path = configSankhya.PATH_CALL_FATURA_PEDIDO
+        query = await self.valida_path.validar(path=file_path,mode='r',method='full')
+        ack = await self.db.call(query=query,
+                                 params={"P_NUNOTA":nunota_pedido,
+                                         "P_IDSEPARACAO":id_separacao,
+                                         "P_DTSEPARACAO":dt_separacao,
+                                         "P_DTFATURADO":dt_faturado,
+                                         "P_IDNFE":id_nfe,
+                                         "P_NUMNFE":num_nfe,})
+        #print(f"----------> Pedido {nunota} confirmado com sucesso!")
+        if ack:
+            logger.info("Pedido %s faturado com sucesso!",nunota_pedido)        
+            return ack
+        else:
+            logger.error("Erro ao faturar pedido %s",nunota_pedido)        
             return False
             
