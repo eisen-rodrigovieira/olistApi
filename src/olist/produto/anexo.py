@@ -1,7 +1,6 @@
-import os
-import json
 import logging
-from params import config, configOlist
+from params               import config, configOlist
+from src.utils.validaPath import validaPath
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -20,12 +19,10 @@ class Anexo:
         externo (bool): Indica se o anexo está hospedado externamente.
     """
 
-    def __init__(self
-                ,url:str=None
-                ,externo:bool=None
-                ):
-        self.url     = url
-        self.externo = externo
+    def __init__(self):
+        self.url         = None
+        self.externo     = None
+        self.valida_path = validaPath()        
 
     def decodificar(self,payload:dict=None):
         """
@@ -48,7 +45,7 @@ class Anexo:
             logger.error("Não foram informados dados para decodificar")
             return False
 
-    def encodificar(self) -> dict:
+    async def encodificar(self) -> dict:
         """
         Constrói e retorna um dicionário com os dados do anexo, baseado em um template JSON.
 
@@ -56,16 +53,12 @@ class Anexo:
             dict: Dicionário com os dados do anexo formatado ou {"erro": True} em caso de falha.
         """        
         data = {}
+        file_path = configOlist.PATH_OBJECT_PRODUTO_ANEXO        
         try:
-            if not os.path.exists(configOlist.PATH_OBJECT_PRODUTO_ANEXO):
-                logger.error("Objeto do anexo de produto não encontrado em %s",configOlist.PATH_OBJECT_PRODUTO_ANEXO)
-                return {"erro":True}
-            else:    
-                with open(configOlist.PATH_OBJECT_PRODUTO_ANEXO, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                data["url"]     = self.url
-                data["externo"] = self.externo
-                return data               
+            data = await self.valida_path.validar(path=file_path,mode='r',method='json')
+            data["url"]     = self.url
+            data["externo"] = self.externo
+            return data               
         except Exception as e:
             logger.error("Erro ao formatar dicionario anexo de produto: %s",e)
             return {"erro":True} 

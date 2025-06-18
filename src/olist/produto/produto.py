@@ -1,11 +1,11 @@
-import os
 import time
 import json
 import logging
 import requests
-from src.olist.connect import Connect
-from src.olist.produto import fornecedor, anexo, kit, variacao, producao
-from params            import config, configOlist
+from src.olist.connect    import Connect
+from src.olist.produto    import fornecedor, anexo, kit, variacao, producao
+from params               import config, configOlist
+from src.utils.validaPath import validaPath
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -16,130 +16,75 @@ logging.basicConfig(filename=config.PATH_LOGS,
 
 class Produto:
 
-    def __init__(
-            self
-            ,id                             :int   = None
-            ,sku                            :str   = None
-            ,descricao                      :str   = None
-            ,descricaoComplementar          :str   = None
-            ,tipo                           :str   = None
-            ,situacao                       :str   = None
-            ,produtoPai_id                  :int   = None
-            ,produtoPai_sku                 :str   = None
-            ,produtoPai_descricao           :str   = None
-            ,unidade                        :str   = None
-            ,unidadePorCaixa                :int   = None
-            ,ncm                            :str   = None
-            ,gtin                           :str   = None
-            ,origem                         :int   = None
-            ,cest                           :str   = None
-            ,garantia                       :str   = None
-            ,observacoes                    :str   = None
-            ,categoria_id                   :int   = None
-            ,categoria_nome                 :str   = None
-            ,categoria_caminhoCompleto      :str   = None
-            ,marca_id                       :int   = None
-            ,marca_nome                     :str   = None
-            ,dimensoes_embalagem_id         :int   = None
-            ,dimensoes_embalagem_tipo       :int   = None
-            ,dimensoes_embalagem_descricao  :str   = None
-            ,dimensoes_largura              :float = None
-            ,dimensoes_altura               :float = None
-            ,dimensoes_comprimento          :float = None
-            ,dimensoes_diametro             :float = None
-            ,dimensoes_pesoLiquido          :float = None
-            ,dimensoes_pesoBruto            :float = None
-            ,dimensoes_quantidadeVolumes    :int   = None
-            ,preco                          :float = None
-            ,precoPromocional               :float = None
-            ,precoCusto                     :float = None
-            ,precoCustoMedio                :float = None
-            ,estoque_controlar              :bool  = None
-            ,estoque_sobEncomenda           :bool  = None
-            ,estoque_diasPreparacao         :int   = None
-            ,estoque_localizacao            :str   = None
-            ,estoque_minimo                 :int   = None
-            ,estoque_maximo                 :int   = None
-            ,estoque_quantidade             :int   = None
-            ,estoque_inicial                :int   = None
-            ,seo_titulo                     :str   = None
-            ,seo_descricao                  :str   = None
-            ,seo_keywords                   :list  = None
-            ,seo_linkVideo                  :str   = None
-            ,seo_slug                       :str   = None
-            ,tributacao_gtinEmbalagem       :str   = None
-            ,tributacao_valorIPIFixo        :float = None
-            ,tributacao_classeIPI           :str   = None
-        ):  
-
+    def __init__(self):  
         self.con                           = Connect()  
+        self.valida_path                   = validaPath()         
         self.req_sleep                     = config.REQ_TIME_SLEEP  
         self.endpoint                      = config.API_URL+config.ENDPOINT_PRODUTOS
         self.fornecedor_padrao             = configOlist.ID_FORN_PADRAO
-        self.id                            = id
-        self.sku                           = sku
-        self.descricao                     = descricao
-        self.descricaoComplementar         = descricaoComplementar
-        self.tipo                          = tipo
-        self.situacao                      = situacao
-        self.produtoPai_id                 = produtoPai_id
-        self.produtoPai_sku                = produtoPai_sku
-        self.produtoPai_descricao          = produtoPai_descricao
-        self.unidade                       = unidade
-        self.unidadePorCaixa               = unidadePorCaixa
-        self.ncm                           = ncm
-        self.gtin                          = gtin
-        self.origem                        = origem
-        self.cest                          = cest
-        self.garantia                      = garantia
-        self.observacoes                   = observacoes
-        self.categoria_id                  = categoria_id
-        self.categoria_nome                = categoria_nome
-        self.categoria_caminhoCompleto     = categoria_caminhoCompleto
-        self.marca_id                      = marca_id
-        self.marca_nome                    = marca_nome
-        self.dimensoes_embalagem_id        = dimensoes_embalagem_id
-        self.dimensoes_embalagem_tipo      = dimensoes_embalagem_tipo
-        self.dimensoes_embalagem_descricao = dimensoes_embalagem_descricao
-        self.dimensoes_largura             = dimensoes_largura
-        self.dimensoes_altura              = dimensoes_altura
-        self.dimensoes_comprimento         = dimensoes_comprimento
-        self.dimensoes_diametro            = dimensoes_diametro
-        self.dimensoes_pesoLiquido         = dimensoes_pesoLiquido
-        self.dimensoes_pesoBruto           = dimensoes_pesoBruto
-        self.dimensoes_quantidadeVolumes   = dimensoes_quantidadeVolumes
-        self.preco                         = preco
-        self.precoPromocional              = precoPromocional
-        self.precoCusto                    = precoCusto
-        self.precoCustoMedio               = precoCustoMedio
-        self.estoque_controlar             = estoque_controlar
-        self.estoque_sobEncomenda          = estoque_sobEncomenda
-        self.estoque_diasPreparacao        = estoque_diasPreparacao
-        self.estoque_localizacao           = estoque_localizacao
-        self.estoque_minimo                = estoque_minimo
-        self.estoque_maximo                = estoque_maximo
-        self.estoque_quantidade            = estoque_quantidade
-        self.estoque_inicial               = estoque_inicial
+        self.id                            = None
+        self.sku                           = None
+        self.descricao                     = None
+        self.descricaoComplementar         = None
+        self.tipo                          = None
+        self.situacao                      = None
+        self.produtoPai_id                 = None
+        self.produtoPai_sku                = None
+        self.produtoPai_descricao          = None
+        self.unidade                       = None
+        self.unidadePorCaixa               = None
+        self.ncm                           = None
+        self.gtin                          = None
+        self.origem                        = None
+        self.cest                          = None
+        self.garantia                      = None
+        self.observacoes                   = None
+        self.categoria_id                  = None
+        self.categoria_nome                = None
+        self.categoria_caminhoCompleto     = None
+        self.marca_id                      = None
+        self.marca_nome                    = None
+        self.dimensoes_embalagem_id        = None
+        self.dimensoes_embalagem_tipo      = None
+        self.dimensoes_embalagem_descricao = None
+        self.dimensoes_largura             = None
+        self.dimensoes_altura              = None
+        self.dimensoes_comprimento         = None
+        self.dimensoes_diametro            = None
+        self.dimensoes_pesoLiquido         = None
+        self.dimensoes_pesoBruto           = None
+        self.dimensoes_quantidadeVolumes   = None
+        self.preco                         = None
+        self.precoPromocional              = None
+        self.precoCusto                    = None
+        self.precoCustoMedio               = None
+        self.estoque_controlar             = None
+        self.estoque_sobEncomenda          = None
+        self.estoque_diasPreparacao        = None
+        self.estoque_localizacao           = None
+        self.estoque_minimo                = None
+        self.estoque_maximo                = None
+        self.estoque_quantidade            = None
+        self.estoque_inicial               = None
+        self.seo_titulo                    = None
+        self.seo_descricao                 = None
+        self.seo_keywords                  = None
+        self.seo_linkVideo                 = None
+        self.seo_slug                      = None
+        self.tributacao_gtinEmbalagem      = None
+        self.tributacao_valorIPIFixo       = None
+        self.tributacao_classeIPI          = None
         self.fornecedores                  = []
-        self.seo_titulo                    = seo_titulo
-        self.seo_descricao                 = seo_descricao
-        self.seo_keywords                  = seo_keywords
-        self.seo_linkVideo                 = seo_linkVideo
-        self.seo_slug                      = seo_slug
-        self.tributacao_gtinEmbalagem      = tributacao_gtinEmbalagem
-        self.tributacao_valorIPIFixo       = tributacao_valorIPIFixo
-        self.tributacao_classeIPI          = tributacao_classeIPI
         self.anexos                        = []
         self.variacoes                     = []
-        self.kit                          = []
+        self.kit                           = []
         self.producao                      = []
-        self.acao = None
+        self.acao                          = None
         
-    def decodificar(self,payload:dict=None) -> bool:
+    async def decodificar(self,payload:dict=None) -> bool:
         
         if payload:
             try:
-                #logger.debug("iniciando decode basico")
                 self.id                                = payload["id"]
                 self.sku                               = payload["sku"]
                 self.descricao                         = payload["descricao"]            
@@ -151,9 +96,7 @@ class Produto:
                     self.produtoPai_sku                = payload["produtoPai"]["sku"]      
                     self.produtoPai_descricao          = payload["produtoPai"]["descricao"]
                 else:                
-                    self.produtoPai_id                 = None
-                    self.produtoPai_sku                = None
-                    self.produtoPai_descricao          = None
+                    self.produtoPai_id = self.produtoPai_sku = self.produtoPai_descricao = None
                 self.unidade                           = payload["unidade"]                             
                 self.unidadePorCaixa                   = payload["unidadePorCaixa"]
                 self.ncm                               = payload["ncm"]                                 
@@ -170,15 +113,12 @@ class Produto:
                     self.categoria_nome                = payload["categoria"]["nome"]           
                     self.categoria_caminhoCompleto     = payload["categoria"]["caminhoCompleto"]
                 else:
-                    self.categoria_id                  = None
-                    self.categoria_nome                = None
-                    self.categoria_caminhoCompleto     = None
+                    self.categoria_id = self.categoria_nome = self.categoria_caminhoCompleto = None
                 if payload["marca"]:
                     self.marca_id                      = payload["marca"]["id"]
                     self.marca_nome                    = payload["marca"]["nome"]
                 else:
-                    self.marca_id                      = None
-                    self.marca_nome                    = None
+                    self.marca_id = self.marca_nome = None
                 if payload["dimensoes"]:
                     self.dimensoes_embalagem_id        = payload["dimensoes"]["embalagem"]["id"]
                     self.dimensoes_embalagem_tipo      = payload["dimensoes"]["embalagem"]["tipo"]     
@@ -191,26 +131,16 @@ class Produto:
                     self.dimensoes_pesoBruto           = payload["dimensoes"]["pesoBruto"]
                     self.dimensoes_quantidadeVolumes   = payload["dimensoes"]["quantidadeVolumes"]
                 else:
-                    self.dimensoes_embalagem_id        = None
-                    self.dimensoes_embalagem_tipo      = None
-                    self.dimensoes_embalagem_descricao = None
-                    self.dimensoes_largura             = None
-                    self.dimensoes_altura              = None
-                    self.dimensoes_comprimento         = None
-                    self.dimensoes_diametro            = None
-                    self.dimensoes_pesoLiquido         = None
-                    self.dimensoes_pesoBruto           = None
-                    self.dimensoes_quantidadeVolumes   = None
+                    self.dimensoes_embalagem_id = self.dimensoes_embalagem_tipo = self.dimensoes_embalagem_descricao = None
+                    self.dimensoes_largura = self.dimensoes_altura = self.dimensoes_comprimento = self.dimensoes_diametro = None
+                    self.dimensoes_pesoLiquido = self.dimensoes_pesoBruto = self.dimensoes_quantidadeVolumes = None
                 if payload["precos"]:
                     self.preco                         = payload["precos"]["preco"]
                     self.precoPromocional              = payload["precos"]["precoPromocional"]
                     self.precoCusto                    = payload["precos"]["precoCusto"]
                     self.precoCustoMedio               = payload["precos"]["precoCustoMedio"]
                 else:
-                    self.preco                         = None
-                    self.precoPromocional              = None
-                    self.precoCusto                    = None
-                    self.precoCustoMedio               = None
+                    self.preco = self.precoPromocional = self.precoCusto = self.precoCustoMedio = None
                 if payload["estoque"]:
                     self.estoque_controlar             = payload["estoque"]["controlar"]     
                     self.estoque_sobEncomenda          = payload["estoque"]["sobEncomenda"]  
@@ -221,13 +151,8 @@ class Produto:
                     self.estoque_quantidade            = payload["estoque"]["quantidade"]
                     #self.estoque_inicial               = payload["estoque"]["inicial"]
                 else:
-                    self.estoque_controlar             = None
-                    self.estoque_sobEncomenda          = None
-                    self.estoque_diasPreparacao        = None
-                    self.estoque_localizacao           = None
-                    self.estoque_minimo                = None
-                    self.estoque_maximo                = None
-                    self.estoque_quantidade            = None
+                    self.estoque_controlar = self.estoque_sobEncomenda = self.estoque_diasPreparacao = None
+                    self.estoque_localizacao = self.estoque_minimo = self.estoque_maximo = self.estoque_quantidade = None
                     # self.estoque_inicial               = None
                 if payload["seo"]:
                     self.seo_titulo                    = payload["seo"]["titulo"]            
@@ -236,47 +161,34 @@ class Produto:
                     self.seo_linkVideo                 = payload["seo"]["linkVideo"]         
                     self.seo_slug                      = payload["seo"]["slug"]              
                 else:
-                    self.seo_titulo                    = None
-                    self.seo_descricao                 = None
-                    self.seo_keywords                  = None
-                    self.seo_linkVideo                 = None
-                    self.seo_slug                      = None
+                    self.seo_titulo = self.seo_descricao = self.seo_keywords = self.seo_linkVideo = self.seo_slug = None
                 if payload["tributacao"]:
                     self.tributacao_gtinEmbalagem      = payload["tributacao"]["gtinEmbalagem"] 
                     self.tributacao_valorIPIFixo       = payload["tributacao"]["valorIPIFixo"]
                     self.tributacao_classeIPI          = payload["tributacao"]["classeIPI"]     
                 else:
-                    self.tributacao_gtinEmbalagem      = None
-                    self.tributacao_valorIPIFixo       = None
-                    self.tributacao_classeIPI          = None
-                #logger.debug("finalizado decode basico")
+                    self.tributacao_gtinEmbalagem = self.tributacao_valorIPIFixo = self.tributacao_classeIPI = None
 
-                #logger.debug("iniciando decode %s fornecedores",len(payload["fornecedores"]))
                 for f in payload["fornecedores"]:
                     fo = fornecedor.Fornecedor()
                     fo.decodificar(f)
                     self.fornecedores.append(fo)
-                #logger.debug("finalizado decode fornecedores")
-                
-                #logger.debug("iniciando decode %s anexos",len(payload["anexos"]))
+                    
                 for a in payload["anexos"]:
                     an = anexo.Anexo()
                     an.decodificar(a)
                     self.anexos.append(an)
-
-                #logger.debug("iniciando decode %s variacoes",len(payload["variacoes"]))
+                    
                 for v in payload["variacoes"]:
                     va = variacao.Variacao()
                     va.decodificar(v)
                     self.variacoes.append(va)
-
-                #logger.debug("iniciando decode %s kit",len(payload["kit"]))
+                    
                 for k in payload["kit"]:
                     ki = kit.Kit()
                     ki.decodificar(k)
-                    self.kit.append(ki) 
-
-                #logger.debug("iniciando decode %s producao",len(payload["producao"]))
+                    self.kit.append(ki)
+                    
                 if payload["producao"]:
                     for p in payload["producao"]:
                         pr = producao.Producao()
@@ -291,15 +203,12 @@ class Produto:
             logger.error("Não foram informados dados para decodificar")
             return False
 
-    def encodificar(self) -> dict:
-        obj = {}
+    async def encodificar(self) -> dict:
         data = {}
-        if not os.path.exists(configOlist.PATH_OBJECT_PRODUTO):
-            logger.error("Objeto do produto não encontrado em %s",configOlist.PATH_OBJECT_PRODUTO)
-            return {"status":"Erro"}
-        else:    
-            with open(configOlist.PATH_OBJECT_PRODUTO, "r", encoding="utf-8") as f:
-                obj = json.load(f)        
+        file_path = configOlist.PATH_OBJECT_PRODUTO
+        id_fornecedor_padrao = configOlist.ID_FORN_PADRAO
+
+        obj = await self.valida_path.validar(path=file_path,mode='r',method='json')
 
         if self.acao == 'get':
             try:
@@ -359,19 +268,19 @@ class Produto:
                 
                 fornecedores_list = list()
                 for fo in self.fornecedores:
-                    fornecedores_list.append(fo.encodificar())
+                    fornecedores_list.append(await fo.encodificar())
                 
                 anexos_list = list()
                 for an in self.anexos:
-                    anexos_list.append(an.encodificar())
+                    anexos_list.append(await an.encodificar())
                 
                 variacoes_list = list()
                 for va in self.variacoes:
-                    variacoes_list.append(va.encodificar())
+                    variacoes_list.append(await va.encodificar())
                 
                 kit_list = list()
                 for ki in self.kit:
-                    kit_list.append(ki.encodificar())
+                    kit_list.append(await ki.encodificar())
 
                 data["fornecedores"]                        = fornecedores_list
                 data["anexos"]                              = anexos_list                       
@@ -426,7 +335,7 @@ class Produto:
                 data["estoque"]["maximo"]                         = self.estoque_maximo            
 
                 data["fornecedores"] = [{
-                    "id" : 753053887,
+                    "id" : id_fornecedor_padrao,
                     "codigoProdutoNoFornecedor" : self.fornecedores[0].codigoProdutoNoFornecedor,
                     "padrao" : True
                 }]
@@ -477,16 +386,13 @@ class Produto:
                 data["estoque"]["minimo"]                         = self.estoque_minimo
                 data["estoque"]["maximo"]                         = self.estoque_maximo
                 data["estoque"]["diasPreparacao"]                 = self.estoque_diasPreparacao
-                data["estoque"]["localizacao"]                    = self.estoque_localizacao
-                
+                data["estoque"]["localizacao"]                    = self.estoque_localizacao                
                 data["fornecedores"] = [{
-                    "id" : self.fornecedor_padrao,
+                    "id" : id_fornecedor_padrao,
                     "codigoProdutoNoFornecedor" : self.sku,
                     "padrao" : True
                 }]
-
                 data["grade"] = ["."]
-
                 return data               
             except Exception as e:
                 logger.error("Erro ao formatar dict produto: %s",e)
@@ -500,10 +406,8 @@ class Produto:
             url = self.endpoint+f"/{id or self.id}"
         elif sku or self.sku:
             url = self.endpoint+f"/?codigo={sku or self.sku}"
-        
-        #print(url)
         try:
-            token = self.con.get_latest_valid_token_or_refresh()
+            token = await self.con.get_latest_valid_token_or_refresh()
             if url and token:                
                 get_produto = requests.get(
                     url=url,
@@ -514,7 +418,7 @@ class Produto:
                     }
                 )
                 if get_produto.status_code == 200:
-                        if self.decodificar(get_produto.json()):
+                        if await self.decodificar(get_produto.json()):
                             self.acao = 'get'
                             return True
                         else:
@@ -532,142 +436,121 @@ class Produto:
 
     async def enviar_alteracoes(self) -> list:
 
-        if not os.path.exists(configOlist.PATH_HISTORICO_PRODUTO):
-            logger.error("Histórico de produtos não encontrado em %s",configOlist.PATH_HISTORICO_PRODUTO)
-            return {"status":"Erro"}
-        else:    
-            with open(configOlist.PATH_HISTORICO_PRODUTO, "r", encoding="utf-8") as f:
-                historico = json.load(f)
+        file_path = configOlist.PATH_HISTORICO_PRODUTO
+        historico = await self.valida_path.validar(path=file_path,mode='r',method='json')
                 
-            token = self.con.get_latest_valid_token_or_refresh()
-            status = 200
-            paginacao = {}
-            itens = []
-
-            while status == 200:
-                if paginacao:        
-                    if paginacao["limit"] + paginacao["offset"] < paginacao ["total"]:
-                        offset = paginacao["limit"] + paginacao["offset"]
-                        url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?situacao=A&dataAlteracao={historico["ultima_atualizacao_olist_sankhya"]["data"]}&offset={offset}"
-                    else:
-                        url = None
-                else:
-                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?situacao=A&dataAlteracao={historico["ultima_atualizacao_olist_sankhya"]["data"]}"
-                if url:
-                    get_alteracoes = requests.get(url=url,
-                                                  headers={
-                                                      "Authorization":f"Bearer {token}",
-                                                      "Content-Type":"application/json",
-                                                      "Accept":"application/json"
-                                                  })
-                    self.acao = 'get'
-                    status=get_alteracoes.status_code
-                    itens += get_alteracoes.json()["itens"]
-                    paginacao = get_alteracoes.json()["paginacao"]
-                    time.sleep(self.req_sleep)
-                else:
-                    status = 0
-            
-            itens.sort(key=lambda i: i['dataAlteracao'],reverse=True)
-            
-            return [{"id":i["id"],"sku":i["sku"]} for i in itens]
-
-    async def receber_alteracoes(self) -> tuple[bool,int]:
-
-        if not os.path.exists(configOlist.PATH_HISTORICO_PRODUTO):
-            logger.error("Histórico de produtos não encontrado em %s",configOlist.PATH_HISTORICO_PRODUTO)
-            return {"status":"Erro"}
-        else:    
-            with open(configOlist.PATH_HISTORICO_PRODUTO, "r", encoding="utf-8") as f:
-                historico = json.load(f)
-                
-            token = self.con.get_latest_valid_token_or_refresh()
-            payload = self.encodificar()
-
-            if self.acao == 'put':
-                if self.produtoPai_id: # se for variacao
-                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.produtoPai_id}/variacoes/{self.id}"
-                else:
-                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.id}"                
-                if url:
-                    put_alteracoes = requests.put(url=url,
-                                                  headers={
-                                                      "Authorization":f"Bearer {token}",
-                                                      "Content-Type":"application/json",
-                                                      "Accept":"application/json"
-                                                  },
-                                                  data=json.dumps(payload))
-                    if put_alteracoes.status_code == 204:                                         
-                        return True, 1
-                    elif put_alteracoes.status_code in [404,409]:
-                        logger.warning("Erro %s: %s ID %s", put_alteracoes.status_code, put_alteracoes.json(), self.id)
-                        logger.info(json.dumps(payload))
-                        return True, 0
-                    else:
-                        print(f"Falha ao atualizar produto {self.id}")
-                        logger.error("Erro %s: %s ID %s", put_alteracoes.status_code, put_alteracoes.json(), self.id)
-                        logger.info(json.dumps(payload))
-                        return False, 0
-                else:
-                    print("Falha ao montar URL")
-                    logger.error("Erro: Falha ao montar URL")
-                    return False, 0
-            elif self.acao == 'post':
-                print(payload)
-                url = config.API_URL+config.ENDPOINT_PRODUTOS
-                logger.info("url %s and token %s -ok",token,url)
-                if url:
-                    post_novo = requests.post(url=url,
-                                              headers={
-                                                  "Authorization":f"Bearer {token}",
-                                                  "Content-Type":"application/json",
-                                                  "Accept":"application/json"
-                                              },
-                                              data=json.dumps(payload))
-                    if post_novo.status_code == 201:                    
-                        return True, post_novo.json()["id"]
-                    else:
-                        print(f"Falha ao incluir produto {payload["sku"]}")
-                        logger.error("Erro %s: %s cod %s", post_novo.status_code, post_novo.json(), payload["sku"])
-                        return False,0
-                else:
-                    print("Falha ao montar URL")
-                    logger.error("Erro: Falha ao montar URL")
-                    return False,0
-
-            elif self.acao == 'del':
-                print(payload)
-                url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.id}"
-                if url:
-                    put_alteracoes = requests.put(url=url,
-                                                  headers={
-                                                      "Authorization":f"Bearer {token}",
-                                                      "Content-Type":"application/json",
-                                                      "Accept":"application/json"
-                                                  },
-                                                  data=json.dumps(payload))
-                    if put_alteracoes.status_code == 204:                                       
-                        return True
-                    else:
-                        print(f"Falha ao inativar produto {self.id}")
-                        logger.error("Erro %s: %s", put_alteracoes.status_code, put_alteracoes.json())
-                        return False
-                else:
-                    print("Falha ao montar URL")
-                    logger.error("Erro: Falha ao montar URL")
-                    return False             
-            else:
-                print("Evento não configurado")
-                logger.error("Erro: Evento de atualização não configurado")
-                return False        
-
-    async def buscar_todos(self) -> list:
-                
-        token = self.con.get_latest_valid_token_or_refresh()
+        token = await self.con.get_latest_valid_token_or_refresh()
         status = 200
         paginacao = {}
         itens = []
 
+        while status == 200:
+            if paginacao:        
+                if paginacao["limit"] + paginacao["offset"] < paginacao ["total"]:
+                    offset = paginacao["limit"] + paginacao["offset"]
+                    url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?situacao=A&dataAlteracao={historico["ultima_atualizacao_olist_sankhya"]["data"]}&offset={offset}"
+                else:
+                    url = None
+            else:
+                url = config.API_URL+config.ENDPOINT_PRODUTOS+f"?situacao=A&dataAlteracao={historico["ultima_atualizacao_olist_sankhya"]["data"]}"
+            if url:
+                get_alteracoes = requests.get(url=url,
+                                                headers={
+                                                    "Authorization":f"Bearer {token}",
+                                                    "Content-Type":"application/json",
+                                                    "Accept":"application/json"
+                                                })
+                self.acao = 'get'
+                status=get_alteracoes.status_code
+                itens += get_alteracoes.json()["itens"]
+                paginacao = get_alteracoes.json()["paginacao"]
+                time.sleep(self.req_sleep)
+            else:
+                status = 0
+        
+        itens.sort(key=lambda i: i['dataAlteracao'],reverse=True)
+        
+        return [{"id":i["id"],"sku":i["sku"]} for i in itens]
+
+    async def receber_alteracoes(self) -> tuple[bool,int]:
+
+        token = await self.con.get_latest_valid_token_or_refresh()
+        payload = await self.encodificar()
+
+        if self.acao == 'put':
+            if self.produtoPai_id: # se for variacao
+                url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.produtoPai_id}/variacoes/{self.id}"
+            else:
+                url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.id}"                
+            if url:
+                put_alteracoes = requests.put(url=url,
+                                                headers={
+                                                    "Authorization":f"Bearer {token}",
+                                                    "Content-Type":"application/json",
+                                                    "Accept":"application/json"
+                                                },
+                                                data=json.dumps(payload))
+                if put_alteracoes.status_code == 204:                                         
+                    return True, 1
+                elif put_alteracoes.status_code in [404,409]:
+                    logger.warning("Erro %s: %s ID %s", put_alteracoes.status_code, put_alteracoes.json(), self.id)
+                    logger.info(json.dumps(payload))
+                    return True, 0
+                else:
+                    print(f"Falha ao atualizar produto {self.id}")
+                    logger.error("Erro %s: %s ID %s", put_alteracoes.status_code, put_alteracoes.json(), self.id)
+                    logger.info(json.dumps(payload))
+                    return False, 0
+            else:
+                logger.error("Erro: Falha ao montar URL")
+                return False, 0
+        elif self.acao == 'post':                
+            url = config.API_URL+config.ENDPOINT_PRODUTOS                
+            if url:
+                post_novo = requests.post(url=url,
+                                            headers={
+                                                "Authorization":f"Bearer {token}",
+                                                "Content-Type":"application/json",
+                                                "Accept":"application/json"
+                                            },
+                                            data=json.dumps(payload))
+                if post_novo.status_code == 201:                    
+                    return True, post_novo.json()["id"]
+                else:
+                    logger.error("Erro %s: %s cod %s", post_novo.status_code, post_novo.json(), payload["sku"])
+                    return False,0
+            else:
+                logger.error("Erro: Falha ao montar URL")
+                return False,0
+        elif self.acao == 'del':
+            pass
+            # print(payload)
+            # url = config.API_URL+config.ENDPOINT_PRODUTOS+f"/{self.id}"
+            # if url:
+            #     put_alteracoes = requests.put(url=url,
+            #                                     headers={
+            #                                         "Authorization":f"Bearer {token}",
+            #                                         "Content-Type":"application/json",
+            #                                         "Accept":"application/json"
+            #                                     },
+            #                                     data=json.dumps(payload))
+            #     if put_alteracoes.status_code == 204:                                       
+            #         return True
+            #     else:
+            #         logger.error("Erro %s: %s", put_alteracoes.status_code, put_alteracoes.json())
+            #         return False
+            # else:
+            #     logger.error("Erro: Falha ao montar URL")
+            #     return False             
+        else:
+            logger.error("Erro: Evento de atualização não configurado")
+            return False        
+
+    async def buscar_todos(self) -> list:                
+        token = await self.con.get_latest_valid_token_or_refresh()
+        status = 200
+        paginacao = {}
+        itens = []
         while status == 200:
             if paginacao:        
                 if paginacao["limit"] + paginacao["offset"] < paginacao ["total"]:
@@ -679,17 +562,17 @@ class Produto:
                 url = config.API_URL+config.ENDPOINT_PRODUTOS
             if url:
                 get_alteracoes = requests.get(url=url,
-                                            headers={
+                                              headers={
                                                 "Authorization":f"Bearer {token}",
                                                 "Content-Type":"application/json",
                                                 "Accept":"application/json"
-                                            })
-                status=get_alteracoes.status_code
+                                              })
+                status = get_alteracoes.status_code
                 itens += get_alteracoes.json()["itens"]
                 paginacao = get_alteracoes.json()["paginacao"]
-                print(f"{len(itens)}/{paginacao["total"]}")
+                # print(f"{len(itens)}/{paginacao["total"]}")
                 time.sleep(self.req_sleep)
             else:
                 status=0
-                print(f"Fim. {len(itens)} produtos encontratos")            
+                # print(f"Fim. {len(itens)} produtos encontratos")            
         return itens

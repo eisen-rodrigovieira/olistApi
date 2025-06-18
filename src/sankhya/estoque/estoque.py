@@ -15,15 +15,12 @@ logging.basicConfig( filename = config.PATH_LOGS,
 
 class Estoque:
 
-    def __init__(self,
-                 codprod:int=None,
-                 idprod:int=None,
-                 dhevento:datetime=None):
-        self.db               = dbConfig()
-        self.valida_path      = validaPath() 
-        self.codprod          = codprod
-        self.idprod           = idprod
-        self.dhevento         = dhevento
+    def __init__(self):
+        self.db          = dbConfig()
+        self.valida_path = validaPath() 
+        self.codprod     = None
+        self.idprod      = None
+        self.dhevento    = None
 
     async def decodificar(self,data:dict=None) -> bool:
         if data:

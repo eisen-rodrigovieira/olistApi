@@ -1,12 +1,12 @@
 import os
-import time
 import json
 import logging
 import requests
-from src.olist.connect import Connect
-from src.olist.separacao import item
-from params            import config, configOlist
-from datetime import datetime, timedelta
+from src.olist.connect    import Connect
+from src.olist.separacao  import item
+from params               import config, configOlist
+from datetime             import datetime, timedelta
+from src.utils.validaPath import validaPath
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -17,95 +17,53 @@ logging.basicConfig(filename=config.PATH_LOGS,
 
 class Separacao:
 
-    def __init__(
-        self,
-        id:int = None,
-        situacao:int = None,
-        situacaoCheckout:int = None,
-        dataCriacao:str = None,
-        dataSeparacao:str = None,
-        dataCheckout:str = None,
-        cliente_nome:str = None,
-        cliente_codigo:str = None,
-        cliente_fantasia:str = None,
-        cliente_tipoPessoa:str = None,
-        cliente_cpfCnpj:str = None,
-        cliente_inscricaoEstadual:str = None,
-        cliente_rg:str = None,
-        cliente_telefone:str = None,
-        cliente_celular:str = None,
-        cliente_email:str = None,
-        cliente_endereco_endereco:str = None,
-        cliente_endereco_numero:str = None,
-        cliente_endereco_complemento:str = None,
-        cliente_endereco_bairro:str = None,
-        cliente_endereco_municipio:str = None,
-        cliente_endereco_cep:str = None,
-        cliente_endereco_uf:str = None,
-        cliente_endereco_pais:str = None,
-        cliente_id:int = None,
-        venda_id:int = None,
-        venda_numero:int = None,
-        venda_data:str = None,
-        venda_situacao:int = None,
-        notaFiscal_id:int = None,
-        notaFiscal_numero:int = None,
-        notaFiscal_dataEmissao:str = None,
-        notaFiscal_situacao:int = None,
-        ecommerce_id:int = None,
-        ecommerce_nome:str = None,
-        ecommerce_numeroPedidoEcommerce:str = None,
-        ecommerce_numeroPedidoCanalVenda:str = None,
-        ecommerce_canalVenda:str = None,
-        formaEnvio_id:int = None,
-        formaEnvio_nome:str = None,
-        volumes:str = None
-    ):
-        self.con                              = Connect()  
+    def __init__(self):
+        self.con                              = Connect()
+        self.valida_path                      = validaPath()
         self.req_sleep                        = config.REQ_TIME_SLEEP  
         self.endpoint                         = config.API_URL+config.ENDPOINT_SEPARACAO
         self.situacao_separacao               = configOlist.SITUACAO_SEPARACAO
-        self.id                               = id
-        self.situacao                         = situacao
-        self.situacaoCheckout                 = situacaoCheckout
-        self.dataCriacao                      = dataCriacao
-        self.dataSeparacao                    = dataSeparacao
-        self.dataCheckout                     = dataCheckout
-        self.cliente_nome                     = cliente_nome
-        self.cliente_codigo                   = cliente_codigo
-        self.cliente_fantasia                 = cliente_fantasia
-        self.cliente_tipoPessoa               = cliente_tipoPessoa
-        self.cliente_cpfCnpj                  = cliente_cpfCnpj
-        self.cliente_inscricaoEstadual        = cliente_inscricaoEstadual
-        self.cliente_rg                       = cliente_rg
-        self.cliente_telefone                 = cliente_telefone
-        self.cliente_celular                  = cliente_celular
-        self.cliente_email                    = cliente_email
-        self.cliente_endereco_endereco        = cliente_endereco_endereco
-        self.cliente_endereco_numero          = cliente_endereco_numero
-        self.cliente_endereco_complemento     = cliente_endereco_complemento
-        self.cliente_endereco_bairro          = cliente_endereco_bairro
-        self.cliente_endereco_municipio       = cliente_endereco_municipio
-        self.cliente_endereco_cep             = cliente_endereco_cep
-        self.cliente_endereco_uf              = cliente_endereco_uf
-        self.cliente_endereco_pais            = cliente_endereco_pais
-        self.cliente_id                       = cliente_id
-        self.venda_id                         = venda_id
-        self.venda_numero                     = venda_numero
-        self.venda_data                       = venda_data
-        self.venda_situacao                   = venda_situacao
-        self.notaFiscal_id                    = notaFiscal_id
-        self.notaFiscal_numero                = notaFiscal_numero
-        self.notaFiscal_dataEmissao           = notaFiscal_dataEmissao
-        self.notaFiscal_situacao              = notaFiscal_situacao
-        self.ecommerce_id                     = ecommerce_id
-        self.ecommerce_nome                   = ecommerce_nome
-        self.ecommerce_numeroPedidoEcommerce  = ecommerce_numeroPedidoEcommerce
-        self.ecommerce_numeroPedidoCanalVenda = ecommerce_numeroPedidoCanalVenda
-        self.ecommerce_canalVenda             = ecommerce_canalVenda
-        self.formaEnvio_id                    = formaEnvio_id
-        self.formaEnvio_nome                  = formaEnvio_nome
-        self.volumes                          = volumes
+        self.id                               = None
+        self.situacao                         = None
+        self.situacaoCheckout                 = None
+        self.dataCriacao                      = None
+        self.dataSeparacao                    = None
+        self.dataCheckout                     = None
+        self.cliente_nome                     = None
+        self.cliente_codigo                   = None
+        self.cliente_fantasia                 = None
+        self.cliente_tipoPessoa               = None
+        self.cliente_cpfCnpj                  = None
+        self.cliente_inscricaoEstadual        = None
+        self.cliente_rg                       = None
+        self.cliente_telefone                 = None
+        self.cliente_celular                  = None
+        self.cliente_email                    = None
+        self.cliente_endereco_endereco        = None
+        self.cliente_endereco_numero          = None
+        self.cliente_endereco_complemento     = None
+        self.cliente_endereco_bairro          = None
+        self.cliente_endereco_municipio       = None
+        self.cliente_endereco_cep             = None
+        self.cliente_endereco_uf              = None
+        self.cliente_endereco_pais            = None
+        self.cliente_id                       = None
+        self.venda_id                         = None
+        self.venda_numero                     = None
+        self.venda_data                       = None
+        self.venda_situacao                   = None
+        self.notaFiscal_id                    = None
+        self.notaFiscal_numero                = None
+        self.notaFiscal_dataEmissao           = None
+        self.notaFiscal_situacao              = None
+        self.ecommerce_id                     = None
+        self.ecommerce_nome                   = None
+        self.ecommerce_numeroPedidoEcommerce  = None
+        self.ecommerce_numeroPedidoCanalVenda = None
+        self.ecommerce_canalVenda             = None
+        self.formaEnvio_id                    = None
+        self.formaEnvio_nome                  = None
+        self.volumes                          = None
         self.itens                            = []
         self.acao                             = None
         
@@ -182,17 +140,11 @@ class Separacao:
         obj = {}
         data = {}
         file_path = configOlist.PATH_OBJECT_SEPARACAO
-        if not os.path.exists(file_path):
-            logger.error("Objeto da separacao não encontrado em %s",file_path)
-            return {"status":"Erro"}
-        else:    
-            with open(file_path, "r", encoding="utf-8") as f:
-                obj = json.load(f)        
+        obj = await self.valida_path.validar(path=file_path,mode='r',method='json')
 
         if self.acao == 'get':
             try:
                 data = obj[self.acao]
-
                 data["id"]                                  = self.id
                 data["situacao"]                            = self.situacao
                 data["situacaoCheckout"]                    = self.situacaoCheckout
@@ -237,7 +189,7 @@ class Separacao:
                 
                 itens_list = list()
                 for it in self.itens:
-                    itens_list.append(it.encodificar(self.acao))
+                    itens_list.append(await it.encodificar(self.acao))
                 data["itens"] = itens_list
                 
                 return data               
@@ -247,8 +199,7 @@ class Separacao:
         else:
             return {"status":"Ação não configurada"} 
 
-    async def buscar(self, id:int=None) -> bool:
-        
+    async def buscar(self, id:int=None) -> bool:        
         url = self.endpoint+f"/{id or self.id}"
         try:
             token = self.con.get_latest_valid_token_or_refresh()
@@ -279,7 +230,6 @@ class Separacao:
             return False  
 
     async def buscar_todas(self) -> bool:
-
         dataInicial = None
         wkday = datetime.today().weekday()
         if wkday in [5,6]:

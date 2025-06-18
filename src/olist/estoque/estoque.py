@@ -15,51 +15,37 @@ logging.basicConfig(filename=config.PATH_LOGS,
 
 class Estoque:
 
-    def __init__(self,
-                 id:int=None,
-                 nome:int=None,
-                 codigo:int=None,
-                 unidade:int=None,
-                 saldo:int=None,
-                 reservado:int=None,
-                 disponivel:int=None,
-                 deposito:list=None,
-                 tipo:int=None,
-                 data:int=None,
-                 quantidade:int=None,
-                 precoUnitario:int=None,
-                 observacoes:int=None,):
-        self.con                           = Connect()  
-        self.valida_path                   = validaPath()
-        self.req_sleep                     = config.REQ_TIME_SLEEP  
-        self.endpoint                      = config.API_URL+config.ENDPOINT_ESTOQUES        
-        self.id                            = id
-        self.nome                          = nome
-        self.codigo                        = codigo
-        self.unidade                       = unidade
-        self.saldo                         = saldo
-        self.reservado                     = reservado
-        self.disponivel                    = disponivel
-        self.tipo                          = tipo
-        self.data                          = data
-        self.quantidade                    = quantidade
-        self.precoUnitario                 = precoUnitario
-        self.observacoes                   = observacoes
-        self.deposito                      = deposito
-        self.acao                          = None
+    def __init__(self):
+        self.con           = Connect()  
+        self.valida_path   = validaPath()
+        self.req_sleep     = config.REQ_TIME_SLEEP  
+        self.endpoint      = config.API_URL+config.ENDPOINT_ESTOQUES        
+        self.id            = None
+        self.nome          = None
+        self.codigo        = None
+        self.unidade       = None
+        self.saldo         = None
+        self.reservado     = None
+        self.disponivel    = None
+        self.tipo          = None
+        self.data          = None
+        self.quantidade    = None
+        self.precoUnitario = None
+        self.observacoes   = None
+        self.deposito      = None
+        self.acao          = None
         
     def decodificar(self,payload:dict=None) -> bool:
         
         if payload:
-            #print(payload)
             try:
-                self.id            = payload["id"]
-                self.nome          = payload["nome"]
-                self.codigo        = payload["codigo"]
-                self.unidade       = payload["unidade"]
-                self.saldo         = payload["saldo"]
-                self.reservado     = payload["reservado"]
-                self.disponivel    = payload["disponivel"]
+                self.id         = payload["id"]
+                self.nome       = payload["nome"]
+                self.codigo     = payload["codigo"]
+                self.unidade    = payload["unidade"]
+                self.saldo      = payload["saldo"]
+                self.reservado  = payload["reservado"]
+                self.disponivel = payload["disponivel"]
 
                 self.deposito = []
                 for d in payload["depositos"]:
@@ -86,13 +72,13 @@ class Estoque:
         if self.acao == 'get':
             try:
                 data = obj[self.acao]
-                data["id"]                            = self.id
-                data["nome"]                          = self.nome
-                data["codigo"]                        = self.codigo
-                data["unidade"]                       = self.unidade
-                data["saldo"]                         = self.saldo
-                data["reservado"]                     = self.reservado
-                data["disponivel"]                    = self.disponivel
+                data["id"]         = self.id
+                data["nome"]       = self.nome
+                data["codigo"]     = self.codigo
+                data["unidade"]    = self.unidade
+                data["saldo"]      = self.saldo
+                data["reservado"]  = self.reservado
+                data["disponivel"] = self.disponivel
                 depositos_list = list()
                 for dep in self.deposito:
                     depositos_list.append(await dep.encodificar(self.acao))
@@ -106,12 +92,12 @@ class Estoque:
         elif self.acao == 'post':
             try:
                 data = obj[self.acao]
-                data["deposito"]                      = await self.deposito[0].encodificar(self.acao)
-                data["tipo"]                          = self.tipo
-                data["data"]                          = self.data
-                data["quantidade"]                    = self.quantidade
-                data["precoUnitario"]                 = self.precoUnitario or 0
-                data["observacoes"]                   = self.observacoes or configOlist.OBS_MVTO_ESTOQUE
+                data["deposito"]      = await self.deposito[0].encodificar(self.acao)
+                data["tipo"]          = self.tipo
+                data["data"]          = self.data
+                data["quantidade"]    = self.quantidade
+                data["precoUnitario"] = self.precoUnitario or 0
+                data["observacoes"]   = self.observacoes or configOlist.OBS_MVTO_ESTOQUE
                 return data
             except Exception as e:
                 logger.error("Erro ao formatar dict estoque: %s", e)
@@ -120,10 +106,9 @@ class Estoque:
             return {"status": "Ação não configurada"}
 
     async def buscar(self, id:int=None) -> bool:
-
         url = config.API_URL+config.ENDPOINT_ESTOQUES+f"/{id or self.id}"
         try:
-            token = self.con.get_latest_valid_token_or_refresh()
+            token = await self.con.get_latest_valid_token_or_refresh()
             if url and token:                
                 get_estoque = requests.get(
                     url=url,
@@ -151,10 +136,9 @@ class Estoque:
             return False
         
     async def enviar_saldo(self,id:int=None) -> bool:
-
         url = config.API_URL+config.ENDPOINT_ESTOQUES+f"/{id or self.id}"
         try:
-            token = self.con.get_latest_valid_token_or_refresh()
+            token = await self.con.get_latest_valid_token_or_refresh()
             payload = await self.encodificar()
             if url and token:                
                 post_estoque = requests.post(

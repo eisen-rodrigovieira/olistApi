@@ -1,7 +1,6 @@
-import os
-import json
 import logging
-from params import config, configOlist
+from params               import config, configOlist
+from src.utils.validaPath import validaPath
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -21,18 +20,13 @@ class Producao:
         quantidade (int): Quantidade a ser produzida.
         etapas (list): Lista de etapas do processo de produção.
     """    
-    def __init__(self
-                ,produto_id        :int  = None
-                ,produto_sku       :str  = None
-                ,produto_descricao :str  = None
-                ,quantidade        :int  = None
-                ,etapas            :list = None
-                ):
-        self.produto_id        = produto_id
-        self.produto_sku       = produto_sku
-        self.produto_descricao = produto_descricao
-        self.quantidade        = quantidade
-        self.etapas            = etapas
+    def __init__(self):
+        self.produto_id        = None
+        self.produto_sku       = None
+        self.produto_descricao = None
+        self.quantidade        = None
+        self.etapas            = None
+        self.valida_path       = validaPath()         
 
     def decodificar(self,payload:dict=None) -> bool:
         """
@@ -56,7 +50,7 @@ class Producao:
             logger.error("Não foram informados dados para decodificar")
             return False
 
-    def encodificar(self) -> dict:
+    async def encodificar(self) -> dict:
         """
         Constrói e retorna um dicionário com os dados de produção baseado em um template JSON.
 
@@ -64,19 +58,15 @@ class Producao:
             dict: Dados formatados ou {"erro": True} em caso de falha.
         """        
         data = {}
+        file_path = configOlist.PATH_OBJECT_PRODUTO_PRODUCAO
         try:
-            if not os.path.exists(configOlist.PATH_OBJECT_PRODUTO_PRODUCAO):
-                logger.error("Objeto do kit de produto não encontrado em %s",configOlist.PATH_OBJECT_PRODUTO_PRODUCAO)
-                return {"erro":True}
-            else:    
-                with open(configOlist.PATH_OBJECT_PRODUTO_PRODUCAO, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                data["produto_id"]        = self.produto_id
-                data["produto_sku"]       = self.produto_sku
-                data["produto_descricao"] = self.produto_descricao
-                data["quantidade"]        = self.quantidade
-                data["etapas"]            = self.etapas
-                return data               
+            data = await self.valida_path.validar(path=file_path,mode='r',method='json')
+            data["produto_id"]        = self.produto_id
+            data["produto_sku"]       = self.produto_sku
+            data["produto_descricao"] = self.produto_descricao
+            data["quantidade"]        = self.quantidade
+            data["etapas"]            = self.etapas
+            return data               
         except Exception as e:
             logger.error("Erro ao formatar dicionario producao de produto: %s",e)
             return {"erro":True} 

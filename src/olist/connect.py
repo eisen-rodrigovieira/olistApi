@@ -12,6 +12,7 @@ from urllib.parse                  import urlparse, parse_qs
 from cryptography.fernet           import Fernet
 from keys                          import keys
 from params                        import config
+from src.utils.validaPath          import validaPath
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -30,8 +31,9 @@ class Connect(object):
         """
         Inicializa a classe codificando credenciais e configurando criptografia.
         """
-        self.fernet = Fernet(keys.FERNET_KEY.encode())     
-        self.access_token = ''   
+        self.fernet        = Fernet(keys.FERNET_KEY.encode())
+        self.valida_path   = validaPath()
+        self.access_token  = ''   
         self.refresh_token = ''   
 
     async def get_auth_code(self) -> str:
@@ -105,7 +107,7 @@ class Connect(object):
             logger.error("Erro de conexão: %s",e)
             return {"erro":e}
 
-    def save_token_to_file(self, token_data: dict, filename: str = config.PATH_TOKENS) -> bool:
+    async def save_token_to_file(self, token_data: dict, filename: str = config.PATH_TOKENS) -> bool:
         """
         Salva o token criptografado com timestamp.
         """
@@ -117,11 +119,7 @@ class Connect(object):
             encrypted_refresh_token = self.fernet.encrypt(refresh_token).decode()
             encrypted_id_token = self.fernet.encrypt(id_token).decode()
 
-            if os.path.exists(filename):
-                with open(filename, "r", encoding="utf-8") as f:
-                    history = json.load(f)
-            else:
-                history = []
+            history = await self.valida_path.validar(path=filename,mode='r',method='json')
 
             history.append({
                 "timestamp": datetime.now().isoformat(),
@@ -132,22 +130,15 @@ class Connect(object):
                 "id_token_encrypted": encrypted_id_token,
             })
 
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(history, f, indent=4, ensure_ascii=False)
+            await self.valida_path.validar(path=filename,mode='w',method='json')
             return True
         except Exception as e:
             logger.error("Erro ao salvar token criptografado: %s",e)
             return False
         
-    def decrypt_last(self, filename: str = config.PATH_TOKENS):
+    async def decrypt_last(self, filename: str = config.PATH_TOKENS):
             
-        if not os.path.exists(filename):
-            logger.error("Histórico de tokens não encontrado")
-            return ''
-
-        with open(filename, "r", encoding="utf-8") as f:
-            history = json.load(f)                       
-
+        history = await self.valida_path.validar(path=filename,mode='r',method='json')            
         latest = history[-1]
         latest["access_token_raw"] = self.fernet.decrypt(latest["access_token_encrypted"].encode()).decode()
         latest["refresh_token_raw"] = self.fernet.decrypt(latest["refresh_token_encrypted"].encode()).decode()
@@ -155,19 +146,12 @@ class Connect(object):
         return latest
                 
 
-    def get_latest_valid_token_or_refresh(self, filename: str = config.PATH_TOKENS) -> str:
+    async def get_latest_valid_token_or_refresh(self, filename: str = config.PATH_TOKENS) -> str:
         """
         Verifica o token mais recente. Se expirado, usa o refresh_token criptografado para renovar.
         """
-        logger.debug("Iniciando")
         try:
-            if not os.path.exists(filename):
-                logger.error("Histórico de tokens não encontrado")
-                return ''
-
-            with open(filename, "r", encoding="utf-8") as f:
-                history = json.load(f)
-
+            history = await self.valida_path.validar(path=filename,mode='r',method='json')
             latest = history[-1]
             access_token_expires = datetime.fromisoformat(latest["access_token_expires_at"])
             refresh_token_expires = datetime.fromisoformat(latest["refresh_token_expires_at"])
@@ -191,7 +175,7 @@ class Connect(object):
                     logger.error("Retorno do token de acesso invalido. Tentando novamente")
                     return ''               
                 else:
-                    self.save_token_to_file(new_token)                
+                    await self.save_token_to_file(new_token)                
                     logger.info("Token de acesso atualizado.")
                     return new_token["access_token"]
             else:
@@ -218,7 +202,7 @@ class Connect(object):
         try:
             authcode = await self.get_auth_code()
             token = await self.get_token(authorization_code=authcode)
-            self.save_token_to_file(token)
+            await self.save_token_to_file(token)
             logger.info("Token de acesso recuperado via login.")
             return token["access_token"]
         except Exception as e:

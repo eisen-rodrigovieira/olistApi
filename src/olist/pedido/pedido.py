@@ -1,11 +1,9 @@
-import os
-import time
-import json
 import logging
 import requests
-from src.olist.connect import Connect
-from src.olist.pedido  import parcela, item, pedido
-from params            import config, configOlist
+from src.olist.connect    import Connect
+from src.olist.pedido     import parcela, item
+from params               import config, configOlist
+from src.utils.validaPath import validaPath
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -16,190 +14,98 @@ logging.basicConfig(filename=config.PATH_LOGS,
 
 class Pedido:
 
-    def __init__(
-        self,
-        dataPrevista: str = None,
-        dataEnvio: str = None,
-        observacoes: str = None,
-        observacoesInternas: str = None,
-        situacao: int = None,
-        data: str = None,
-        dataEntrega: str = None,
-        numeroOrdemCompra: str = None,
-        valorDesconto: float = None,
-        valorFrete: float = None,
-        valorOutrasDespesas: float = None,
-        id: int = None,
-        numeroPedido: int = None,
-        idNotaFiscal: int = None,
-        dataFaturamento: str = None,
-        valorTotalProdutos: float = None,
-        valorTotalPedido: float = None,
-        listaPreco_id: int = None,
-        listaPreco_nome: str = None,
-        listaPreco_acrescimoDesconto: float = None,
-        cliente_nome: str = None,
-        cliente_codigo: str = None,
-        cliente_fantasia: str = None,
-        cliente_tipoPessoa: str = None,
-        cliente_cpfCnpj: str = None,
-        cliente_inscricaoEstadual: str = None,
-        cliente_rg: str = None,
-        cliente_telefone: str = None,
-        cliente_celular: str = None,
-        cliente_email: str = None,
-        cliente_endereco_endereco: str = None,
-        cliente_endereco_numero: str = None,
-        cliente_endereco_complemento: str = None,
-        cliente_endereco_bairro: str = None,
-        cliente_endereco_municipio: str = None,
-        cliente_endereco_cep: str = None,
-        cliente_endereco_uf: str = None,
-        cliente_endereco_pais: str = None,
-        cliente_id: int = None,
-        enderecoEntrega_endereco: str = None,
-        enderecoEntrega_numero: str = None,
-        enderecoEntrega_complemento: str = None,
-        enderecoEntrega_bairro: str = None,
-        enderecoEntrega_municipio: str = None,
-        enderecoEntrega_cep: str = None,
-        enderecoEntrega_uf: str = None,
-        enderecoEntrega_pais: str = None,
-        enderecoEntrega_nomeDestinatario: str = None,
-        enderecoEntrega_cpfCnpj: str = None,
-        enderecoEntrega_tipoPessoa: str = None,
-        ecommerce_id: int = None,
-        ecommerce_nome: str = None,
-        ecommerce_numeroPedidoEcommerce: str = None,
-        ecommerce_numeroPedidoCanalVenda: str = None,
-        ecommerce_canalVenda: str = None,
-        transportador_id: int = None,
-        transportador_nome: str = None,
-        transportador_fretePorConta: str = None,
-        transportador_formaEnvio_id: int = None,
-        transportador_formaEnvio_nome: str = None,
-        transportador_formaFrete_id: int = None,
-        transportador_formaFrete_nome: str = None,
-        transportador_codigoRastreamento: str = None,
-        transportador_urlRastreamento: str = None,
-        deposito_id: int = None,
-        deposito_nome: str = None,
-        vendedor_id: int = None,
-        vendedor_nome: str = None,
-        naturezaOperacao_id: int = None,
-        naturezaOperacao_nome: str = None,
-        intermediador_id: int = None,
-        intermediador_nome: str = None,
-        intermediador_cnpj: str = None,
-        pagamento_formaPagamento_id: int = None,
-        pagamento_formaPagamento_nome: str = None,
-        pagamento_meioPagamento_id: int = None,
-        pagamento_meioPagamento_nome: str = None,
-        pagamento_condicaoPagamento: str = None
-    ):
-        self.con                           = Connect()  
-        self.req_sleep                     = config.REQ_TIME_SLEEP  
-        self.endpoint                      = config.API_URL+config.ENDPOINT_PEDIDOS        
-        self.situacao_aprovado             = configOlist.SITUACAO_PEDIDO_APROVADO
-        self.situacao_preparando_envio     = configOlist.SITUACAO_PEDIDO_PREP_ENVIO
-        self.dataPrevista = dataPrevista
-        self.dataEnvio = dataEnvio
-        self.observacoes = observacoes
-        self.observacoesInternas = observacoesInternas
-        self.situacao = situacao
-        self.data = data
-        self.dataEntrega = dataEntrega
-        self.numeroOrdemCompra = numeroOrdemCompra
-        self.valorDesconto = valorDesconto
-        self.valorFrete = valorFrete
-        self.valorOutrasDespesas = valorOutrasDespesas
-        self.id = id
-        self.numeroPedido = numeroPedido
-        self.idNotaFiscal = idNotaFiscal
-        self.dataFaturamento = dataFaturamento
-        self.valorTotalProdutos = valorTotalProdutos
-        self.valorTotalPedido = valorTotalPedido
-
-        self.listaPreco_id = listaPreco_id
-        self.listaPreco_nome = listaPreco_nome
-        self.listaPreco_acrescimoDesconto = listaPreco_acrescimoDesconto
-
-        self.cliente_nome = cliente_nome
-        self.cliente_codigo = cliente_codigo
-        self.cliente_fantasia = cliente_fantasia
-        self.cliente_tipoPessoa = cliente_tipoPessoa
-        self.cliente_cpfCnpj = cliente_cpfCnpj
-        self.cliente_inscricaoEstadual = cliente_inscricaoEstadual
-        self.cliente_rg = cliente_rg
-        self.cliente_telefone = cliente_telefone
-        self.cliente_celular = cliente_celular
-        self.cliente_email = cliente_email
-        self.cliente_endereco_endereco = cliente_endereco_endereco
-        self.cliente_endereco_numero = cliente_endereco_numero
-        self.cliente_endereco_complemento = cliente_endereco_complemento
-        self.cliente_endereco_bairro = cliente_endereco_bairro
-        self.cliente_endereco_municipio = cliente_endereco_municipio
-        self.cliente_endereco_cep = cliente_endereco_cep
-        self.cliente_endereco_uf = cliente_endereco_uf
-        self.cliente_endereco_pais = cliente_endereco_pais
-        self.cliente_id = cliente_id
-
-        self.enderecoEntrega_endereco = enderecoEntrega_endereco
-        self.enderecoEntrega_numero = enderecoEntrega_numero
-        self.enderecoEntrega_complemento = enderecoEntrega_complemento
-        self.enderecoEntrega_bairro = enderecoEntrega_bairro
-        self.enderecoEntrega_municipio = enderecoEntrega_municipio
-        self.enderecoEntrega_cep = enderecoEntrega_cep
-        self.enderecoEntrega_uf = enderecoEntrega_uf
-        self.enderecoEntrega_pais = enderecoEntrega_pais
-        self.enderecoEntrega_nomeDestinatario = enderecoEntrega_nomeDestinatario
-        self.enderecoEntrega_cpfCnpj = enderecoEntrega_cpfCnpj
-        self.enderecoEntrega_tipoPessoa = enderecoEntrega_tipoPessoa
-
-        self.ecommerce_id = ecommerce_id
-        self.ecommerce_nome = ecommerce_nome
-        self.ecommerce_numeroPedidoEcommerce = ecommerce_numeroPedidoEcommerce
-        self.ecommerce_numeroPedidoCanalVenda = ecommerce_numeroPedidoCanalVenda
-        self.ecommerce_canalVenda = ecommerce_canalVenda
-
-        self.transportador_id = transportador_id
-        self.transportador_nome = transportador_nome
-        self.transportador_fretePorConta = transportador_fretePorConta
-        self.transportador_formaEnvio_id = transportador_formaEnvio_id
-        self.transportador_formaEnvio_nome = transportador_formaEnvio_nome
-        self.transportador_formaFrete_id = transportador_formaFrete_id
-        self.transportador_formaFrete_nome = transportador_formaFrete_nome
-        self.transportador_codigoRastreamento = transportador_codigoRastreamento
-        self.transportador_urlRastreamento = transportador_urlRastreamento
-
-        self.deposito_id = deposito_id
-        self.deposito_nome = deposito_nome
-
-        self.vendedor_id = vendedor_id
-        self.vendedor_nome = vendedor_nome
-
-        self.naturezaOperacao_id = naturezaOperacao_id
-        self.naturezaOperacao_nome = naturezaOperacao_nome
-
-        self.intermediador_id = intermediador_id
-        self.intermediador_nome = intermediador_nome
-        self.intermediador_cnpj = intermediador_cnpj
-
-        self.pagamento_formaPagamento_id = pagamento_formaPagamento_id
-        self.pagamento_formaPagamento_nome = pagamento_formaPagamento_nome
-        self.pagamento_meioPagamento_id = pagamento_meioPagamento_id
-        self.pagamento_meioPagamento_nome = pagamento_meioPagamento_nome
-        self.pagamento_condicaoPagamento = pagamento_condicaoPagamento
-
-        self.pagamento_parcelas = []
-        self.itens = []
-
-        self.acao                          = None
+    def __init__(self):
+        self.con                              = Connect()  
+        self.valida_path                      = validaPath()                 
+        self.req_sleep                        = config.REQ_TIME_SLEEP  
+        self.endpoint                         = config.API_URL+config.ENDPOINT_PEDIDOS        
+        self.situacao_aprovado                = configOlist.SITUACAO_PEDIDO_APROVADO
+        self.situacao_preparando_envio        = configOlist.SITUACAO_PEDIDO_PREP_ENVIO
+        self.dataPrevista                     = None
+        self.dataEnvio                        = None
+        self.observacoes                      = None
+        self.observacoesInternas              = None
+        self.situacao                         = None
+        self.data                             = None
+        self.dataEntrega                      = None
+        self.numeroOrdemCompra                = None
+        self.valorDesconto                    = None
+        self.valorFrete                       = None
+        self.valorOutrasDespesas              = None
+        self.id                               = None
+        self.numeroPedido                     = None
+        self.idNotaFiscal                     = None
+        self.dataFaturamento                  = None
+        self.valorTotalProdutos               = None
+        self.valorTotalPedido                 = None
+        self.listaPreco_id                    = None
+        self.listaPreco_nome                  = None
+        self.listaPreco_acrescimoDesconto     = None
+        self.cliente_nome                     = None
+        self.cliente_codigo                   = None
+        self.cliente_fantasia                 = None
+        self.cliente_tipoPessoa               = None
+        self.cliente_cpfCnpj                  = None
+        self.cliente_inscricaoEstadual        = None
+        self.cliente_rg                       = None
+        self.cliente_telefone                 = None
+        self.cliente_celular                  = None
+        self.cliente_email                    = None
+        self.cliente_endereco_endereco        = None
+        self.cliente_endereco_numero          = None
+        self.cliente_endereco_complemento     = None
+        self.cliente_endereco_bairro          = None
+        self.cliente_endereco_municipio       = None
+        self.cliente_endereco_cep             = None
+        self.cliente_endereco_uf              = None
+        self.cliente_endereco_pais            = None
+        self.cliente_id                       = None
+        self.enderecoEntrega_endereco         = None
+        self.enderecoEntrega_numero           = None
+        self.enderecoEntrega_complemento      = None
+        self.enderecoEntrega_bairro           = None
+        self.enderecoEntrega_municipio        = None
+        self.enderecoEntrega_cep              = None
+        self.enderecoEntrega_uf               = None
+        self.enderecoEntrega_pais             = None
+        self.enderecoEntrega_nomeDestinatario = None
+        self.enderecoEntrega_cpfCnpj          = None
+        self.enderecoEntrega_tipoPessoa       = None
+        self.ecommerce_id                     = None
+        self.ecommerce_nome                   = None
+        self.ecommerce_numeroPedidoEcommerce  = None
+        self.ecommerce_numeroPedidoCanalVenda = None
+        self.ecommerce_canalVenda             = None
+        self.transportador_id                 = None
+        self.transportador_nome               = None
+        self.transportador_fretePorConta      = None
+        self.transportador_formaEnvio_id      = None
+        self.transportador_formaEnvio_nome    = None
+        self.transportador_formaFrete_id      = None
+        self.transportador_formaFrete_nome    = None
+        self.transportador_codigoRastreamento = None
+        self.transportador_urlRastreamento    = None
+        self.deposito_id                      = None
+        self.deposito_nome                    = None
+        self.vendedor_id                      = None
+        self.vendedor_nome                    = None
+        self.naturezaOperacao_id              = None
+        self.naturezaOperacao_nome            = None
+        self.intermediador_id                 = None
+        self.intermediador_nome               = None
+        self.intermediador_cnpj               = None
+        self.pagamento_formaPagamento_id      = None
+        self.pagamento_formaPagamento_nome    = None
+        self.pagamento_meioPagamento_id       = None
+        self.pagamento_meioPagamento_nome     = None
+        self.pagamento_condicaoPagamento      = None
+        self.pagamento_parcelas               = []
+        self.itens                            = []
+        self.acao                             = None
         
     def decodificar(self,payload:dict=None) -> bool:
         
         if payload:
-            #print(payload)
             try:
                 self.dataPrevista                = payload["dataPrevista"]
                 self.dataEnvio                   = payload["dataEnvio"]
@@ -352,12 +258,7 @@ class Pedido:
         obj = {}
         data = {}
         file_path = configOlist.PATH_OBJECT_PEDIDO
-        if not os.path.exists(file_path):
-            logger.error("Objeto do pedido não encontrado em %s",file_path)
-            return {"status":"Erro"}
-        else:    
-            with open(file_path, "r", encoding="utf-8") as f:
-                obj = json.load(f)        
+        obj = await self.valida_path.validar(path=file_path,mode='r',method='json')      
 
         if self.acao == 'get':
             try:
@@ -443,11 +344,11 @@ class Pedido:
                 
                 itens_list = list()
                 for it in self.itens:
-                    itens_list.append(it.encodificar(self.acao))
+                    itens_list.append(await it.encodificar(self.acao))
                 
                 parcelas_list = list()
                 for pr in self.pagamento_parcelas:
-                    parcelas_list.append(pr.encodificar(self.acao))
+                    parcelas_list.append(await pr.encodificar(self.acao))
 
                 data["itens"]                 = itens_list
                 data["pagamento"]["parcelas"] = parcelas_list
@@ -455,124 +356,16 @@ class Pedido:
                 return data               
             except Exception as e:
                 logger.error("Erro ao formatar dict produto: %s",e)
-                return {"status":"Erro"} 
-                   
+                return {"status":"Erro"}                   
         elif self.acao in ['put','del']:
-            try:
-                data = obj['put']
-                data["sku"]                                       = self.sku                       
-                data["descricao"]                                 = self.descricao                 
-                data["descricaoComplementar"]                     = self.descricaoComplementar     
-                data["situacao"]                                  = self.situacao
-                data["unidade"]                                   = self.unidade                   
-                data["unidadePorCaixa"]                           = str(self.unidadePorCaixa)
-                data["ncm"]                                       = self.ncm                       
-                data["gtin"]                                      = self.gtin                      
-                data["origem"]                                    = int(self.origem)
-                data["codigoEspecificadorSubstituicaoTributaria"] = self.cest                      
-                data["garantia"]                                  = self.garantia                  
-                data["observacoes"]                               = self.observacoes               
-                data["marca"]["id"]                               = self.marca_id                  
-                data["categoria"]["id"]                           = int(self.categoria_id)
-                data["precos"]["preco"]                           = self.preco                     
-                data["precos"]["precoPromocional"]                = self.precoPromocional          
-                data["precos"]["precoCusto"]                      = self.precoCusto                
-                data["dimensoes"]["embalagem"]["id"]              = self.dimensoes_embalagem_id    
-                data["dimensoes"]["embalagem"]["tipo"]            = self.dimensoes_embalagem_tipo  
-                data["dimensoes"]["largura"]                      = self.dimensoes_largura         
-                data["dimensoes"]["altura"]                       = self.dimensoes_altura          
-                data["dimensoes"]["comprimento"]                  = self.dimensoes_comprimento     
-                data["dimensoes"]["diametro"]                     = self.dimensoes_diametro        
-                data["dimensoes"]["pesoLiquido"]                  = self.dimensoes_pesoLiquido     
-                data["dimensoes"]["pesoBruto"]                    = self.dimensoes_pesoBruto       
-                data["tributacao"]["gtinEmbalagem"]               = self.tributacao_gtinEmbalagem  
-                data["tributacao"]["valorIPIFixo"]                = self.tributacao_valorIPIFixo   
-                data["tributacao"]["classeIPI"]                   = self.tributacao_classeIPI      
-                data["seo"]["titulo"]                             = self.seo_titulo                
-                data["seo"]["descricao"]                          = self.seo_descricao             
-                data["seo"]["keywords"]                           = self.seo_keywords or ["produto"]
-                data["seo"]["linkVideo"]                          = self.seo_linkVideo             
-                data["seo"]["slug"]                               = self.seo_slug                  
-                data["estoque"]["controlar"]                      = bool(self.estoque_controlar)
-                data["estoque"]["sobEncomenda"]                   = bool(self.estoque_sobEncomenda)
-                data["estoque"]["diasPreparacao"]                 = self.estoque_diasPreparacao    
-                data["estoque"]["localizacao"]                    = self.estoque_localizacao       
-                data["estoque"]["minimo"]                         = self.estoque_minimo            
-                data["estoque"]["maximo"]                         = self.estoque_maximo            
-
-                data["fornecedores"] = [{
-                    "id" : 753053887,
-                    "codigoProdutoNoFornecedor" : self.fornecedores[0].codigoProdutoNoFornecedor,
-                    "padrao" : True
-                }]
-
-                return data               
-            except Exception as e:
-                logger.error("Erro ao formatar dict produto: %s",e)
-                return {"status":"Erro"} 
-                   
+            pass
         elif self.acao in 'post':
-            try:
-                data = obj['post']
-                data["sku"]                                       = self.sku
-                data["descricaoComplementar"]                     = self.descricaoComplementar
-                data["unidade"]                                   = self.unidade
-                data["unidadePorCaixa"]                           = str(self.unidadePorCaixa)
-                data["ncm"]                                       = self.ncm
-                data["gtin"]                                      = self.gtin
-                data["origem"]                                    = int(self.origem)
-                data["codigoEspecificadorSubstituicaoTributaria"] = self.cest
-                data["garantia"]                                  = self.garantia
-                data["observacoes"]                               = self.observacoes
-                data["marca"]["id"]                               = self.marca_id
-                data["categoria"]["id"]                           = int(self.categoria_id)
-                data["precos"]["preco"]                           = self.preco
-                data["precos"]["precoPromocional"]                = self.precoPromocional
-                data["precos"]["precoCusto"]                      = self.precoCusto
-                data["dimensoes"]["embalagem"]["id"]              = self.dimensoes_embalagem_id
-                data["dimensoes"]["embalagem"]["tipo"]            = self.dimensoes_embalagem_tipo
-                data["dimensoes"]["largura"]                      = self.dimensoes_largura
-                data["dimensoes"]["altura"]                       = self.dimensoes_altura
-                data["dimensoes"]["comprimento"]                  = self.dimensoes_comprimento
-                data["dimensoes"]["diametro"]                     = self.dimensoes_diametro
-                data["dimensoes"]["pesoLiquido"]                  = self.dimensoes_pesoLiquido
-                data["dimensoes"]["pesoBruto"]                    = self.dimensoes_pesoBruto
-                data["tributacao"]["gtinEmbalagem"]               = self.tributacao_gtinEmbalagem
-                data["tributacao"]["valorIPIFixo"]                = self.tributacao_valorIPIFixo
-                data["tributacao"]["classeIPI"]                   = self.tributacao_classeIPI
-                data["seo"]["titulo"]                             = self.seo_titulo
-                data["seo"]["descricao"]                          = self.seo_descricao
-                data["seo"]["keywords"]                           = self.seo_keywords or ["produto"]
-                data["seo"]["linkVideo"]                          = self.seo_linkVideo
-                data["seo"]["slug"]                               = self.seo_slug
-                data["descricao"]                                 = self.descricao
-                data["tipo"]                                      = self.tipo
-                data["estoque"]["controlar"]                      = True
-                data["estoque"]["sobEncomenda"]                   = False
-                data["estoque"]["minimo"]                         = self.estoque_minimo
-                data["estoque"]["maximo"]                         = self.estoque_maximo
-                data["estoque"]["diasPreparacao"]                 = self.estoque_diasPreparacao
-                data["estoque"]["localizacao"]                    = self.estoque_localizacao
-                
-                data["fornecedores"] = [{
-                    "id" : 753240684,
-                    "codigoProdutoNoFornecedor" : self.sku,
-                    "padrao" : True
-                }]
-
-                data["grade"] = ["."]
-
-                return data               
-            except Exception as e:
-                logger.error("Erro ao formatar dict produto: %s",e)
-                return {"status":"Erro"} 
+            pass
         else:
             return {"status":"Ação não configurada"} 
 
-    async def buscar(self, id:int=None) -> bool:
-        
-        url = self.endpoint+f"/{id or self.id}"        
-        #print(url)
+    async def buscar(self, id:int=None) -> bool:        
+        url = self.endpoint+f"/{id or self.id}"
         try:
             token = self.con.get_latest_valid_token_or_refresh()
             if url and token:                
@@ -602,7 +395,6 @@ class Pedido:
             return False     
 
     async def buscar_aprovados(self) -> tuple[bool, list]:
-
         url = self.endpoint+f"?situacao={self.situacao_aprovado}"
         try:
             token = self.con.get_latest_valid_token_or_refresh()
@@ -630,7 +422,6 @@ class Pedido:
             return False, []
 
     async def buscar_preparando_envio(self) -> tuple[bool, list]:
-
         url = self.endpoint+f"?situacao={self.situacao_preparando_envio}"
         try:
             token = self.con.get_latest_valid_token_or_refresh()
@@ -656,12 +447,3 @@ class Pedido:
         except Exception as e:
             logger.error("Erro relacionado ao token de acesso. %s",e)
             return False, []
-
-    async def enviar_alteracoes(self) -> list:
-        pass
-
-    async def receber_alteracoes(self) -> tuple[bool,int]:
-        pass
-
-    async def buscar_todos(self) -> list:
-        pass

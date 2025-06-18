@@ -1,5 +1,5 @@
 import logging
-from params import config, configOlist
+from params               import config, configOlist
 from src.utils.validaPath import validaPath
 
 logger = logging.getLogger(__name__)
@@ -9,23 +9,16 @@ logging.basicConfig(filename=config.PATH_LOGS,
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO)
 
-class Deposito:
-  
-    def __init__(self,
-                 id            :int  = None,
-                 nome          :str  = None,
-                 desconsiderar :bool = None,
-                 saldo         :int  = None,
-                 reservado     :int  = None,
-                 disponivel    :int  = None):
+class Deposito:  
+    def __init__(self,):
         self.file_path     = configOlist.PATH_OBJECT_ESTOQUE_DEPOSITO
         self.valida_path   = validaPath()
-        self.id            = id
-        self.nome          = nome
-        self.desconsiderar = desconsiderar
-        self.saldo         = saldo
-        self.reservado     = reservado
-        self.disponivel    = disponivel
+        self.id            = None
+        self.nome          = None
+        self.desconsiderar = None
+        self.saldo         = None
+        self.reservado     = None
+        self.disponivel    = None
         self.acao          = None      
 
     def decodificar(self,payload:dict=None) -> bool:     
@@ -62,7 +55,7 @@ class Deposito:
             elif acao == 'post':
                 try:
                     data = obj[acao]                                 
-                    data['id']            = self.id   
+                    data['id'] = self.id   
                 except Exception as e:
                     logger.error("Erro ao formatar dicionário deposito estoque: %s",e)            
         except Exception as e:

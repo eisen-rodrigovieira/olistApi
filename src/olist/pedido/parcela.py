@@ -1,7 +1,6 @@
-import os
-import json
 import logging
-from params import config, configOlist
+from params               import config, configOlist
+from src.utils.validaPath import validaPath
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -12,25 +11,17 @@ logging.basicConfig(filename=config.PATH_LOGS,
 
 class Parcela:
   
-    def __init__(self
-                 ,dias:int=None
-                 ,data:str=None
-                 ,valor:float=None
-                 ,observacoes:str=None
-                 ,formaPagamento_id:int=None
-                 ,formaPagamento_nome:str=None
-                 ,meioPagamento_id:int=None
-                 ,meioPagamento_nome:str=None
-                ):
+    def __init__(self):
         self.file_path           = configOlist.PATH_OBJECT_PEDIDO_PARCELA
-        self.dias                = dias
-        self.data                = data
-        self.valor               = valor
-        self.observacoes         = observacoes
-        self.formaPagamento_id   = formaPagamento_id
-        self.formaPagamento_nome = formaPagamento_nome
-        self.meioPagamento_id    = meioPagamento_id
-        self.meioPagamento_nome  = meioPagamento_nome
+        self.valida_path         = validaPath()         
+        self.dias                = None
+        self.data                = None
+        self.valor               = None
+        self.observacoes         = None
+        self.formaPagamento_id   = None
+        self.formaPagamento_nome = None
+        self.meioPagamento_id    = None
+        self.meioPagamento_nome  = None
 
     def decodificar(self,payload:dict=None) -> bool:
      
@@ -57,30 +48,25 @@ class Parcela:
             logger.error("Não foram informados dados para decodificar")
             return False
 
-    def encodificar(self,acao:str=None) -> dict:
+    async def encodificar(self,acao:str=None) -> dict:
         data = {}
         try:
-            if not os.path.exists(self.file_path):
-                logger.error("Objeto da parcela de pedido não encontrado em %s",self.file_path)
-                return {"erro":True}
-            else:    
-                with open(self.file_path, "r", encoding="utf-8") as f:
-                    obj = json.load(f)   
-                if acao == 'get':
-                    try:
-                        data = obj[acao]  
-                        data["dias"]                   = self.dias
-                        data["data"]                   = self.data
-                        data["valor"]                  = self.valor
-                        data["observacoes"]            = self.observacoes
-                        data["formaPagamento"]["id"]   = self.formaPagamento_id
-                        data["formaPagamento"]["nome"] = self.formaPagamento_nome
-                        data["meioPagamento"]["id"]    = self.meioPagamento_id
-                        data["meioPagamento"]["nome"]  = self.meioPagamento_nome
-                    except Exception as e:
-                        logger.error("Erro ao formatar dict parcela pedido: %s",e)
-                        return {"status":"Erro"}                         
-                return data               
+            obj = await self.valida_path.validar(path=self.file_path,mode='r',method='json')        
+            if acao == 'get':
+                try:
+                    data = obj[acao]  
+                    data["dias"]                   = self.dias
+                    data["data"]                   = self.data
+                    data["valor"]                  = self.valor
+                    data["observacoes"]            = self.observacoes
+                    data["formaPagamento"]["id"]   = self.formaPagamento_id
+                    data["formaPagamento"]["nome"] = self.formaPagamento_nome
+                    data["meioPagamento"]["id"]    = self.meioPagamento_id
+                    data["meioPagamento"]["nome"]  = self.meioPagamento_nome
+                except Exception as e:
+                    logger.error("Erro ao formatar dict parcela pedido: %s",e)
+                    return {"status":"Erro"}                         
+            return data               
         except Exception as e:
             logger.error("Erro ao formatar dicionario parcela de pedido: %s",e)
             return {"erro":True}

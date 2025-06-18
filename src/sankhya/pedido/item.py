@@ -13,38 +13,22 @@ logging.basicConfig( filename = config.PATH_LOGS,
                      level    = logging.INFO)
 
 class Item:
-    def __init__(self,
-                nunota:int=None,
-                sequencia:int=None,
-                codemp:int=None,
-                codprod:int=None,
-                codlocalorig:int=None,
-                usoprod:str=None,    
-                qtdneg:int=None,
-                vlrunit:float=None,
-                vlrtot:float=None,    
-                codvol:int=None,
-                atualestoque:int=None,
-                reserva:str=None,
-                statusnota:str=None,
-                codvend:int=None
-                 ):
+    def __init__(self):
         self.db           = dbConfig()
-        self.nunota       = nunota
-        self.sequencia    = sequencia
-        self.codemp       = codemp
-        self.codprod      = codprod
-        self.codlocalorig = codlocalorig
-        self.usoprod      = usoprod
-        self.qtdneg       = qtdneg
-        self.vlrunit      = vlrunit
-        self.vlrtot       = vlrtot   
-        self.codvol       = codvol
-        self.atualestoque = atualestoque
-        self.reserva      = reserva
-        self.statusnota   = statusnota
-        self.codvend      = codvend  
-        pass
+        self.nunota       = None
+        self.sequencia    = None
+        self.codemp       = None
+        self.codprod      = None
+        self.codlocalorig = None
+        self.usoprod      = None
+        self.qtdneg       = None
+        self.vlrunit      = None
+        self.vlrtot       = None   
+        self.codvol       = None
+        self.atualestoque = None
+        self.reserva      = None
+        self.statusnota   = None
+        self.codvend      = None
 
     def decodificar(self,data:dict=None) -> bool:
         if data:
