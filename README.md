@@ -22,12 +22,13 @@ olistApi/
 │   └── objects/               # Estrutura dos objetos para comunicação com API Tiny/Olist
 ├── keys/                      # Chaves de acesso e credenciais
 ├── params/                    # Parâmetros e configurações da integração
-├── sql/                       # Scripts SQL e PL/SQL para interação com o banco de dados Oracle
+├── sql/                       # Scripts para criação dos objetos e interação com o banco de dados
 ├── src/                       # Código-fonte principal do projeto
 │   ├── app/                   # Código-fonte da classe aplicação
-│   ├── logs/                  # Logs do projeto
 │   ├── olist/                 # Código-fonte da classe olist
 │   ├── sankhya/               # Código-fonte da classe sankhya
+│   ├── utils/                 # Código-fonte da classe utils
+│   ├── logs/                  # Logs do projeto
 │   ├── __init__.py            # Inicializador da interface da aplicação no Streamlit
 │   ├── atualiza_estoque.py    # Script para atualização de estoque
 │   ├── atualiza_pedidos.py    # Script para atualização de pedidos
@@ -61,7 +62,20 @@ olistApi/
 
 4. **Configurar os parâmetros de conexão e autenticação:**
 
-   - Criar um arquivo `keys.py` na pasta `keys/` com as informações de acesso à API Tiny/Olist e ao banco de dados Oracle.
+   - Criar um arquivo `keys.py` na pasta `keys/` com as informações de acesso à API Tiny/Olist, ao banco de dados Oracle e o sal de criptografia no padrão abaixo.
+   ```python
+   CLIENT_ID         = 'client_id'
+   CLIENT_SECRET     = 'client_secret'
+   REDIRECT_URI      = 'redirect_uri'
+   FERNET_KEY        = 'fernet_key'
+   USERNAME          = 'username'
+   PASSWORD          = 'password'
+   DATABASE_PASSWORD = 'database_password'
+   DATABASE_USERNAME = 'database_username'
+   DATABASE_HOST     = 'database_host'
+   SENDER_MAIL       = 'sender_mail'
+   SENDER_PASSWORD   = 'sender_password'
+   ```
 
 ## 📧 Contato
 
