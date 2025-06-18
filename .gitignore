@@ -4,5 +4,8 @@ __pycache__
 keys/*
 *tokens_history.json
 *.teste.*
+*TEST*
 *.old.*
 *.csv
+*.png
+*.jpg
