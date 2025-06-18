@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from params import config
+from params             import config
 from src.utils.sendMail import sendMail
 
 logger = logging.getLogger(__name__)
@@ -17,11 +17,10 @@ class validaPath:
         self.email = sendMail()
 
     async def validar(self,path:str=None, mode:str=None, method:str=None, content=None):
-
         encoding = "utf-8"
         if not os.path.exists(path):
             logger.error("Arquivo não encontrado em %s.",path)
-            self.email.notificar()
+            await self.email.notificar()
             return False
         else:
             if mode == 'r' and not content:
