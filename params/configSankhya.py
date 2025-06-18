@@ -27,7 +27,8 @@ PATH_SCRIPT_SYNCPED_CONF   = "sql/dql/syncpedido_confirmado.sql"
 
 PATH_UPDATE_TGFNUM         = "sql/dml/upd_seq_pedido.sql"
 
-PATH_CALL_CONFIRMA_NOTA    = "sql/plsql/confirma_nota.sql"
-PATH_CALL_FATURA_PEDIDO    = "sql/plsql/fatura_pedido.sql"
+PROC_CONFIRMA_NOTA         = "STP_CONFIRMANOTA2"
+PROC_FATURA_PEDIDO         = "AD_STP_MKP_FATURAPEDIDO"
+PROC_PARAMS_PEDIDO         = "AD_STP_MKP_BUSCAPARAMPEDIDO"
 
 CODEMP                     = 31
