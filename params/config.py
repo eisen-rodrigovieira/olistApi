@@ -8,7 +8,9 @@ ENDPOINT_PEDIDOS  = '/pedidos'
 ENDPOINT_SEPARACAO = '/separacao'
 ENDPOINT_CLIENTES = '/contatos'
 PATH_TOKENS       = 'json/tokens_history.json'
-PATH_LOGS         = "src/logs/olistApi.log"
+PATH_LOGS         = 'src/logs/olistApi.log'
+PATH_DOCS         = 'docs/documentacao.md'
 LOGGER_FORMAT     = '%(asctime)s | %(levelname)s | %(name)s line:%(lineno)d >> %(message)s'
 REQ_TIME_SLEEP    = 1.5
+
 

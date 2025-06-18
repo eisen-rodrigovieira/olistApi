@@ -1,13 +1,14 @@
 import re
 import asyncio
 import streamlit as st
-from datetime import datetime, time
-from params import config
-from src.app.app import App
+from datetime             import datetime, time
+from params               import config
+from src.app.app          import App
 from src.utils.validaPath import validaPath
+from src.utils.imagemMarkdown import embed_local_images_in_markdown
 
 st.set_page_config(
-    page_title="Integração Olist",
+    page_title="Integrador Olist",
     page_icon="🔗",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -15,14 +16,25 @@ st.set_page_config(
 
 app_produto = App().Produto()
 app_estoque = App().Estoque()
+valida_path = validaPath()
+md_raw = asyncio.run(valida_path.validar(path=config.PATH_DOCS,mode='r',method='full'))
+docs = embed_local_images_in_markdown(md_raw)
 
-st.title("Painel de Controle - Olist")
+@st.dialog('Ajuda do integrador',width='large')
+def show_docs():
+    st.markdown(docs,unsafe_allow_html=True)
+
+col_title, col_help = st.columns([0.9,0.1],vertical_alignment='bottom',gap='large')
+with col_title:
+    st.title("Painel de Controle - Olist")
+with col_help:
+    if st.button("Ajuda",type='tertiary'):
+        show_docs()
 
 with st.sidebar:
     with st.expander(label="Logs do sistema",icon="📰"):
 
-        load = validaPath()
-        logs = asyncio.run(load.validar(path=config.PATH_LOGS,mode='r',method='lines'))
+        logs = asyncio.run(valida_path.validar(path=config.PATH_LOGS,mode='r',method='lines'))
         logs.reverse()
 
         regex_dates    = r'^\d{4}-\d{2}-\d{2}'
@@ -36,23 +48,24 @@ with st.sidebar:
 
         data = st.date_input(label="Período",value=(datetime.today().date(),datetime.today().date()),min_value=date_ini,max_value=date_fim,format='DD/MM/YYYY')
         contexto = st.pills("Contexto",options=["Todos","Produtos","Pedidos","Estoque"],default="Todos",label_visibility="collapsed")
-
-        with st.container(height=500):
-            valLog = 0
-            for l in logs:
-                try:
-                    dt        = datetime.strptime(re.match(regex_dates,l).group(),'%Y-%m-%d').date()
-                    log       = re.search(regex_log,l).group()
-                    contexto_ = re.search(regex_contexto,log).group()
-                    texto     = re.sub(regex_texto,'',log)
-                    data_     = datetime.strptime(re.match(regex_data,l).group(),'%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
-                    if contexto in ['Todos',contexto_] and dt >= data[0] and dt <= data[1]:
-                        valLog+=1
-                        st.caption(f"{data_} - {texto}")
-                except:
-                    pass
-            if not valLog:
-                st.caption("Nenhum registro pra exibir")  
+        
+        with st.spinner():
+            with st.container(height=500):            
+                    valLog = 0                
+                    for l in logs:                    
+                        try:
+                            dt        = datetime.strptime(re.match(regex_dates,l).group(),'%Y-%m-%d').date()
+                            log       = re.search(regex_log,l).group()
+                            contexto_ = re.search(regex_contexto,log).group()
+                            texto     = re.sub(regex_texto,'',log)
+                            data_     = datetime.strptime(re.match(regex_data,l).group(),'%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
+                            if contexto in ['Todos',contexto_] and dt >= data[0] and dt <= data[1]:
+                                valLog+=1
+                                st.caption(f"{data_} - {texto}")
+                        except:
+                            pass
+                    if not valLog:
+                        st.caption("Nenhum registro pra exibir")  
 
     with st.expander(label="Configurações do integrador",icon="⚙️"):
         st.warning("👩🏻‍💻 Em desenvolvimento. Por hora, alterações nestes campos não interferem na execução do integrador")
