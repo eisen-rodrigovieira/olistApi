@@ -1,0 +1,12 @@
+{
+    "get": {
+        "idProduto": 0,
+        "codigo": "",
+        "descricao": "",
+        "unidade": "",
+        "quantidade": 0,
+        "valorUnitario": 0,
+        "valorTotal": 0,
+        "cfop": ""
+    }
+}
