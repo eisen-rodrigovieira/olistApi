@@ -19,6 +19,11 @@ PATH_OBJECT_SEPARACAO_ITEM     = "json/objects/separacao/item.json"
 PATH_HISTORICO_SEPARACAO       = "json/objects/separacao/historico.json"
 PATH_OBJECT_SEPARACAO          = "json/objects/separacao/separacao.json"
 
+PATH_OBJECT_NOTA               = "json/objects/nota/nota.json"
+PATH_OBJECT_NOTA_ITEM          = "json/objects/nota/item.json"
+PATH_OBJECT_NOTA_PARCELA       = "json/objects/nota/parcela.json"
+PATH_HISTORICO_NOTA            = "json/objects/nota/historico.json"
+
 SITUACAO_PEDIDO_APROVADO       = 3
 SITUACAO_PEDIDO_PREP_ENVIO     = 4
 ID_FORN_PADRAO                 = 753053887
