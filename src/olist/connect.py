@@ -130,7 +130,7 @@ class Connect(object):
                 "id_token_encrypted": encrypted_id_token,
             })
 
-            await self.valida_path.validar(path=filename,mode='w',method='json')
+            await self.valida_path.validar(path=filename,mode='w',method='json',content=history)
             return True
         except Exception as e:
             logger.error("Erro ao salvar token criptografado: %s",e)
