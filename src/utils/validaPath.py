@@ -44,7 +44,7 @@ class validaPath:
                 elif method == 'json':
                     with open(file=path, mode=mode, encoding=encoding) as f:
                         json.dump(content, f, indent=4, ensure_ascii=False)
-                return content
+                return True
             else:
                 return None        
               
