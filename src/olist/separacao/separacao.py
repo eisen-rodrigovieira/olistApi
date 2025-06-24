@@ -202,7 +202,7 @@ class Separacao:
     async def buscar(self, id:int=None) -> bool:        
         url = self.endpoint+f"/{id or self.id}"
         try:
-            token = self.con.get_latest_valid_token_or_refresh()
+            token = await self.con.get_latest_valid_token_or_refresh()
             if url and token:                
                 get_separacao = requests.get(
                     url=url,
@@ -239,10 +239,11 @@ class Separacao:
         else:
             dataInicial = datetime.strftime(datetime.today()-timedelta(days=1),'%Y-%m-%d')
         
-        dataInicial = '2025-06-01'
+        # dataInicial = '2025-06-01'
 
         if dataInicial:
-            token = self.con.get_latest_valid_token_or_refresh()
+            #print(dataInicial)
+            token = await self.con.get_latest_valid_token_or_refresh()
             lista_pedidos_separacao = []
             url = self.endpoint+f"/?dataInicial={dataInicial}"
             try:                    

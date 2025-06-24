@@ -104,7 +104,7 @@ class Pedido:
         self.acao                             = None
         
     def decodificar(self,payload:dict=None) -> bool:
-        
+      
         if payload:
             try:
                 self.dataPrevista                = payload["dataPrevista"]
@@ -232,8 +232,7 @@ class Pedido:
                         self.pagamento_meioPagamento_id       = payload["pagamento"]["meioPagamento"]["id"]
                         self.pagamento_meioPagamento_nome     = payload["pagamento"]["meioPagamento"]["nome"]
                     else:
-                        self.pagamento_meioPagamento_id = self.pagamento_meioPagamento_nome = None                         
-
+                        self.pagamento_meioPagamento_id = self.pagamento_meioPagamento_nome = None
 
                 for p in payload["pagamento"]["parcelas"]:
                     pa = parcela.Parcela()
@@ -367,7 +366,7 @@ class Pedido:
     async def buscar(self, id:int=None) -> bool:        
         url = self.endpoint+f"/{id or self.id}"
         try:
-            token = self.con.get_latest_valid_token_or_refresh()
+            token = await self.con.get_latest_valid_token_or_refresh()
             if url and token:                
                 get_pedido = requests.get(
                     url=url,
@@ -397,7 +396,7 @@ class Pedido:
     async def buscar_aprovados(self) -> tuple[bool, list]:
         url = self.endpoint+f"?situacao={self.situacao_aprovado}"
         try:
-            token = self.con.get_latest_valid_token_or_refresh()
+            token = await self.con.get_latest_valid_token_or_refresh()
             if url and token:                
                 get_pedido = requests.get(
                     url=url,
@@ -424,7 +423,7 @@ class Pedido:
     async def buscar_preparando_envio(self) -> tuple[bool, list]:
         url = self.endpoint+f"?situacao={self.situacao_preparando_envio}"
         try:
-            token = self.con.get_latest_valid_token_or_refresh()
+            token = await self.con.get_latest_valid_token_or_refresh()
             if url and token:                
                 get_pedido = requests.get(
                     url=url,
