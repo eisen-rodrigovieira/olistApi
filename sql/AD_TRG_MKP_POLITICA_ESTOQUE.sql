@@ -13,9 +13,16 @@ FOR EACH ROW
 BEGIN
 
     IF :NEW.AD_MKP_ESTPOL IN ('T','V') THEN
-        :NEW.AD_MKP_ESTREGBAR := NULL;
-        :NEW.AD_MKP_ESTREGBARVAL := NULL;
-        :NEW.AD_MKP_ESTREGBARTIP := NULL;
+        -- 25/06/2025: impede que produtos sem controle de lote utilizem a regra de validade
+        IF :NEW.AD_MKP_ESTPOL = 'V' AND :OLD.TIPCONTEST = 'N' THEN
+            RAISE_APPLICATION_ERROR(-20101, FC_FORMATAHTML(P_MENSAGEM => 'Operação não permitida!', 
+                                                           P_MOTIVO   => '</br>Este produto não controla lote/validade',
+                                                           P_SOLUCAO  => 'Escolha outra opção ou altere a configuração do produto na aba Medidas e Estoque > Controle Adicional.')  );
+        ELSE                                                           
+            :NEW.AD_MKP_ESTREGBAR := NULL;
+            :NEW.AD_MKP_ESTREGBARVAL := NULL;
+            :NEW.AD_MKP_ESTREGBARTIP := NULL;
+        END IF;
     END IF;
 
     IF :NEW.AD_MKP_ESTPOL = 'B' THEN
