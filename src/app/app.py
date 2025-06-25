@@ -10,9 +10,11 @@ from src.olist.estoque.estoque   import Estoque as olEstoque
 from src.sankhya.produto.produto import Produto as snkProduto
 # from src.sankhya.pedido.pedido   import Pedido  as snkPedido
 from src.sankhya.estoque.estoque import Estoque as snkEstoque
+from selenium                    import webdriver
 from src.sankhya.dbConfig        import dbConfig
 from src.utils.sendMail          import sendMail
 from src.utils.validaPath        import validaPath
+from src.utils.bot               import Bot
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -268,12 +270,12 @@ class App:
                             olProd.descricaoComplementar       = snkProd.descricaoComplementar       if snkProd.descricaoComplementar                 != olProd.descricaoComplementar                 else olProd.descricaoComplementar
                             olProd.tipo                        = snkProd.tipo                        if snkProd.tipo                                  != olProd.tipo                                  else olProd.tipo
                             olProd.situacao                    = snkProd.situacao                    if snkProd.situacao                              != olProd.situacao                              else olProd.situacao
-                            olProd.produtoPai_id               = snkProd.produtoPai_id               if int(snkProd.produtoPai_id or 0)               != int(olProd.produtoPai_id or 0)               else olProd.produtoPai_id
+                            # olProd.produtoPai_id               = snkProd.produtoPai_id               if int(snkProd.produtoPai_id or 0)               != int(olProd.produtoPai_id or 0)               else olProd.produtoPai_id
                             olProd.unidade                     = snkProd.unidade                     if snkProd.unidade                               != olProd.unidade                               else olProd.unidade
                             olProd.unidadePorCaixa             = snkProd.unidadePorCaixa             if int(snkProd.unidadePorCaixa or 0)             != int(olProd.unidadePorCaixa or 0)             else olProd.unidadePorCaixa
                             olProd.ncm                         = snkProd.ncm                         if snkProd.ncm                                   != olProd.ncm                                   else olProd.ncm
                             olProd.gtin                        = snkProd.gtin                        if snkProd.gtin                                  != olProd.gtin                                  else olProd.gtin
-                            olProd.origem                      = snkProd.origem                      if int(snkProd.origem or 0)                      != int(olProd.origem or 0)                      else olProd.origem
+                            olProd.origem                      = snkProd.origem                      if snkProd.origem                                != olProd.origem                                else olProd.origem
                             olProd.cest                        = str(snkProd.cest)
                             olProd.garantia                    = snkProd.garantia                    if snkProd.garantia                              != olProd.garantia                              else olProd.garantia
                             olProd.observacoes                 = snkProd.observacoes                 if snkProd.observacoes                           != olProd.observacoes                           else olProd.observacoes
@@ -609,7 +611,7 @@ class App:
     #                 ack_separacao, separacao = await self.busca_separacao(l.get('id_separacao'))
     #                 ack_pedido = await snkPed.buscar(id=l.get('id_pedido'))
     #                 if ack_separacao and ack_pedido:                        
-    #                     # TODO  validar informações de lote para atualizar o pedido e gerar a nota de transferencia
+    #                     # TODO validar informações de lote para atualizar o pedido e gerar a nota de transferencia
     #                     if snkPed.confirmada == 'S' and snkPed.pendente == 'S':
     #                         if len(separacao.get('itens')) == snkPed.qtdite:
     #                             for i, item in enumerate(separacao.get('itens')):
@@ -623,6 +625,7 @@ class App:
 
         def __init__(self):
             self.app = App()
+            self.bot = Bot()
             self.contexto = '#Estoque# '            
 
         async def atualiza_historico(self, produto:int=None):
@@ -646,17 +649,18 @@ class App:
             else:
                 return False            
 
-        async def atualizar(self) -> tuple[bool,list]:
-            
+        async def atualizar(self) -> tuple[bool,list]:            
             olEst = olEstoque()
             snkEst = snkEstoque()
             values = []
-            mvto_sankhya = await snkEst.buscar_movimentacoes()
-            print(f"Encontrados {len(mvto_sankhya)} produtos")
-            for mvto in mvto_sankhya:
+            mvto_sem_lote = await snkEst.buscar_movimentacoes(controla_lote='N')
+            mvto_com_lote = await snkEst.buscar_movimentacoes()
+            print(f"Encontrados {len(mvto_com_lote)} produtos com lote e {len(mvto_sem_lote)} produtos sem lote")
+            if mvto_sem_lote:
+                for mvto in mvto_sem_lote:
                     estoque_snk = await snkEst.buscar_disponivel(codprod=mvto.get('codprod'))
                     estoque_snk = estoque_snk[0]
-                    snk_qtd_est = estoque_snk.get('qtd')
+                    snk_qtd_est = estoque_snk.get('estoque_total') - estoque_snk.get('reservado')
                     olEst = olEstoque()
                     if await olEst.buscar(id=estoque_snk.get('ad_mkp_idprod')):
                         estoque_olist = await olEst.encodificar()
@@ -711,11 +715,94 @@ class App:
                         logger.error(self.contexto+"Falha ao buscar dados de estoque do produto %s na base Olist. Verifique os logs.",mvto.get('codprod'))
                         await self.app.email.notificar()
                         values.append(f"Falha ao buscar dados de estoque do produto {mvto.get('codprod')} na base Olist. Verifique os logs.")
-                        print(f"Falha ao buscar dados de estoque do produto {mvto.get('codprod')} na base Olist. Verifique os logs.")                        
+                        print(f"Falha ao buscar dados de estoque do produto {mvto.get('codprod')} na base Olist. Verifique os logs.")
+
+            if mvto_com_lote:
+                driver = webdriver.Firefox()
+                driver.maximize_window()
+                ack_login, driver = await self.bot.login(driver=driver)
+                if ack_login:
+                    for mvto in mvto_com_lote:
+                    #for i in range(5):
+                        #mvto = mvto_com_lote[i]
+                        estoque_snk = await snkEst.buscar_disponivel(codprod=mvto.get('codprod'))
+                        if estoque_snk:
+                            controle = []
+                            valida_reservas = estoque_snk[0].get('reservado') or 0
+                            qtd_lote = None
+
+                            for lote in estoque_snk:
+                                qtd_lote = lote.get('estoque')
+                                while valida_reservas > 0:
+                                    qtd_lote -= 1
+                                    valida_reservas -= 1
+                                
+                                if qtd_lote > 0:
+                                    controle.append({
+                                        "numeroLote": lote.get('controle'),
+                                        "dataFabricacao": lote.get('dtfabricacao').strftime('%d/%m/%Y'),
+                                        "dataValidade": lote.get('dtval').strftime('%d/%m/%Y'),
+                                        "quantidade": qtd_lote
+                                    })
+                                
+                            ajuste_estoque = {
+                                "idproduto": estoque_snk[0].get('ad_mkp_idprod'),
+                                "qtd": estoque_snk[0].get('estoque_total')-estoque_snk[0].get('reservado'),
+                                "controle": controle
+                            } 
+
+                            if ajuste_estoque:
+                                ack_estoque, driver = await self.bot.lanca_estoque(driver=driver,dados_produto=ajuste_estoque)
+                                if ack_estoque:
+                                    ack_lotes, driver = await self.bot.lanca_lotes(driver=driver,dados_lote=ajuste_estoque.get('controle'))
+                                    if ack_lotes:
+                                        ackSync = await self.remove_syncestoque(produto=mvto.get('codprod'),dhevento=mvto.get('dhevento'))
+                                        if ackSync:
+                                            await self.atualiza_historico(produto=mvto.get('idprod'))
+                                            logger.info(self.contexto+"Estoque do produto %s sincronizado com sucesso",mvto.get('codprod'))
+                                            values.append(f"Estoque do produto {mvto.get('codprod')} sincronizado com sucesso.")                                    
+                                            print(f"Estoque do produto {mvto.get('codprod')} sincronizado com sucesso")                                    
+                                        else:
+                                            logger.error(self.contexto+"Estoque do produto %s sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.",mvto.get('codprod'))
+                                            await self.app.email.notificar()
+                                            values.append(f"Estoque do produto {mvto.get('codprod')} sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")
+                                            print(f"Estoque do produto {mvto.get('codprod')} sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")                                    
+                                    else:
+                                        logger.error(self.contexto+"Falha ao sincronizar estoque do produto %s. Verifique os logs.",mvto.get('codprod'))
+                                        await self.app.email.notificar()
+                                        values.append(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')}. Verifique os logs.")
+                                        print(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')}. Verifique os logs.")
+                                        await self.bot.logout(driver=driver)
+                                else:
+                                    logger.error(self.contexto+"Falha ao sincronizar estoque do produto %s. Verifique os logs.",mvto.get('codprod'))
+                                    await self.app.email.notificar()
+                                    values.append(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')}. Verifique os logs.")
+                                    print(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')}. Verifique os logs.")                                
+                                    await self.bot.logout(driver=driver)
+                            else:
+                                logger.error("Falha validar informações para ajuste de estoque do produto %s.",mvto.get('codprod'))
+                                logger.error(self.contexto+"Falha ao sincronizar estoque do produto %s. Verifique os logs.",mvto.get('codprod'))
+                                await self.app.email.notificar()
+                                values.append(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')}. Verifique os logs.")
+                                print(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')}. Verifique os logs.")
+                                await self.bot.logout(driver=driver)
+                        else:
+                            ackSync = await self.remove_syncestoque(produto=mvto.get('codprod'),dhevento=mvto.get('dhevento'))
+                            if ackSync:
+                                await self.atualiza_historico(produto=mvto.get('idprod'))
+                                logger.info(self.contexto+"Produto %s sem estoque disponível",mvto.get('codprod'))
+                                values.append(f"Produto {mvto.get('codprod')} sem estoque disponível.")                                    
+                                print(f"Produto {mvto.get('codprod')} sem estoque disponível.")                                    
+                            else:
+                                logger.error(self.contexto+"Produto %s sem estoque disponível mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.",mvto.get('codprod'))
+                                await self.app.email.notificar()
+                                values.append(f"Produto {mvto.get('codprod')} sem estoque disponível mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")
+                                print(f"Produto {mvto.get('codprod')} sem estoque disponível mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")                                                                    
+                await self.bot.logout(driver=driver)
             print(f"Sincronização concluída!")
             return True, values
 
-        async def balanco(self,produto:int=None) -> tuple[bool,list]:            
+        async def balanco(self,produto:int=None) -> tuple[bool,list]:
             values = []
             if produto:
                 snkEst = snkEstoque()                
