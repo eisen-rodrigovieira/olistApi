@@ -48,7 +48,7 @@ O objetivo é centralizar a operação, evitar lançamentos manuais e manter os 
 
 - 📦 **Gestão de estoque:** _Atualização automática dos saldos de estoque no Olist conforme o Sankhya._
   - Os produtos que estão com a integração habilitada tem sua movimentação de estoque monitorada para sincronização com o estoque disponível no Olist
-  - A sincronização de estoque dos produtos ocorre a cada 15 minutos
+  - A sincronização de estoque dos produtos ocorre a cada 30 minutos
   - A quantidade do estoque a ser sincronizada para o Olist é definida pela _Política de estoque_
     - **Todo o estoque:** considera todo o estoque disponível _(Estoque físico - Estoque reservado)_ nas empresas 1 e 31 e aplica a fórmula
       > **Estoque do produto = Estoque disponível**
@@ -67,9 +67,13 @@ O objetivo é centralizar a operação, evitar lançamentos manuais e manter os 
   - Ao ser sincronizado pela primeira vez, é realizado um movimento de _Balanço_ que envia o estoque atual do produto, de acordo com a Política de estoque definida, para o Olist
   - A sincronização consiste em:
     1. Buscar na tabela temporária os produtos que tiveram alteração de estoque desde a última sincronização
-    2. Consultar o estoque atual na Olist via API
-    3. Comparar o saldo das aplicaçãoes
-    4. Gera movimento de entrada ou saída no Olist de acordo com a diferença encontrada
+    2. Se produto *não controla* lote:
+        - Consultar o estoque atual na Olist via API
+        - Comparar o saldo das aplicaçãoes
+        - Gera movimento de entrada ou saída no Olist de acordo com a diferença encontrada
+    3. Se produto *controla* lote:
+        - Calcula o saldo disponível por lote
+        - Gera movimento de balanço no Olist, lançando todo o saldo atual do estoque disponível
     - Obs.: a sincronização Olist > Sankhya ocorre na importação dos pedidos, onde o próprio Sankhya já tem implementada a atualização do saldo nos estoques
 
 
@@ -92,7 +96,7 @@ O objetivo é centralizar a operação, evitar lançamentos manuais e manter os 
 ###### Execução agendada:
 - A integração é executada via agendador de tarefas conforme abaixo:
   - **Produtos:** diariamente, às 08h30 e 13h30
-  - **Estoque:** diariamente, a cada 15 minutos
+  - **Estoque:** diariamente, a cada 30 minutos
   - **Pedidos:** diariamente, a cada 30 minutos
 
 ###### Execução manual:
