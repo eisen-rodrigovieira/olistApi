@@ -47,13 +47,13 @@ class Estoque:
         finally:
             return data
 
-    async def buscar_movimentacoes(self) -> list:
+    async def buscar_movimentacoes(self, controla_lote:str='L') -> list:
         file_path = configSankhya.PATH_SCRIPT_SYNCESTOQUE
         query = await self.valida_path.validar(path=file_path,mode='r',method='full')
 
         if query:                
             try:
-                rows = await self.db.select(query=query)                                    
+                rows = await self.db.select(query=query,params={"TIPCONTEST":controla_lote})                                    
                 if rows:
                     res = []
                     for r in rows:
