@@ -719,7 +719,7 @@ class App:
 
             if mvto_com_lote:
                 driver = webdriver.Firefox()
-                driver.maximize_window()
+                driver.maximize_window()                                
                 ack_login, driver = await self.bot.login(driver=driver)
                 if ack_login:
                     for mvto in mvto_com_lote:
@@ -751,7 +751,7 @@ class App:
                                 "controle": controle
                             } 
 
-                            if ajuste_estoque:
+                            if ajuste_estoque:                                
                                 ack_estoque, driver = await self.bot.lanca_estoque(driver=driver,dados_produto=ajuste_estoque)
                                 if ack_estoque:
                                     ack_lotes, driver = await self.bot.lanca_lotes(driver=driver,dados_lote=ajuste_estoque.get('controle'))
@@ -768,17 +768,40 @@ class App:
                                             values.append(f"Estoque do produto {mvto.get('codprod')} sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")
                                             print(f"Estoque do produto {mvto.get('codprod')} sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")                                    
                                     else:
-                                        logger.error(self.contexto+"Falha ao sincronizar estoque do produto %s. Verifique os logs.",mvto.get('codprod'))
+                                        logger.error(self.contexto+"Falha ao sincronizar estoque do produto %s no lançamento dos lotes. Verifique os logs.",mvto.get('codprod'))
                                         await self.app.email.notificar()
-                                        values.append(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')}. Verifique os logs.")
-                                        print(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')}. Verifique os logs.")
+                                        values.append(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')} no lançamento dos lotes. Verifique os logs.")
+                                        print(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')} no lançamento dos lotes. Verifique os logs.")
                                         await self.bot.logout(driver=driver)
                                 else:
-                                    logger.error(self.contexto+"Falha ao sincronizar estoque do produto %s. Verifique os logs.",mvto.get('codprod'))
-                                    await self.app.email.notificar()
-                                    values.append(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')}. Verifique os logs.")
-                                    print(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')}. Verifique os logs.")                                
-                                    await self.bot.logout(driver=driver)
+                                    if await self.bot.valida_configuracao_lote(driver=driver,codigo=ajuste_estoque.get('idproduto')):
+                                        ack_estoque, driver = await self.bot.lanca_estoque(driver=driver,dados_produto=ajuste_estoque)
+                                        if ack_estoque:
+                                            ack_lotes, driver = await self.bot.lanca_lotes(driver=driver,dados_lote=ajuste_estoque.get('controle'))
+                                            if ack_lotes:
+                                                ackSync = await self.remove_syncestoque(produto=mvto.get('codprod'),dhevento=mvto.get('dhevento'))
+                                                if ackSync:
+                                                    await self.atualiza_historico(produto=mvto.get('idprod'))
+                                                    logger.info(self.contexto+"Estoque do produto %s sincronizado com sucesso",mvto.get('codprod'))
+                                                    values.append(f"Estoque do produto {mvto.get('codprod')} sincronizado com sucesso.")                                    
+                                                    print(f"Estoque do produto {mvto.get('codprod')} sincronizado com sucesso")                                    
+                                                else:
+                                                    logger.error(self.contexto+"Estoque do produto %s sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.",mvto.get('codprod'))
+                                                    await self.app.email.notificar()
+                                                    values.append(f"Estoque do produto {mvto.get('codprod')} sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")
+                                                    print(f"Estoque do produto {mvto.get('codprod')} sincronizado mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")                                    
+                                            else:
+                                                logger.error(self.contexto+"Falha ao sincronizar estoque do produto %s no lançamento dos lotes. Verifique os logs.",mvto.get('codprod'))
+                                                await self.app.email.notificar()
+                                                values.append(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')} no lançamento dos lotes. Verifique os logs.")
+                                                print(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')} no lançamento dos lotes. Verifique os logs.")
+                                                await self.bot.logout(driver=driver)                                        
+                                    else:
+                                        logger.error(self.contexto+"Falha ao sincronizar estoque do produto %s no lançamento do estoque. Verifique os logs.",mvto.get('codprod'))
+                                        await self.app.email.notificar()
+                                        values.append(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')} no lançamento do estoque. Verifique os logs.")
+                                        print(f"Falha ao sincronizar estoque do produto {mvto.get('codprod')} no lançamento do estoque. Verifique os logs.")                                
+                                        await self.bot.logout(driver=driver)
                             else:
                                 logger.error("Falha validar informações para ajuste de estoque do produto %s.",mvto.get('codprod'))
                                 logger.error(self.contexto+"Falha ao sincronizar estoque do produto %s. Verifique os logs.",mvto.get('codprod'))
@@ -798,7 +821,12 @@ class App:
                                 await self.app.email.notificar()
                                 values.append(f"Produto {mvto.get('codprod')} sem estoque disponível mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")
                                 print(f"Produto {mvto.get('codprod')} sem estoque disponível mas não foi possível remover da lista de atualizações pendentes. Verifique os logs.")                                                                    
-                await self.bot.logout(driver=driver)
+                    await self.bot.logout(driver=driver)
+                else:
+                    logger.error(self.contexto+"Erro ao fazer login no Olist. Verifique os logs.")
+                    await self.app.email.notificar()
+                    values.append("Erro ao fazer login no Olist. Verifique os logs.")
+                    print("Erro ao fazer login no Olist. Verifique os logs.")
             print(f"Sincronização concluída!")
             return True, values
 
