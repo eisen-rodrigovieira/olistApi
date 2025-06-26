@@ -1,11 +1,11 @@
 import time
 import logging
-from keys                              import keysTEST
+from keys                              import keys
 from selenium.webdriver.common.by      import By
 from selenium.webdriver.support.ui     import WebDriverWait
 from selenium.webdriver.support        import expected_conditions as EC
 from selenium.webdriver.support.select import Select
-from params import config, configUtils
+from params                            import config, configUtils
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -20,7 +20,9 @@ class Bot:
         self.link_estoque = configUtils.LINK_ERP_ESTOQUE
         self.link_logout = configUtils.LINK_ERP_LOGOUT
         self.time_sleep = configUtils.REQ_TIME_SLEEP
-        pass
+        self.username = keys.BOT_USERNAME
+        self.password = keys.BOT_PASSWORD
+        
 
     def buscar_e_remover(self, lista, chave, valor):
         for i, item in enumerate(lista):
@@ -31,19 +33,29 @@ class Bot:
     async def login(self, driver): 
         try:   
             driver.get(self.link_erp)
-
             login_input = driver.find_element(By.ID, "username")
             next_button = driver.find_element(By.XPATH, "//button[@class='sc-dAlyuH biayZs sc-dAbbOL ddEnAE']")
             login_input.clear()
-            login_input.send_keys(keysTEST.USERNAME)
+            login_input.send_keys(self.username)
             next_button.click()
 
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "password")))
             pass_input = driver.find_element(By.ID, "password")
             submit_button = driver.find_element(By.XPATH, "//button[@class='sc-dAlyuH biayZs sc-dAbbOL ddEnAE']")
             pass_input.clear()
-            pass_input.send_keys(keysTEST.PASSWORD)
+            pass_input.send_keys(self.password)
             submit_button.click()
+
+            try:
+                WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH, "//h3[@class='modal-title']")))
+                elemento = driver.find_element(By.XPATH, "//h3[@class='modal-title']")
+                if elemento.text == 'Este usuário já está logado em outro dispositivo':
+                    btn_confirma_login = driver.find_element(By.XPATH, "//button[@class='btn btn-primary']")
+                    btn_confirma_login.click()
+                    WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH, "//div[@class='sidebar-menu-logo-usuario']")))
+                    time.sleep(self.time_sleep)
+            except:
+                pass
             return True, driver
         except Exception as e:
             logger.error(e)
@@ -63,7 +75,6 @@ class Bot:
             btn_incluir.click()
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//form[@name='formEstoquePopup']")))
             time.sleep(self.time_sleep)
-            #form_estoque = driver.find_element(By.ID, "formEstoquePopup")
 
             # informa o tipo
             tipo = driver.find_element(By.XPATH, "//select[@name='tipoPopup']")
@@ -79,14 +90,43 @@ class Bot:
             btn_salvar = driver.find_element(By.XPATH, "//button[@name='btn_salvar_popup']")
             btn_salvar.click()
 
-            # aguarda carregar o modal dos lotes
+            # aguarda carregar o modal dos lotes e verifica se o produto está configurado para isso
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//form[@name='formLancarLotesEntrada']")))
             time.sleep(self.time_sleep)       
 
             return True, driver
         except Exception as e:
             logger.error(e)
-            return False, None
+            return False, driver
+
+    async def valida_configuracao_lote(self,driver,codigo):
+        try:
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//form[@name='formLancarLotesEntrada']")))
+            return True
+        except:
+            original_window = driver.current_window_handle
+            driver.switch_to.new_window('tab')
+            driver.get(f"https://erp.tiny.com.br/produtos#edit/{codigo}")
+            try:
+                time.sleep(self.time_sleep)
+                btn_editar = driver.find_element(By.XPATH, "//button[@class='btn btn-primary btn-edicao-item']")
+                btn_editar.click()
+                time.sleep(self.time_sleep)
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "controlarLotes")))    
+                controle_lote = driver.find_element(By.ID, "controlarLotes")        
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+                controle_lote = Select(controle_lote)
+                controle_lote.select_by_value('1')
+                btn_salvar = driver.find_element(By.ID, "botaoSalvar")
+                btn_salvar.click()        
+                time.sleep(self.time_sleep)
+                driver.close()
+                driver.switch_to.window(original_window)
+                return True
+            except Exception as e:
+                print(f"ERRO AO ATUALIZAR CADASTRO DO PRODUTO {codigo}: {e}")                
+                return False
+
 
     async def lanca_lotes(self,driver,dados_lote):
 
@@ -105,11 +145,11 @@ class Bot:
                     btn_add = driver.find_element(By.XPATH, "//button[@class='btn btn-default btn-sm dropdown-toggle']")
                     btn_add.click()    
                     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//ul[@class='dropdown-menu dropdown-menu-right']")))
-                    time.sleep(1)            
+                    time.sleep(self.time_sleep)            
                     lista_opcoes_lote = driver.find_element(By.XPATH, "//ul[@class='dropdown-menu dropdown-menu-right']")
                     add_lote = lista_opcoes_lote.find_elements(By.TAG_NAME, "a")
                     add_lote[0].click()     
-                    time.sleep(0.5)
+                    time.sleep(self.time_sleep)
 
                 # informa os lotes
                 lotes_rows = table_lotes.find_elements(By.XPATH,"//tr[@class='linha-lote-estoque']")
@@ -129,7 +169,7 @@ class Bot:
                     lote_valid .send_keys(dados_lote[i].get('dataValidade'))
                     lote_qtd   .send_keys(int(dados_lote[i].get('quantidade')))
                     
-                    time.sleep(1)                
+                    time.sleep(self.time_sleep)                
             
             elif tem_lote:
                 # verifica se no Olist tem menos lote do que no Sankhya
@@ -181,7 +221,42 @@ class Bot:
                         time.sleep(self.time_sleep)
                 
                 elif len(table_lotes_rows) > len(dados_lote):
-                    pass
+
+                    # informa os lotes                
+                    for i, row in enumerate(table_lotes_rows):
+                        lote_codigo = row.find_element(By.XPATH, f"//input[@name='lotes[{idproduto}][{idestoque}][{i}][numeroLote]']")
+                        lote_fabric = row.find_element(By.XPATH, f"//input[@name='lotes[{idproduto}][{idestoque}][{i}][dataFabricacao]']")
+                        lote_valid  = row.find_element(By.XPATH, f"//input[@name='lotes[{idproduto}][{idestoque}][{i}][dataValidade]']")
+                        lote_qtd    = row.find_element(By.XPATH, f"//input[@name='lotes[{idproduto}][{idestoque}][{i}][quantidade]']")
+                        
+                        lote_olist = {
+                            "numeroLote"     : lote_codigo.get_property('value'),
+                            "dataFabricacao" : lote_fabric.get_property('value'),
+                            "dataValidade"   : lote_valid .get_property('value'),
+                            "quantidade"     : lote_qtd   .get_property('value')
+                        }
+
+                        lote_sankhya = self.buscar_e_remover(dados_lote, 'numeroLote', lote_olist.get('numeroLote'))
+
+                        if lote_sankhya:
+                            lote_qtd.clear()
+                            lote_qtd.send_keys(int(lote_sankhya.get('quantidade')))
+                        else:
+                            # se o lote do olist não está na lista do sankhya
+                            btn_remove = driver.find_elements(By.XPATH, "//button[@class='btn btn-default btn-sm dropdown-toggle']")
+                            btn_remove[i].click()    
+                            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//ul[@class='dropdown-menu dropdown-menu-right']")))
+                            time.sleep(self.time_sleep)
+                            lista_opcoes_lote = driver.find_elements(By.XPATH, "//ul[@class='dropdown-menu dropdown-menu-right']")
+                            add_lote = lista_opcoes_lote[i].find_elements(By.TAG_NAME, "a")
+                            time.sleep(self.time_sleep)                            
+                            driver.execute_script(add_lote[1].get_attribute('onclick'))
+                            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//button[@popup-action-id='0']")))
+                            time.sleep(self.time_sleep)
+                            btn_confirma = driver.find_elements(By.XPATH, "//button[@popup-action-id='0']")
+                            btn_confirma[0].click()
+                        
+                        time.sleep(self.time_sleep)
 
                 elif len(table_lotes_rows) == len(dados_lote):
                     # informa os lotes                
@@ -224,5 +299,5 @@ class Bot:
             return True, driver
         except Exception as e:
             logger.error(e)
-            return False, None
+            return False, driver
                 
