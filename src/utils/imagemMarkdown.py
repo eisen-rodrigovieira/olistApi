@@ -28,7 +28,7 @@ def embed_local_images_in_markdown(markdown_text, base_path="."):
         with open(img_path, "rb") as img_file:
             encoded = base64.b64encode(img_file.read()).decode()
 
-        return f'<img src="data:{mime};base64,{encoded}" alt="{alt_text}" width="600"/>'
+        return f'<img src="data:{mime};base64,{encoded}" alt="{alt_text}" width="760px"/>'
 
     # Substituir todas as ocorrências no markdown
     return re.sub(pattern, replace_image, markdown_text)
