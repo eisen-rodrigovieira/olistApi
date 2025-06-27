@@ -23,6 +23,7 @@ PATH_OBJECT_NOTA               = "json/objects/nota/nota.json"
 PATH_OBJECT_NOTA_ITEM          = "json/objects/nota/item.json"
 PATH_OBJECT_NOTA_PARCELA       = "json/objects/nota/parcela.json"
 PATH_HISTORICO_NOTA            = "json/objects/nota/historico.json"
+NAMESPACE_XML                  = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
 
 SITUACAO_PEDIDO_APROVADO       = 3
 SITUACAO_PEDIDO_PREP_ENVIO     = 4
