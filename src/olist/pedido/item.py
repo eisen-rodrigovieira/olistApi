@@ -28,11 +28,11 @@ class Item:
         self.infoAdicional = None
         self.acao          = None        
 
-    def valida_kit(self,id:int=None,lcto_item:dict=None) -> tuple[bool,dict]:
+    async def valida_kit(self,id:int=None,lcto_item:dict=None) -> tuple[bool,dict]:
         url = self.endpoint+f"/{id or self.id}"
         prod = Produto()
         try:
-            token = self.con.get_latest_valid_token_or_refresh()
+            token = await self.con.get_latest_valid_token_or_refresh()
             if url and token:                
                 get_produto = requests.get(
                     url=url,
@@ -43,7 +43,7 @@ class Item:
                     }
                 )
                 if get_produto.status_code == 200:
-                    if prod.decodificar(get_produto.json()):
+                    if await prod.decodificar(get_produto.json()):
                         self.acao = 'get'
                         if prod.tipo == 'K':
                             qtd_kit = lcto_item["quantidade"]
