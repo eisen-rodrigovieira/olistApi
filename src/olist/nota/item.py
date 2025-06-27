@@ -23,9 +23,12 @@ class Item:
         self.valorUnitario = None
         self.valorTotal    = None
         self.cfop          = None
+        self.lote          = None
+        self.dtVal         = None
+        self.dtFab         = None
         self.acao          = None        
 
-    def decodificar(self,payload:dict=None) -> bool:     
+    def decodificar(self,payload:dict=None,controle:dict=None) -> bool:     
         if payload:
             try:
                 self.idProduto     = payload['idProduto']
@@ -36,6 +39,12 @@ class Item:
                 self.valorUnitario = payload['valorUnitario']
                 self.valorTotal    = payload['valorTotal']
                 self.cfop          = int(payload['cfop'])
+                if controle:
+                    self.lote = controle.get('lote')
+                    self.dtFab = controle.get('fabricacao')
+                    self.dtVal = controle.get('validade')
+                else:
+                    self.lote = self.dtFab = self.dtVal = None
             except Exception as e:
                 logger.error("Erro ao extrair dados do payload. ID %s. %s",payload["id"],e)
                 return False
@@ -57,8 +66,10 @@ class Item:
                     data['quantidade']    = self.quantidade    
                     data['valorUnitario'] = self.valorUnitario 
                     data['valorTotal']    = self.valorTotal    
-                    data['cfop']          = self.cfop          
-                    data['acao']          = self.acao
+                    data['cfop']          = self.cfop                    
+                    data['lote']          = self.lote                    
+                    data['dtFab']         = self.dtFab                    
+                    data['dtVal']         = self.dtVal                    
                 except Exception as e:
                     logger.error("Erro ao formatar dict item nota: %s",e)
                     return {"status":"Erro"} 

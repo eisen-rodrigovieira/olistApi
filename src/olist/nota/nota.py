@@ -6,6 +6,7 @@ from src.olist.nota       import item, parcela
 from params               import config, configOlist
 from datetime             import datetime, timedelta
 from src.utils.validaPath import validaPath
+from lxml                 import etree
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -21,7 +22,7 @@ class Nota(object):
         self.valida_path                      = validaPath()
         self.req_sleep                        = config.REQ_TIME_SLEEP  
         self.endpoint                         = config.API_URL+config.ENDPOINT_NOTAS
-        self.regex_cNF                        = r'(<cNF>)(\d+)(<\/cNF>)'
+        self.ns                               = configOlist.NAMESPACE_XML
         self.situacao                         = None
         self.tipo                             = None
         self.numero                           = None
@@ -107,11 +108,17 @@ class Nota(object):
         
         if payload:
             try:
+                tree = etree.fromstring(self.xml.encode('utf-8'))
+                ide = tree.xpath('//nfe:ide', namespaces=self.ns)
+                itens = tree.xpath('//nfe:det', namespaces=self.ns)
+
+                self.codChaveAcesso = ide[0].findtext('nfe:cNF', namespaces=self.ns)
+
                 self.situacao    = payload.get("situacao")
                 self.tipo        = payload.get("tipo")
                 self.numero      = payload.get("numero")
                 self.serie       = payload.get("serie")
-                self.chaveAcesso = payload.get("chaveAcesso")
+                self.chaveAcesso = payload.get("chaveAcesso")                
                 self.dataEmissao = payload.get("dataEmissao")
 
                 if payload.get("cliente"):
@@ -199,15 +206,28 @@ class Nota(object):
                     self.ecommerce_numeroPedidoCanalVenda = payload["ecommerce"].get("numeroPedidoCanalVenda")
                     self.ecommerce_canalVenda             = payload["ecommerce"].get("canalVenda")
             
-                for i in payload["itens"]:
-                    it = item.Item()
-                    it.decodificar(i)
-                    self.itens.append(it)
+                for n, i in enumerate(payload["itens"]):                  
+                    try:
+                        controle = {
+                            "lote": itens[n].find('nfe:prod', namespaces=self.ns).find('nfe:rastro', namespaces=self.ns).findtext('nfe:nLote', namespaces=self.ns),
+                            "fabricacao": itens[n].find('nfe:prod', namespaces=self.ns).find('nfe:rastro', namespaces=self.ns).findtext('nfe:dFab', namespaces=self.ns),
+                            "validade": itens[n].find('nfe:prod', namespaces=self.ns).find('nfe:rastro', namespaces=self.ns).findtext('nfe:dVal', namespaces=self.ns)
+                        }
+                    except:
+                        controle = {}
+                    finally:
+                        it = item.Item()
+                        it.decodificar(payload=i,controle=controle)
+                        self.itens.append(it)
 
                 for p in payload["parcelas"]:
                     pa = parcela.Parcela()
                     pa.decodificar(p)
                     self.parcelas.append(pa)
+
+
+
+
                 return True
 
             except Exception as e:
@@ -225,13 +245,14 @@ class Nota(object):
 
         if self.acao == 'get':
             try:
-                data                = obj[self.acao]
-                data["situacao"]    = self.situacao
-                data["tipo"]        = self.tipo
-                data["numero"]      = self.numero
-                data["serie"]       = self.serie
-                data["chaveAcesso"] = self.chaveAcesso
-                data["dataEmissao"] = self.dataEmissao
+                data                   = obj[self.acao]
+                data["situacao"]       = self.situacao
+                data["tipo"]           = self.tipo
+                data["numero"]         = int(self.numero)
+                data["serie"]          = self.serie
+                data["chaveAcesso"]    = int(self.chaveAcesso)
+                data["codChaveAcesso"] = int(self.codChaveAcesso)
+                data["dataEmissao"]    = self.dataEmissao
 
                 # Cliente
                 data["cliente"] = {
@@ -332,9 +353,11 @@ class Nota(object):
                 data["itens"] = itens_list
                 
                 parcelas_list = list()
-                for pa in self.itens:
+                for pa in self.parcelas:
                     parcelas_list.append(await pa.encodificar(self.acao))
                 data["parcelas"] = parcelas_list
+
+                data["xml"]            = self.xml               
                 
                 return data               
             except Exception as e:
@@ -343,27 +366,43 @@ class Nota(object):
         else:
             return {"status":"Ação não configurada"} 
 
-    async def buscar(self, id:int=None) -> bool:        
-        url = self.endpoint+f"/{id or self.id}"
-        try:
-            token = await self.con.get_latest_valid_token_or_refresh()
-            if url and token:                
-                get_nota = requests.get(
-                    url = url,
-                    headers = {
-                        "Authorization":f"Bearer {token}",
-                        "Content-Type":"application/json",
-                        "Accept":"application/json"
-                    }
-                )
-                if get_nota.status_code == 200:
-                    if self.decodificar(get_nota.json()):
-                        self.acao = 'get'
-                    else:
-                        logger.error("Erro ao decodificar separação %s", self.id)
-                else:                      
-                    logger.error("Erro %s: %s cod %s", get_nota.status_code, get_nota.json().get("mensagem","Erro desconhecido"), self.id)
+    async def buscar(self, id:int=None, id_ecommerce:str=None) -> bool:        
+        token = await self.con.get_latest_valid_token_or_refresh()
 
+        if id:
+            url = self.endpoint+f"/{id or self.id}"
+        elif id_ecommerce:
+            url_ = self.endpoint+f"?numeroPedidoEcommerce={id_ecommerce}"
+            try:                
+                if url_ and token:                
+                    get_nota = requests.get(
+                        url = url_,
+                        headers = {
+                            "Authorization":f"Bearer {token}",
+                            "Content-Type":"application/json",
+                            "Accept":"application/json"
+                        }
+                    )
+                    if get_nota.status_code == 200:
+                        nota = get_nota.json()
+                        url = self.endpoint+f"/{nota.get('itens')[0].get('id')}"
+                    else:                      
+                        logger.error("Erro %s: %s cod %s", get_nota.status_code, get_nota.json().get("mensagem","Erro desconhecido"), self.id)
+                else:
+                    logger.warning("Endpoint da API ou token de acesso faltantes")
+            except Exception as e:
+                logger.error("Erro relacionado ao token de acesso. %s",e)
+                
+        if url and token:
+            get_nota = requests.get(
+                url = url,
+                headers = {
+                    "Authorization":f"Bearer {token}",
+                    "Content-Type":"application/json",
+                    "Accept":"application/json"
+                }
+            )
+            if get_nota.status_code == 200:
                 get_xml = requests.get(
                     url = url+"/xml",
                     headers = {
@@ -374,13 +413,15 @@ class Nota(object):
                 )
                 if get_xml.status_code == 200:
                     self.xml = get_xml.json().get('xmlNfe')
-                    self.codChaveAcesso = int(re.search(self.regex_cNF,self.xml).group(2))
+                    if self.decodificar(get_nota.json()):
+                        self.acao = 'get'
+                    else:
+                        logger.error("Erro ao decodificar separação %s", self.id)                    
                 else:                      
                     logger.error("Erro %s: %s cod %s", get_xml.status_code, get_xml.json().get("mensagem","Erro desconhecido"), self.id)                
                 return True if get_nota.status_code == get_xml.status_code == 200 else False
-            else:
-                logger.warning("Endpoint da API ou token de acesso faltantes")
-                return False                    
-        except Exception as e:
-            logger.error("Erro relacionado ao token de acesso. %s",e)
-            return False  
+            else:                      
+                logger.error("Erro %s: %s cod %s", get_nota.status_code, get_nota.json().get("mensagem","Erro desconhecido"), self.id)
+        else:
+            logger.warning("Endpoint da API ou token de acesso faltantes")
+            return False
