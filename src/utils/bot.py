@@ -1,5 +1,6 @@
 import time
 import logging
+from datetime import datetime
 from keys                              import keys
 from selenium.webdriver.common.by      import By
 from selenium.webdriver.support.ui     import WebDriverWait
@@ -396,9 +397,12 @@ class Bot:
                 return False, driver
 
             try:
-                if WebDriverWait(driver, 60).until(EC.staleness_of(driver.find_element(By.XPATH, "//div[@id='waitLancarLotesEntradaModal']"))):
+                start_time = datetime.now()
+                if WebDriverWait(driver, configUtils.TIMEOUT_LANCA_LOTES).until(EC.staleness_of(driver.find_element(By.XPATH, "//div[@id='waitLancarLotesEntradaModal']"))):
                     return True, driver
             except Exception as e:
-                logger.error("Erro ao aguardar a finalização do lançamento dos lotes: %s",e)
+                end_time = datetime.now()
+                tempo = int((end_time - start_time).total_seconds())
+                logger.error("A finalização do lançamento dos lotes demorou %s segundos para concluir. Limite %ss: %s", tempo, configUtils.TIMEOUT_LANCA_LOTES, e)
                 return False, driver
                 
