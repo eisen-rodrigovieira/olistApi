@@ -22,13 +22,17 @@ PATH_SCRIPT_SYNCESTOQUE    = "sql/dql/syncestoque.sql"
 PATH_SCRIPT_ESTOQUE_DISP   = "sql/dql/estoque_qtd_disp.sql"
 PATH_DELETE_SYNCESTOQUE    = "sql/dml/del_syncestoque.sql"
 
-PATH_SCRIPT_SYNCPED_NOVO   = "sql/dql/syncpedido_novo.sql"
-PATH_SCRIPT_SYNCPED_CONF   = "sql/dql/syncpedido_confirmado.sql"
+PATH_SCRIPT_SYNCPEDIDO     = "sql/dql/syncpedido.sql"
 
 PATH_UPDATE_TGFNUM         = "sql/dml/upd_seq_pedido.sql"
 
 PROC_CONFIRMA_NOTA         = "STP_CONFIRMANOTA2"
-PROC_FATURA_PEDIDO         = "AD_STP_MKP_FATURAPEDIDO"
+PROC_GERA_NOTA_VENDA       = "AD_STP_MKP_GERA_NOTA_VENDA"
+PROC_LANCA_ITEM_VENDA      = "AD_STP_MKP_LANCA_ITEM_VENDA"
+PROC_VINCULA_VENDA         = "AD_STP_MKP_VINCULA_PEDIDO_NOTA"
+PROC_LANCA_FIN             = "AD_STP_MKP_LANCA_FIN_VENDA"
+PROC_LANCA_IMP             = "AD_STP_MKP_LANCA_IMP_VENDA"
+PROC_IMPORTA_XML           = "AD_STP_MKP_IMPORTA_XML_VENDA"
 PROC_PARAMS_PEDIDO         = "AD_STP_MKP_BUSCAPARAMPEDIDO"
 
 CODEMP                     = 31
