@@ -1,12 +1,11 @@
-import re
 import logging
 import requests
 from src.olist.connect    import Connect
 from src.olist.nota       import item, parcela
 from params               import config, configOlist
-from datetime             import datetime, timedelta
 from src.utils.validaPath import validaPath
 from lxml                 import etree
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -108,9 +107,11 @@ class Nota(object):
         
         if payload:
             try:
+
                 tree = etree.fromstring(self.xml.encode('utf-8'))
                 ide = tree.xpath('//nfe:ide', namespaces=self.ns)
                 itens = tree.xpath('//nfe:det', namespaces=self.ns)
+                rastros = [i.xpath('//nfe:rastro', namespaces=self.ns) for i in itens]             
 
                 self.codChaveAcesso = ide[0].findtext('nfe:cNF', namespaces=self.ns)
 
@@ -205,29 +206,16 @@ class Nota(object):
                     self.ecommerce_numeroPedidoEcommerce  = payload["ecommerce"].get("numeroPedidoEcommerce")
                     self.ecommerce_numeroPedidoCanalVenda = payload["ecommerce"].get("numeroPedidoCanalVenda")
                     self.ecommerce_canalVenda             = payload["ecommerce"].get("canalVenda")
-            
-                for n, i in enumerate(payload["itens"]):                  
-                    try:
-                        controle = {
-                            "lote": itens[n].find('nfe:prod', namespaces=self.ns).find('nfe:rastro', namespaces=self.ns).findtext('nfe:nLote', namespaces=self.ns),
-                            "fabricacao": itens[n].find('nfe:prod', namespaces=self.ns).find('nfe:rastro', namespaces=self.ns).findtext('nfe:dFab', namespaces=self.ns),
-                            "validade": itens[n].find('nfe:prod', namespaces=self.ns).find('nfe:rastro', namespaces=self.ns).findtext('nfe:dVal', namespaces=self.ns)
-                        }
-                    except:
-                        controle = {}
-                    finally:
-                        it = item.Item()
-                        it.decodificar(payload=i,controle=controle)
-                        self.itens.append(it)
+               
+                for n, i in enumerate(payload["itens"]):
+                    it = item.Item()
+                    it.decodificar(payload=i,rastros=rastros[n])
+                    self.itens.append(it)
 
                 for p in payload["parcelas"]:
                     pa = parcela.Parcela()
                     pa.decodificar(p)
                     self.parcelas.append(pa)
-
-
-
-
                 return True
 
             except Exception as e:
@@ -240,7 +228,7 @@ class Nota(object):
     async def encodificar(self) -> dict:
         obj = {}
         data = {}
-        file_path = configOlist.PATH_OBJECT_SEPARACAO
+        file_path = configOlist.PATH_OBJECT_NOTA
         obj = await self.valida_path.validar(path=file_path,mode='r',method='json')
 
         if self.acao == 'get':
@@ -416,7 +404,7 @@ class Nota(object):
                     if self.decodificar(get_nota.json()):
                         self.acao = 'get'
                     else:
-                        logger.error("Erro ao decodificar separação %s", self.id)                    
+                        logger.error("Erro ao decodificar nota %s", self.id)                    
                 else:                      
                     logger.error("Erro %s: %s cod %s", get_xml.status_code, get_xml.json().get("mensagem","Erro desconhecido"), self.id)                
                 return True if get_nota.status_code == get_xml.status_code == 200 else False

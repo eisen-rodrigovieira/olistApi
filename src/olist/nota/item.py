@@ -1,6 +1,8 @@
 import logging
 from params               import config, configOlist
 from src.utils.validaPath import validaPath
+from src.olist.nota       import rastro
+from lxml                 import etree
 
 logger = logging.getLogger(__name__)
 logging.basicConfig( filename=config.PATH_LOGS,
@@ -13,8 +15,8 @@ class Item:
       
     def __init__(self):    
         self.file_path     = configOlist.PATH_OBJECT_NOTA_ITEM
-        self.endpoint      = config.API_URL+config.ENDPOINT_NOTAS
-        self.valida_path   = validaPath()        
+        self.valida_path   = validaPath()
+        self.ns            = configOlist.NAMESPACE_XML        
         self.idProduto     = None
         self.codigo        = None
         self.descricao     = None
@@ -23,30 +25,38 @@ class Item:
         self.valorUnitario = None
         self.valorTotal    = None
         self.cfop          = None
-        self.lote          = None
-        self.dtVal         = None
-        self.dtFab         = None
+        self.rastro        = []
         self.acao          = None        
 
-    def decodificar(self,payload:dict=None,controle:dict=None) -> bool:     
+    def decodificar(self,payload:dict=None,rastros=None) -> bool:     
         if payload:
             try:
                 self.idProduto     = payload['idProduto']
-                self.codigo        = int(payload['codigo'])
+                self.codigo        = payload['codigo']
                 self.descricao     = payload['descricao']
                 self.unidade       = payload['unidade']
                 self.quantidade    = payload['quantidade']
                 self.valorUnitario = payload['valorUnitario']
                 self.valorTotal    = payload['valorTotal']
-                self.cfop          = int(payload['cfop'])
-                if controle:
-                    self.lote = controle.get('lote')
-                    self.dtFab = controle.get('fabricacao')
-                    self.dtVal = controle.get('validade')
-                else:
-                    self.lote = self.dtFab = self.dtVal = None
+                self.cfop          = payload['cfop']
+                try:
+                    controles = []
+                    for r in rastros:
+                        controles.append({
+                            "quantidade": int(float(r.findtext('nfe:qLote', namespaces=self.ns))),
+                            "lote": r.findtext('nfe:nLote', namespaces=self.ns),
+                            "dtFab": r.findtext('nfe:dFab', namespaces=self.ns),
+                            "dtVal": r.findtext('nfe:dVal', namespaces=self.ns)
+                        })
+                except Exception as e:
+                    logger.error("Erro ao extrair dados de controle. ID %s. %s",payload["idProduto"],e)
+                for controle in controles:
+                    rs = rastro.Rastro()
+                    rs.decodificar(controle)
+                    self.rastro.append(rs)
+
             except Exception as e:
-                logger.error("Erro ao extrair dados do payload. ID %s. %s",payload["id"],e)
+                logger.error("Erro ao extrair dados do payload. ID %s. %s",payload["idProduto"],e)
                 return False
         else:
             logger.error("Não foram informados dados para decodificar")
@@ -67,9 +77,10 @@ class Item:
                     data['valorUnitario'] = self.valorUnitario 
                     data['valorTotal']    = self.valorTotal    
                     data['cfop']          = self.cfop                    
-                    data['lote']          = self.lote                    
-                    data['dtFab']         = self.dtFab                    
-                    data['dtVal']         = self.dtVal                    
+                    rastros_list = list()
+                    for rs in self.rastro:
+                        rastros_list.append(await rs.encodificar(acao))
+                    data["rastro"] = rastros_list
                 except Exception as e:
                     logger.error("Erro ao formatar dict item nota: %s",e)
                     return {"status":"Erro"} 
