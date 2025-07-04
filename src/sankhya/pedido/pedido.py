@@ -1,10 +1,10 @@
 import logging
-from datetime                  import datetime
-from params                    import config, configSankhya
-from src.olist.pedido.item     import Item
-from src.sankhya.pedido        import item, parcela
-from src.sankhya.dbConfig      import dbConfig
-from src.utils.validaPath      import validaPath
+from datetime              import datetime
+from params                import config, configSankhya
+from src.olist.pedido.item import Item
+from src.sankhya.pedido    import item, parcela
+from src.sankhya.dbConfig  import dbConfig
+from src.utils.validaPath  import validaPath
 
 logger = logging.getLogger(__name__)
 logging.basicConfig( filename = config.PATH_LOGS,
@@ -192,7 +192,7 @@ class Pedido:
             logger.error("Não foram informados dados para decodificar")
             return False
 
-    async def buscar(self,nunota:int=None,id:int=None) -> bool:
+    async def buscar(self,nunota:int=None,id:int=None,ecommerce:str=None) -> bool:
         file_path = configSankhya.PATH_SCRIPT_PEDIDO_CAB
         query = await self.valida_path.validar(path=file_path,mode='r',method='full')
 
@@ -200,12 +200,12 @@ class Pedido:
             try:
                 params = {
                     "NUNOTA": nunota or self.nunota,
-                    "ID": id or self.ad_mkp_id
+                    "ID": id or self.ad_mkp_id,
+                    "ECOMMERCE": ecommerce or self.ad_mkp_codped
                 }
                 rows = await self.db.select(query=query,params=params)
                                     
                 if rows:
-                    print(rows)
                     return await self.decodificar(rows[0])
                 else:
                     return False
@@ -348,15 +348,14 @@ class Pedido:
             nunota = data["NUNOTA"]
             numnota = data["NUMNOTA"]
             ack_cab, rows_cab = await self.db.dml(query=query,params=data)
-            if ack_cab:
-                logger.info("Cabeçalho do pedido %s inserido com sucesso.",nunota)
+            if ack_cab:                
                 if payload.get("itens"):
                     rows_itens = 0
                     seq_pedido = 0
                     uf_destino = payload["cliente"]["endereco"]["uf"]                        
                     for i, it_dict in enumerate(payload["itens"]): 
                         olItm = Item()
-                        ack_kit, kit_dict = olItm.valida_kit(id=int(it_dict["produto"]["id"]),lcto_item=it_dict)
+                        ack_kit, kit_dict = await olItm.valida_kit(id=int(it_dict["produto"]["id"]),lcto_item=it_dict)
                         if ack_kit:
                             for kd in kit_dict:
                                 seq_pedido+=1
@@ -395,8 +394,7 @@ class Pedido:
                 else:
                     ack_fins = True
                 if ack_cab and ack_itens and ack_fins:
-                    if await self.atualiza_seqs(nunota_nextval=nunota,numnota_nextval=numnota):
-                        print(f"----------> Pedido {payload['numeroPedido']} importado com sucesso! Nº único {nunota}")
+                    if await self.atualiza_seqs(nunota_nextval=nunota,numnota_nextval=numnota):                        
                         logger.info("Pedido %s importado com sucesso! Nº único %s",payload['numeroPedido'],nunota)
                         return True, nunota
                     else:
@@ -421,21 +419,52 @@ class Pedido:
         else:
             logger.error("Erro ao confirmar pedido %s",nunota)        
             return False
-        
-    async def gerar_nota(self, nunota_pedido:int=None, id_separacao:int=None, dt_separacao:str=None, dt_faturado:str=None, id_nfe:int=None, num_nfe:int=None) -> tuple[bool,int]:
-        proc = configSankhya.PROC_FATURA_PEDIDO
-        ack, nunota_nota = await self.db.callproc(procedure=proc,
-                                                  params_in=[nunota_pedido,
-                                                             id_separacao,
-                                                             dt_separacao,
-                                                             dt_faturado,
-                                                             id_nfe,
-                                                             num_nfe],
-                                                  params_out_type=[int])
-        if ack:
-            logger.info("Pedido %s faturado com sucesso! Gerada nota no nº único %s",nunota_pedido,nunota_nota[0])
-            return True, nunota_nota[0]
+
+    async def valida_desmembramento(self, dados_nota:dict=None) -> bool:
+        valida_itens = []
+        for i, item in enumerate(dados_nota.get('itens')):
+            valida_prod = int(item.get('codigo')) in [it.codprod for it in self.itens]
+            valida_qtd = self.itens[i].qtdneg == int(item.get('quantidade'))
+            valida_itens.append(True if valida_prod and valida_qtd else False)        
+        return all(valida_itens)
+
+    async def gerar_nota(self, pedido:int=None, payload:dict=None) -> tuple[bool,int]:
+
+        ack, nunota_nota = await self.db.callproc(procedure=configSankhya.PROC_GERA_NOTA_VENDA,
+                                                  params_in=[pedido,                                                             
+                                                             payload.get('dataInclusao'),
+                                                             payload.get('id'),
+                                                             payload.get('numero')],
+                                                  params_out_type=[int])                
+        if ack and nunota_nota:
+            nota = nunota_nota[0]
+            for it in payload.get("itens", []):
+                for lt in it.get("rastro", []):
+                    if lt.get("lote") and lt.get("quantidade"):
+                        lote_info = f"{it['codigo']}##{lt['lote']}##{lt['quantidade']}"
+                        ack_item, _ = await self.db.callproc(procedure=configSankhya.PROC_LANCA_ITEM_VENDA,
+                                                             params_in=[pedido,lote_info,nota])
+                        if not ack_item:
+                            logger.error("Erro ao lançar item %s na nota %s",it['codigo'],nota)
+                            return False, 0
+            ack_vinculo, _ = await self.db.callproc(procedure=configSankhya.PROC_VINCULA_VENDA,params_in=[pedido,nota])
+            ack_fin, _ = await self.db.callproc(procedure=configSankhya.PROC_LANCA_FIN,params_in=[pedido])
+            ack_imp, _ = await self.db.callproc(procedure=configSankhya.PROC_LANCA_IMP,params_in=[pedido])
+            return all([ack_vinculo, ack_fin, ack_imp]), nota
+        else:      
+            return False, 0  
+
+    async def importar_xml(self, nota:int=None, payload:dict=None) -> tuple[bool,int]:
+        ack, _ = await self.db.callproc(procedure=configSankhya.PROC_IMPORTA_XML,
+                                                  params_in=[int(nota),                                                             
+                                                             int(payload.get('id')),
+                                                             str(payload.get('dataInclusao')),
+                                                             str(payload.get('chaveAcesso')),
+                                                             str(payload.get('codChaveAcesso')),
+                                                             payload.get('xml')])                
+        if ack:            
+            return True, nota
         else:
-            logger.error("Erro ao faturar pedido %s",nunota_pedido)        
-            return False, 0        
+            logger.error("Erro ao importar XML da nota %s",nota)        
+            return False, 0               
             
