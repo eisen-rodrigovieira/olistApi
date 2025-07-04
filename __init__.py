@@ -27,6 +27,8 @@ button[data-baseweb="tab"] {
 """
 app_produto    = App().Produto()
 app_estoque    = App().Estoque()
+app_pedido     = App().Pedido()
+
 valida_path    = validaPath()
 task_prod      = taskManager()
 task_ped       = taskManager()
@@ -92,18 +94,28 @@ with st.container(border=True):
                             for v in vl:
                                 st.write(v)
     
-    with tab_pedidos:        
-        st.warning("🚧 Manutenção 🚧")        
+    with tab_pedidos:
         col1_pd, col2_pd = st.columns(2)
         btn_receive_pd = st.button("🔄 Atualizar pedidos",key='btn_update_all_pd',use_container_width=True)
         with st.empty():
             if btn_receive_pd:
-                st.warning("Em desenvolvimento e testes.",icon="👩🏻‍💻")
-    
+                with st.spinner("Aguarde",show_time=True):
+                    status_aprovados, values_aprovados = asyncio.run(app_pedido.importa_aprovados())
+                    status_prep_envio, values_prep_envio = asyncio.run(app_pedido.importa_prep_envio())
+                    status_faturados, values_faturados = asyncio.run(app_pedido.importa_faturados())
+                if status_aprovados and status_prep_envio and status_faturados:
+                    with st.expander(label="Pedidos atualizados com sucesso!",icon="✅"):
+                        for v in values_aprovados+values_prep_envio+values_faturados:
+                            st.write(v)
+                else:
+                    with st.expander(label="Ocorreram erros durante a sincronização! Verifique os logs.",icon="❌"):
+                        for v in values_aprovados+values_prep_envio+values_faturados:
+                            st.write(v)
+                            
     with tab_estoque:
         col1_es, col2_es = st.columns([0.3, 0.7],vertical_alignment="top")
         with col1_es:
-            btn_send_est = st.button("📤 Enviar atualizações para Olist",key='btn_send_est',use_container_width=True)
+            btn_send_est = st.button("🔄 Atualizar estoques",key='btn_send_est',use_container_width=True)
             with st.empty():
                 if btn_send_est:    
                     with st.spinner("Aguarde",show_time=True):
@@ -114,38 +126,39 @@ with st.container(border=True):
                                 st.caption(v)    
                     else:
                         st.error("Falha na sincronização! Verifique os logs.")
-        with col2_es:
-            btn_update_bal = None        
-            with st.container(border=True):
-                col_produto, col_botao = st.columns(2,vertical_alignment="bottom")
-                with col_produto:
-                    number = st.text_input("Informe o código do produto")
-                with col_botao:
-                    btn_update_bal = st.button("🔄 Executar balanço de estoque",key='btn_update_bal',use_container_width=True)
-                st.caption("⚠️:red[**Executar o balanço sem especificar o produto atualiza o estoque de TODOS OS PRODUTOS**]")
-                if btn_update_bal:
-                    produto = None
-                    with st.spinner("Aguarde",show_time=True):
-                        try:
-                            try: produto = int(number)
-                            except: pass
-                            finally:                        
-                                status_bal, values_bal = asyncio.run(app_estoque.balanco(produto=produto))
-                                if status_bal:
-                                    with st.expander(label="Balanço de estoque executado com sucesso!",icon="✅"):
-                                        for v in values_bal: st.caption(v)    
-                                else:
-                                    st.error("Falha na sincronização! Verifique os logs.")                           
-                        except ValueError as e: st.error(f"Número inválido ou vazio. {e}")
-                        finally: pass
-    
+        with col2_es:            
+            # btn_update_bal = None        
+            # with st.container(border=True):
+            #     col_produto, col_botao = st.columns(2,vertical_alignment="bottom")
+            #     with col_produto:
+            #         number = st.text_input("Informe o código do produto")
+            #     with col_botao:
+            #         btn_update_bal = st.button("🔄 Executar balanço de estoque",key='btn_update_bal',use_container_width=True)
+            #     st.caption("⚠️:red[**Executar o balanço sem especificar o produto atualiza o estoque de TODOS OS PRODUTOS**]")
+            #     if btn_update_bal:
+            #         produto = None
+            #         with st.spinner("Aguarde",show_time=True):
+            #             try:
+            #                 try: produto = int(number)
+            #                 except: pass
+            #                 finally:                        
+            #                     status_bal, values_bal = asyncio.run(app_estoque.balanco(produto=produto))
+            #                     if status_bal:
+            #                         with st.expander(label="Balanço de estoque executado com sucesso!",icon="✅"):
+            #                             for v in values_bal: st.caption(v)    
+            #                     else:
+            #                         st.error("Falha na sincronização! Verifique os logs.")                           
+            #             except ValueError as e: st.error(f"Número inválido ou vazio. {e}")
+            #             finally: pass
+            pass
+
     with tab_logs:
         logs = asyncio.run(valida_path.validar(path=config.PATH_LOGS,mode='r',method='lines'))
         logs.reverse()
         date_ini = datetime.strptime(re.match(regex_dates,logs[-1]).group(),'%Y-%m-%d')
         date_fim = datetime.strptime(re.match(regex_dates,logs[0]).group(),'%Y-%m-%d')
         data = st.date_input(label="Período",value=(datetime.today().date(),datetime.today().date()),min_value=date_ini,max_value=date_fim,format='DD/MM/YYYY')
-        contexto = st.pills("Contexto",options=["Todos","Produtos","Pedidos","Estoque"],default="Todos",label_visibility="collapsed")
+        contexto = st.pills("Contexto",options=["Todos","Produtos","Pedidos","Estoque","Notas"],default="Todos",label_visibility="collapsed")
         with st.container(height=500):            
                 valLog = 0                
                 for l in logs:                    
