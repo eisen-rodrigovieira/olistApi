@@ -4,6 +4,7 @@ from src.olist.connect    import Connect
 from src.olist.pedido     import parcela, item
 from params               import config, configOlist
 from src.utils.validaPath import validaPath
+from datetime             import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename=config.PATH_LOGS,
@@ -393,8 +394,41 @@ class Pedido:
             logger.error("Erro relacionado ao token de acesso. %s",e)
             return False     
 
-    async def buscar_aprovados(self) -> tuple[bool, list]:
-        url = self.endpoint+f"?situacao={self.situacao_aprovado}"
+    async def buscar_lista(self,situacao:str='A',atual:bool=True) -> tuple[bool, list]:
+        """
+        Busca pedidos na API de acordo com a situação informada.
+
+        Esta função realiza uma requisição GET para a API e retorna uma lista de pedidos
+        com base no código de situação correspondente ao parâmetro fornecido.
+
+        Parâmetros:
+            situacao (str): Código da situação para filtrar os pedidos:
+                Valores aceitos:
+                    - A: Aprovados (padrão)
+                    - S: Em separação
+                    - F: Faturado
+            atual (bool): Se deve considerar somente os pedidos com data D-1 ou todos
+
+        Retorna:
+            tuple:
+                - bool: Indica se a requisição foi bem-sucedida.
+                - list: Lista de pedidos (lista de IDs) ou lista vazia em caso de falha.
+
+        Exceções:
+            Retorna (False, []) e registra logs em caso de erro de token, conexão ou resposta da API.
+        """
+        match situacao:
+            case "A":
+                cod_situacao = 3
+            case "S":
+                cod_situacao = 4
+            case "F":
+                cod_situacao = 1
+            case _:  # Default case
+                cod_situacao = None
+
+        dataInicial = datetime.strftime(datetime.today()-timedelta(days=1),'%Y-%m-%d') if atual else ''
+        url = self.endpoint+f"?situacao={cod_situacao}&dataInicial={dataInicial}"
         try:
             token = await self.con.get_latest_valid_token_or_refresh()
             if url and token:                
@@ -407,11 +441,11 @@ class Pedido:
                     }
                 )
                 if get_pedido.status_code == 200:
-                    lista_novos = [p["id"] for p in get_pedido.json()['itens']]
-                    lista_novos.reverse()
-                    return True, lista_novos
+                    pedidos = [p["id"] for p in get_pedido.json()['itens']]
+                    pedidos.reverse()
+                    return True, pedidos
                 else:                      
-                    logger.error("Erro %s: %s cod %s", get_pedido.status_code, get_pedido.json().get("mensagem","Erro desconhecido"), self.id)
+                    logger.error("Erro %s ao buscar lista de pedidos: %s cod %s", get_pedido.status_code, get_pedido.json().get("mensagem","Erro desconhecido"), self.id)
                     return False, []
             else:
                 logger.warning("Endpoint da API ou token de acesso faltantes")
@@ -420,29 +454,3 @@ class Pedido:
             logger.error("Erro relacionado ao token de acesso. %s",e)
             return False, []
 
-    async def buscar_preparando_envio(self) -> tuple[bool, list]:
-        url = self.endpoint+f"?situacao={self.situacao_preparando_envio}"
-        try:
-            token = await self.con.get_latest_valid_token_or_refresh()
-            if url and token:                
-                get_pedido = requests.get(
-                    url=url,
-                    headers={
-                        "Authorization":f"Bearer {token}",
-                        "Content-Type":"application/json",
-                        "Accept":"application/json"
-                    }
-                )
-                if get_pedido.status_code == 200:
-                    lista_prep_envio = [p["id"] for p in get_pedido.json()['itens']]
-                    lista_prep_envio.reverse()
-                    return True, lista_prep_envio
-                else:                      
-                    logger.error("Erro %s: %s cod %s", get_pedido.status_code, get_pedido.json().get("mensagem","Erro desconhecido"), self.id)
-                    return False, []
-            else:
-                logger.warning("Endpoint da API ou token de acesso faltantes")
-                return False, []
-        except Exception as e:
-            logger.error("Erro relacionado ao token de acesso. %s",e)
-            return False, []
