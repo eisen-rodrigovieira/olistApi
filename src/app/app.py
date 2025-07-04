@@ -3,14 +3,15 @@ import time
 import json
 import logging
 from datetime                    import datetime
+from selenium                    import webdriver
 from params                      import config,configUtils,configOlist,configSankhya
 from src.olist.produto.produto   import Produto as olProduto
-# from src.olist.pedido.pedido     import Pedido  as olPedido
+from src.olist.pedido.pedido     import Pedido  as olPedido
 from src.olist.estoque.estoque   import Estoque as olEstoque
+from src.olist.nota.nota         import Nota    as olNota
 from src.sankhya.produto.produto import Produto as snkProduto
-# from src.sankhya.pedido.pedido   import Pedido  as snkPedido
+from src.sankhya.pedido.pedido   import Pedido  as snkPedido
 from src.sankhya.estoque.estoque import Estoque as snkEstoque
-from selenium                    import webdriver
 from src.sankhya.dbConfig        import dbConfig
 from src.utils.sendMail          import sendMail
 from src.utils.validaPath        import validaPath
@@ -330,37 +331,6 @@ class App:
                         values.append(f"Evento de inativação não disponível via API. Inative o produto {f["idprod"]} manualmente no site.")
                         print(f"Evento de inativação não disponível via API. Inative o produto {f["idprod"]} manualmente no site.")
                         
-                        # olProd  = olProduto()
-                        # snkProd = snkProduto()
-                        # olProd.id = f["idprod"]
-                        # if await olProd.buscar():
-                        #     ackOl = True
-                        # else:
-                        #     logger.error(self.contexto+"Falha ao buscar os dados do produto %s na base Olist. Verifique os logs.",f["idprod"])
-                        #     await self.app.email.notificar()                            
-                        #     values.append(f"Falha ao buscar os dados do produto {f["idprod"]} na base Olist. Verifique os logs.")
-                        # if ackOl:
-                        #     olProd.situacao = 'I'
-                        #     olProd.acao = 'del'
-                        #     ackReceberOlist, val = await olProd.receber_alteracoes()
-                        #     if ackReceberOlist and bool(val):
-                        #         ackSync = await self.remove_syncprod(produto=f["codprod"],dhevento=f["dhevento"])
-                        #         if ackSync:
-                        #             values.append(f"Produto {olProd.id} inativado com sucesso.")
-                        #             await self.atualiza_historico(produto_alterado=f["idprod"],sentido=0)
-                        #         else:
-                        #             logger.error(self.contexto+"Erro: Produto %s inativado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.",olProd.id)
-                        #             await self.app.email.notificar()
-                        #             values.append(f"Erro: Produto {olProd.id} inativado na base Olist mas não foi possível remover da lista de atualizações pendentes na base Sankhya. Verifique os logs.")
-                        #     elif ackReceberOlist and val == 0:
-                        #         logger.warning(self.contexto+"Produto %s não encontrado",olProd.id)
-                        #         await self.app.email.notificar(tipo='alerta')
-                        #         values.append(f"Produto {olProd.id} não encontrado")
-                        #     else:
-                        #         logger.error(self.contexto+"Falha ao intivar os dados do produto %s na base Olist. Verifique os logs.",olProd.id)
-                        #         await self.app.email.notificar()                            
-                        #         values.append(f"Falha ao intivar os dados do produto {olProd.id} na base Olist. Verifique os logs.")
-                        
                     elif f["evento"] == 'I':
                         olP  = olProduto()
                         snkProd = snkProduto()
@@ -464,162 +434,219 @@ class App:
                 print("Nenhuma alteração para ser enviada para Tiny/Olist")
                 return True, values
 
-    # class Pedido:
-    #     def __init__(self, id:int=None):
-    #         self.app = App()
-    #         self.id = id
-    #         self.contexto = '#Pedidos#'            
-    #     async def atualiza_historico(self, pedido_alterado:int=None, pedido_incluido:int=None, sentido:int=None):
-    #         file_path = configOlist.PATH_HISTORICO_PEDIDO
-    #         historico = await self.app.valida_path.validar(path=file_path,mode='r',method='json')
-    #         if pedido_alterado:
-    #             if sentido == 0: # SANKHYA > OLIST
-    #                 historico["ultima_atualizacao_sankhya_olist"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    #                 historico["ultima_atualizacao_sankhya_olist"]["id"] = pedido_alterado
-    #             elif sentido == 1: # OLIST > SANKHYA
-    #                 historico["ultima_atualizacao_olist_sankhya"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    #                 historico["ultima_atualizacao_olist_sankhya"]["id"] = pedido_alterado
-    #             else:
-    #                 pass
-    #         if pedido_incluido:
-    #             historico["ultima_importacao"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    #             historico["ultima_importacao"]["id"] = pedido_incluido
-    #         await self.app.valida_path.validar(path=file_path,mode='w',method='json',content=historico)
-    #     async def busca_novos(self) -> tuple[bool,list]:
-    #         olPd = olPedido()
-    #         res = []
-    #         ack_novos, pedidos_novos = await olPd.buscar_aprovados()
-    #         ack_prep_envio, pedidos_prep_envio = await olPd.buscar_preparando_envio()
-    #         if ack_novos:                
-    #             file_path_exists = configSankhya.PATH_SCRIPT_SYNCPED_NOVO
-    #             query_syncpedido_novo = await self.app.valida_path.validar(path=file_path_exists,method='full',mode='r')
-    #             for novo_pedido in pedidos_novos:
-    #                 self.id = novo_pedido
-    #                 olPed = olPedido()
-    #                 snkPed = snkPedido()
-    #                 exists = await self.app.db.select(query=query_syncpedido_novo, params={"AD_MKP_ID":novo_pedido})
-    #                 if not exists:
-    #                     time.sleep(self.app.req_sleep)
-    #                     if await olPed.buscar(id=novo_pedido):
-    #                         dados_pedido = await olPed.encodificar()
-    #                         ack2, num_unico = await snkPed.registrar(dados_pedido)            
-    #                         if ack2:
-    #                             logger.info(self.contexto+"Pedido #%s importado no nº único %s",dados_pedido["numeroPedido"],num_unico) 
-    #                             res.append(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}") 
-    #                             print(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}") 
-    #                         else:
-    #                             logger.error(self.contexto+"Falha ao registrar pedido #%s. Verifique os logs.",dados_pedido["numeroPedido"]) 
-    #                             await self.app.email.notificar()                                
-    #                             res.append(f"Falha ao registrar pedido #{dados_pedido["numeroPedido"]}. Verifique os logs.") 
-    #                             print(f"Falha ao registrar pedido #{dados_pedido["numeroPedido"]}. Verifique os logs.") 
-    #                     else:
-    #                         logger.warning(self.contexto+"Falha ao buscar dados do pedido #%s. Verifique os logs.",dados_pedido["numeroPedido"])
-    #                         await self.app.email.notificar(tipo='alerta')
-    #                         res.append(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
-    #                         print(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
-    #                     await self.atualiza_historico(pedido_incluido=novo_pedido)
-    #                 else:
-    #                     logger.info(self.contexto+"Pedido ID %s já foi importado para o Sankhya no nº único %s.",novo_pedido,exists[0].get('nunota')) 
-    #                     res.append(f"Pedido ID {novo_pedido} já foi importado para o Sankhya no nº único {exists[0].get('nunota')}.")                    
-    #                     print(f"Pedido ID {novo_pedido} já foi importado para o Sankhya no nº único {exists[0].get('nunota')}.")                    
-    #         else:
-    #             logger.error(self.contexto+"Falha ao buscar relação dos pedidos novos. Verifique os logs.")
-    #             await self.app.email.notificar()
-    #             res.append("Falha ao buscar relação dos pedidos novos")
-    #             print("Falha ao buscar relação dos pedidos novos")
-    #         if ack_prep_envio:    
-    #             file_path_exists = configSankhya.PATH_SCRIPT_SYNCPED_CONF
-    #             query_syncpedido_conf = await self.app.valida_path.validar(path=file_path_exists,method='full',mode='r')                            
-    #             for pedido in pedidos_prep_envio:
-    #                 self.id = pedido
-    #                 olPed   = olPedido()
-    #                 snkPed  = snkPedido()
-    #                 exists  = await self.app.db.select(query=query_syncpedido_conf,params={"AD_MKP_ID":pedido})
-    #                 if not exists:
-    #                     time.sleep(self.app.req_sleep)
-    #                     if await olPed.buscar(id=pedido):
-    #                         dados_pedido = await olPed.encodificar()
-    #                         ack2, num_unico = await snkPed.registrar(dados_pedido)            
-    #                         if ack2:
-    #                             if await snkPed.confirmar_nota(nunota=num_unico,provisao='S'):
-    #                                 logger.info(self.contexto+"Pedido #%s importado no nº único %s",dados_pedido["numeroPedido"],num_unico)
-    #                                 res.append(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}")
-    #                                 print(f"Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}")
-    #                             else:
-    #                                 logger.warning(self.contexto+"Falha ao confirmar pedido. Pedido #%s importado no nº único %s.",dados_pedido["numeroPedido"],num_unico)
-    #                                 await self.app.email.notificar(tipo='alerta')
-    #                                 res.append(f"Falha ao confirmar pedido. Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}.")
-    #                                 print(f"Falha ao confirmar pedido. Pedido #{dados_pedido["numeroPedido"]} importado no nº único {num_unico}.")
-    #                         else:
-    #                             logger.error(self.contexto+"Falha ao registrar pedido #%s.",dados_pedido["numeroPedido"])
-    #                             await self.app.email.notificar()
-    #                             res.append(f"Falha ao registrar pedido #{dados_pedido["numeroPedido"]}") 
-    #                             print(f"Falha ao registrar pedido #{dados_pedido["numeroPedido"]}") 
-    #                     else:
-    #                         logger.error(self.contexto+"Falha ao buscar dados do pedido #%s.",dados_pedido["numeroPedido"])
-    #                         await self.app.email.notificar()
-    #                         res.append(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
-    #                         print(f"Falha ao buscar dados do pedido #{dados_pedido["numeroPedido"]}. Verifique os logs")
-    #                 else:
-    #                     if not bool(exists[0].get('confirmado')):
-    #                         if await snkPed.confirmar_nota(nunota=exists[0].get('nunota'),provisao='S'):
-    #                             logger.info(self.contexto+"Pedido ID %s atualizado para confirmado. Nº único %s.",pedido,exists[0].get('nunota'))
-    #                             res.append(f"Pedido ID {pedido} atualizado para confirmado. Nº único {exists[0].get('nunota')}.")
-    #                             print(f"Pedido ID {pedido} atualizado para confirmado. Nº único {exists[0].get('nunota')}.")
-    #                         else:
-    #                             logger.warning(self.contexto+"Falha ao confirmar pedido ID %s Nº único %s.",pedido,exists[0].get('nunota'))
-    #                             await self.app.email.notificar(tipo='alerta')
-    #                             res.append(f"Falha ao confirmar pedido ID {pedido} nº único {exists[0].get('nunota')}.")
-    #                             print(f"Falha ao confirmar pedido ID {pedido} nº único {exists[0].get('nunota')}.")
-    #                     else:
-    #                         res.append(f"Sem alterações necessárias no pedido ID {pedido}. Nº único {exists[0].get('nunota')}.")
-    #                         print(f"Sem alterações necessárias no pedido ID {pedido}. Nº único {exists[0].get('nunota')}.")
-    #                 await self.atualiza_historico(pedido_alterado=pedido,sentido=1)
-    #         else:
-    #             logger.error(self.contexto+"Falha ao buscar relação dos pedidos em separação")
-    #             await self.app.email.notificar()
-    #             res.append("Falha ao buscar relação dos pedidos em separação")
-    #             print("Falha ao buscar relação dos pedidos em separação")
-    #         res.append("Importação concluída ✅")            
-    #         return True, res
-    #     async def busca_separacao(self, id:int=None):
-    #         olSep = olSeparacao()
-    #         if await olSep.buscar(id=id):
-    #             return True, await olSep.encodificar()
-    #         else:
-    #             return False, {}
-    #     async def listar_separacoes(self):
-    #         olSep = olSeparacao()
-    #         ack_lista_separacoes, lista_separacoes = await olSep.buscar_todas()
-    #         if ack_lista_separacoes:
-    #             return lista_separacoes
-    #         else:
-    #             return []
-    #     async def confere_lotes(self):
-    #         pass
-    #     async def desmembra_lotes(self):
-    #         pass        
-    #     async def nota_transferencia(self):
-    #         pass
-    #     async def faturar(self):
-    #         pass
-    #     async def atualiza_pedido_separacao(self):
-    #         lista_separacoes = await self.listar_separacoes()
-    #         if lista_separacoes:
-    #             for l in lista_separacoes:
-    #                 snkPed = snkPedido()
-    #                 ack_separacao, separacao = await self.busca_separacao(l.get('id_separacao'))
-    #                 ack_pedido = await snkPed.buscar(id=l.get('id_pedido'))
-    #                 if ack_separacao and ack_pedido:                        
-    #                     # TODO validar informações de lote para atualizar o pedido e gerar a nota de transferencia
-    #                     if snkPed.confirmada == 'S' and snkPed.pendente == 'S':
-    #                         if len(separacao.get('itens')) == snkPed.qtdite:
-    #                             for i, item in enumerate(separacao.get('itens')):
-    #                                 ack_produto = int(item.get('produto').get('sku')) == snkPed.itens[i].codprod
-    #                                 ack_qtd = int(item.get('quantidade')) == int(snkPed.itens[i].qtdneg)
-    #                                 if ack_produto and ack_qtd:
-    #                                     pode_faturar = True
-    #                     pass
+    class Pedido:
+        def __init__(self, id:int=None):
+            self.app = App()
+            self.id = id
+            self.contexto = '#Pedidos# '            
+            
+        async def atualiza_historico(self, pedido_alterado:int=None, pedido_incluido:int=None, sentido:int=None):
+            file_path = configOlist.PATH_HISTORICO_PEDIDO
+            historico = await self.app.valida_path.validar(path=file_path,mode='r',method='json')
+            if pedido_alterado:
+                if sentido == 0: # SANKHYA > OLIST
+                    historico["ultima_atualizacao_sankhya_olist"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    historico["ultima_atualizacao_sankhya_olist"]["id"] = pedido_alterado
+                elif sentido == 1: # OLIST > SANKHYA
+                    historico["ultima_atualizacao_olist_sankhya"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    historico["ultima_atualizacao_olist_sankhya"]["id"] = pedido_alterado
+                else:
+                    pass
+            if pedido_incluido:
+                historico["ultima_importacao"]["data"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                historico["ultima_importacao"]["id"] = pedido_incluido
+            await self.app.valida_path.validar(path=file_path,mode='w',method='json',content=historico)
+
+        async def registra_pedido_novo(self, pedido_aprovado:int, confirmado:bool=False) -> tuple[bool, int]:
+            olPed = olPedido()
+            snkPed = snkPedido()
+
+            time.sleep(self.app.req_sleep)
+            if await olPed.buscar(id=pedido_aprovado):
+                dados_pedido = await olPed.encodificar()
+                ack, num_unico = await snkPed.registrar(dados_pedido)            
+                if ack:
+                    if confirmado:
+                        if await snkPed.confirmar(nunota=num_unico,provisao='S'):
+                            logger.info(self.contexto+"Pedido #%s importado e confirmado no nº único %s",dados_pedido["numeroPedido"],num_unico)
+                        else:
+                            logger.warning(self.contexto+"Falha ao confirmar pedido. Pedido #%s importado no nº único %s.",dados_pedido["numeroPedido"],num_unico)
+                    else:
+                        logger.info(self.contexto+"Pedido #%s importado no nº único %s",dados_pedido["numeroPedido"],num_unico)
+                else:
+                    logger.error(self.contexto+"Falha ao registrar pedido #%s. Verifique os logs.",dados_pedido["numeroPedido"]) 
+                    return False, None
+            else:
+                logger.warning(self.contexto+"Falha ao buscar dados do pedido #%s. Verifique os logs.",dados_pedido["numeroPedido"])
+                return False, None
+            await self.atualiza_historico(pedido_incluido=pedido_aprovado)
+            return ack, num_unico
+
+        async def registra_nota(self, dados_snk:dict=None) -> tuple[bool, int]:
+            olNotas = olNota()
+            snkPed = snkPedido()
+            contexto = '#Notas# '
+            
+            time.sleep(self.app.req_sleep)
+            if await olNotas.buscar(id_ecommerce=dados_snk.get('ad_mkp_codped')):
+                dados_nota = await olNotas.encodificar()
+                ack = await snkPed.buscar(dados_snk.get('nunota'))
+
+            valida_itens = []
+            if dados_nota and ack:
+                for i, item in enumerate(dados_nota.get('itens')):
+                    valida_prod = int(item.get('codigo')) in [it.codprod for it in snkPed.itens]
+                    valida_qtd  = snkPed.itens[i].qtdneg == int(item.get('quantidade'))
+                    valida_itens.append(True if valida_prod and valida_qtd else False)
+                if all(valida_itens):
+                    ackNota, nunota_nota = await snkPed.gerar_nota(pedido=snkPed.nunota,payload=dados_nota)
+                    if ackNota:
+                        ack, nunota = await snkPed.importar_xml(nota=nunota_nota,payload=dados_nota)
+                        if ack:
+                            logger.info(contexto+"Pedido nº único %s faturado na Nota %s! ",dados_snk.get('nunota'),nunota)
+                            return True, nunota
+                        else:
+                            logger.error(contexto+"Pedido nº único %s faturado na Nota nº único %s! Erro ao importar XML da nota %s. Verifique os logs",dados_snk.get('nunota'),nunota,dados_nota.get('numero'))
+                            return False, nunota
+                    else:
+                        logger.error(contexto+"Erro ao faturar pedido nº único %s com a Nota %s. Verifique os logs",dados_snk.get('nunota'),dados_nota.get('numero'))
+                        return False, None
+                else:
+                    logger.error(contexto+"Erro ao faturar pedido nº único %s. Quantidades dos itens desmembrados na Nota %s não bate com o pedido",dados_snk.get('nunota'),dados_nota.get('numero'))
+                    return False, None
+            else:
+                logger.error(contexto+"Erro ao importar dados da Nota. Verifique os logs.")
+                return False, None
+
+        async def importa_aprovados(self) -> tuple[bool,list]:            
+            olPedidos = olPedido()
+            res = []
+            ack, pedidos_aprovados = await olPedidos.buscar_lista(situacao='A',atual=False)
+            if ack:                
+                file_path_exists = configSankhya.PATH_SCRIPT_SYNCPEDIDO
+                query_syncpedido = await self.app.valida_path.validar(path=file_path_exists,method='full',mode='r')
+                for pedido_aprovado in pedidos_aprovados:
+                    self.id = pedido_aprovado
+                    exists = await self.app.db.select(query=query_syncpedido, params={"AD_MKP_ID":pedido_aprovado})
+                    if not exists:
+                        ack, num_pedido = await self.registra_pedido_novo(pedido_aprovado)
+                        if ack:
+                            res.append(f"Pedido {pedido_aprovado} importado no nº único {num_pedido}")
+                            print(f"Pedido {pedido_aprovado} importado no nº único {num_pedido}")
+                        else:
+                            await self.app.email.notificar()
+                            res.append(f"Falha ao importar pedido {pedido_aprovado}. Verifique os logs.")
+                            print(f"Falha ao importar pedido {pedido_aprovado}. Verifique os logs.")
+                    else:
+                        pass
+                return True, res
+            else:
+                logger.error(self.contexto+" Falha ao buscar relação dos pedidos aprovados. Verifique os logs.")
+                await self.app.email.notificar()
+                res.append("Falha ao buscar relação dos pedidos aprovados")
+                print("Falha ao buscar relação dos pedidos aprovados")
+                return False, res
+            
+        async def importa_prep_envio(self) -> tuple[bool,list]:
+            olPedidos = olPedido()
+            res = []            
+            ack, pedidos_prep_envio = await olPedidos.buscar_lista(situacao='S',atual=False)
+            if ack:  
+                file_path_exists = configSankhya.PATH_SCRIPT_SYNCPEDIDO
+                query_syncpedido = await self.app.valida_path.validar(path=file_path_exists,method='full',mode='r')                            
+                for pedido in pedidos_prep_envio:
+                    self.id = pedido
+                    exists  = await self.app.db.select(query=query_syncpedido,params={"AD_MKP_ID":pedido})
+                    if not exists:
+                        ack, num_pedido = await self.registra_pedido_novo(pedido)
+                        if ack:
+                            res.append(f"Pedido {pedido} importado no nº único {num_pedido}")
+                            print(f"Pedido {pedido} importado no nº único {num_pedido}")
+                        else:
+                            await self.app.email.notificar()
+                            res.append(f"Falha ao importar pedido {pedido}. Verifique os logs.")
+                            print(f"Falha ao importar pedido {pedido}. Verifique os logs.")
+                    else:
+                        if not bool(exists[0].get('confirmado')):
+                            num_pedido = exists[0].get('nunota')
+                            snkPed = snkPedido()
+                            if await snkPed.confirmar(nunota=num_pedido,provisao='S'):
+                                logger.info(self.contexto+" Pedido ID %s atualizado para confirmado. Nº único %s.",pedido,num_pedido)
+                                res.append(f"Pedido ID {pedido} atualizado para confirmado. Nº único {num_pedido}.")
+                                print(f"Pedido ID {pedido} atualizado para confirmado. Nº único {num_pedido}.")
+                            else:
+                                logger.warning(self.contexto+" Falha ao confirmar pedido ID %s Nº único %s.",pedido,num_pedido)
+                                await self.app.email.notificar(tipo='alerta')
+                                res.append(f"Falha ao confirmar pedido ID {pedido} nº único {num_pedido}.")
+                                print(f"Falha ao confirmar pedido ID {pedido} nº único {num_pedido}.")
+                    await self.atualiza_historico(pedido_alterado=pedido,sentido=1)
+                return True, res
+            else:
+                logger.error(self.contexto+" Falha ao buscar relação dos pedidos em separação")
+                await self.app.email.notificar()
+                res.append("Falha ao buscar relação dos pedidos em separação")
+                print("Falha ao buscar relação dos pedidos em separação")
+                return False, res
+            
+        async def importa_faturados(self) -> tuple[bool,list]:
+            olPedidos = olPedido()
+            res = []
+            ack, pedidos_faturados = await olPedidos.buscar_lista(situacao='F',atual=False)
+            if ack:  
+                file_path_exists = configSankhya.PATH_SCRIPT_SYNCPEDIDO
+                query_syncpedido = await self.app.valida_path.validar(path=file_path_exists,method='full',mode='r')                            
+                for pedido_faturado in pedidos_faturados:
+                    self.id = pedido_faturado
+                    exists  = await self.app.db.select(query=query_syncpedido,params={"AD_MKP_ID":pedido_faturado})
+                    if not exists:
+                        ack, num_pedido = await self.registra_pedido_novo(pedido_faturado,confirmado=True)
+                        if ack:
+                            dados_snk = await self.app.db.select(query=query_syncpedido,params={"NUNOTA":num_pedido})
+                            ack, num_nota = await self.registra_nota(dados_snk=dados_snk[0])
+                            if ack:
+                                res.append(f"Pedido {pedido_faturado} importado no nº único {num_pedido} e Nota {num_nota} registrada.")                                
+                            else:
+                                await self.app.email.notificar()
+                                res.append(f"Falha ao registrar Nota para o pedido {pedido_faturado}. Verifique os logs.")                                
+                        else:
+                            await self.app.email.notificar()
+                            res.append(f"Falha ao importar pedido {pedido_faturado}. Verifique os logs.")                            
+                    else:
+                        if bool(exists[0].get('faturado')):
+                            pass
+                        else:
+                            if bool(exists[0].get('confirmado')):
+                                ack, num_nota = await self.registra_nota(dados_snk=exists[0])
+                                if ack:
+                                    res.append(f"Nota {num_nota} registrada para Pedido nº único {exists[0].get('nunota')}.")
+                                    print(f"Pedido {pedido_faturado} importado no nº único {exists[0].get('nunota')} e Nota {num_nota} registrada.")
+                                else:
+                                    await self.app.email.notificar()
+                                    res.append(f"Falha ao registrar Nota para o pedido {exists[0].get('nunota')}. Verifique os logs.")
+                                    print(f"Falha ao registrar Nota para o pedido {pedido_faturado}.")
+                            else:
+                                snkPed = snkPedido()
+                                if await snkPed.confirmar(nunota=exists[0].get('nunota'),provisao='S'):
+                                    ack, num_nota = await self.registra_nota(dados_snk=exists[0])
+                                    if ack:
+                                        res.append(f"Pedido nº único {exists[0].get('nunota')} confirmado e Nota {num_nota} registrada.")
+                                        print(f"Pedido {pedido_faturado} importado no nº único {exists[0].get('nunota')} e Nota {num_nota} registrada.")
+                                    else:
+                                        await self.app.email.notificar()
+                                        res.append(f"Pedido nº único {exists[0].get('nunota')} confirmado. Falha ao registrar a Nota. Verifique os logs.")
+                                        print(f"Falha ao registrar Nota para o pedido {pedido_faturado}.")                                    
+                                else:
+                                    await self.app.email.notificar()
+                                    res.append(f"Falha ao confirmar Pedido no nº único {exists[0].get('nunota')}.")
+                    await self.atualiza_historico(pedido_alterado=pedido_faturado,sentido=1)
+                return True, res
+            else:
+                logger.error(self.contexto+"Falha ao buscar relação dos pedidos faturados")
+                await self.app.email.notificar()
+                res.append("Falha ao buscar relação dos pedidos faturados")
+                print("Falha ao buscar relação dos pedidos faturados")
+                return False, res        
+
 
     class Estoque:
 
@@ -737,7 +764,7 @@ class App:
                                     valida_reservas = estoque_snk[0].get('reservado') or 0
                                     qtd_lote = None
 
-                                    for lote in estoque_snk:
+                                    for iter, lote in enumerate(estoque_snk):
                                         qtd_lote = lote.get('estoque')
                                         while valida_reservas > 0:
                                             qtd_lote -= 1
@@ -750,6 +777,9 @@ class App:
                                                 "dataValidade": lote.get('dtval').strftime('%d/%m/%Y'),
                                                 "quantidade": qtd_lote
                                             })
+                                        else:
+                                            estoque_snk.pop(iter)
+
                                         
                                     ajuste_estoque = {
                                         "idproduto": estoque_snk[0].get('ad_mkp_idprod'),
@@ -854,92 +884,93 @@ class App:
             return True, values
 
         async def balanco(self,produto:int=None) -> tuple[bool,list]:
-            values = []
-            if produto:
-                snkEst = snkEstoque()                
-                estoque_snk = await snkEst.buscar_disponivel(codprod=produto)
-                estoque_snk = estoque_snk[0]
-                snk_qtd_disponivel = estoque_snk.get('qtd')
-                olEst = olEstoque()
-                if await olEst.buscar(id=estoque_snk.get('ad_mkp_idprod')):
-                    estoque_olist = await olEst.encodificar()
-                    ol_qtd_disponivel = estoque_olist.get('disponivel')                    
-                    if ol_qtd_disponivel != snk_qtd_disponivel:
-                        ol_qtd_reservado = estoque_olist.get('reservado')
-                        saldo = snk_qtd_disponivel + ol_qtd_reservado
-                        ajuste_estoque = {
-                            "id": int(estoque_snk.get('ad_mkp_idprod')),
-                            "deposito": int(estoque_olist.get('depositos')[0].get('id')),
-                            "tipo":"B",
-                            "quantidade":saldo
-                        }
-                        olEst.tipo = ajuste_estoque.get('tipo')
-                        olEst.quantidade = ajuste_estoque.get('quantidade')
-                        olEst.acao = 'post'
-                        if await olEst.enviar_saldo():
-                            await self.remove_syncestoque(produto=estoque_snk.get('codprod'))
-                            await self.atualiza_historico(produto=produto)
-                            logger.info(self.contexto+"Estoque do produto %s sincronizado com sucesso",estoque_olist.get('codigo'))
-                            values.append(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso.")
-                            print(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso")
-                        else:
-                            print(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
-                            logger.error(self.contexto+"Falha ao sincronizar estoque do produto %s. Verifique os logs.",estoque_olist.get('codigo'))
-                            await self.app.email.notificar()
-                            values.append(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
-                            print(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
-                    else: 
-                        await self.atualiza_historico(produto=estoque_snk.get('codprod'))
-                        logger.info(self.contexto+"Estoque do produto %s já está atualizado.",estoque_snk.get('codprod'))
-                        values.append(f"Estoque do produto {estoque_snk.get('codprod')} já está atualizado.")
-                        print(f"Estoque do produto {estoque_snk.get('codprod')} já está atualizado.")
-                else:
-                    logger.error(self.contexto+"Falha ao buscar dados de estoque do produto %s na base Olist. Verifique os logs.",produto)
-                    await self.app.email.notificar()
-                    values.append(f"Falha ao buscar dados de estoque do produto {produto} na base Olist. Verifique os logs.")
-                    print(f"Falha ao buscar dados de estoque do produto {produto} na base Olist. Verifique os logs.")
-            else:                
-                snkEstoques = snkEstoque()                
-                estoques_snk = await snkEstoques.buscar_disponivel()
-                for e in estoques_snk:
-                    time.sleep(self.app.req_sleep)                   
-                    snk_qtd_disponivel = e.get('qtd')
-                    olEst = olEstoque()
-                    if await olEst.buscar(id=e.get('ad_mkp_idprod')):
-                        estoque_olist = await olEst.encodificar()
-                        ol_qtd_disponivel = estoque_olist.get('disponivel')                        
-                        if ol_qtd_disponivel != snk_qtd_disponivel:
-                            ol_qtd_reservado = estoque_olist.get('reservado')
-                            saldo = snk_qtd_disponivel + ol_qtd_reservado
-                            ajuste_estoque = {
-                                "id": int(e.get('ad_mkp_idprod')),
-                                "deposito": int(estoque_olist.get('depositos')[0].get('id')),
-                                "tipo":"B",
-                                "quantidade":saldo
-                            }
-                            olEst.tipo = ajuste_estoque.get('tipo')
-                            olEst.quantidade = ajuste_estoque.get('quantidade')
-                            olEst.acao = 'post'
-                            if await olEst.enviar_saldo():
-                                await self.remove_syncestoque(produto=e.get('codprod'))
-                                await self.atualiza_historico(produto=e.get('codprod'))
-                                logger.info(self.contexto+"Estoque do produto %s sincronizado com sucesso.",e.get('codprod'))
-                                values.append(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso.")                                
-                                print(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso.")
-                            else:
-                                logger.error(self.contexto+"Erro: Falha ao sincronizar estoque do produto %s. Verifique os logs.",e.get('codprod'))
-                                await self.app.email.notificar()
-                                values.append(f"Erro: Falha ao sincronizar estoque do produto {e.get('codprod')}. Verifique os logs.")                
-                                print(f"Erro: Falha ao sincronizar estoque do produto {e.get('codprod')}. Verifique os logs.")
-                        else:
-                            await self.atualiza_historico(produto=e.get('codprod'))
-                            logger.info(self.contexto+"Estoque do produto %s já está atualizado.",e.get('codprod'))
-                            values.append(f"Estoque do produto {e.get('codprod')} já está atualizado.")
-                            print(f"Estoque do produto {e.get('codprod')} já está atualizado.")
-                    else:
-                        logger.error(self.contexto+"Erro: Falha ao buscar dados do estoque do produto %s no Olist. Verifique os logs.",e.get('ad_mkp_idprod'))
-                        await self.app.email.notificar()
-                        values.append(f"Falha ao buscar dados do estoque do produto {e.get('ad_mkp_idprod')} no Olist. Verifique os logs.")
-                        print(f"Falha ao buscar dados do estoque do produto {e.get('ad_mkp_idprod')} no Olist. Verifique os logs.")
-            print(f"Sincronização concluída!")
-            return True, values
+        #     values = []
+        #     if produto:
+        #         snkEst = snkEstoque()                
+        #         estoque_snk = await snkEst.buscar_disponivel(codprod=produto)
+        #         estoque_snk = estoque_snk[0]
+        #         snk_qtd_disponivel = estoque_snk.get('qtd')
+        #         olEst = olEstoque()
+        #         if await olEst.buscar(id=estoque_snk.get('ad_mkp_idprod')):
+        #             estoque_olist = await olEst.encodificar()
+        #             ol_qtd_disponivel = estoque_olist.get('disponivel')                    
+        #             if ol_qtd_disponivel != snk_qtd_disponivel:
+        #                 ol_qtd_reservado = estoque_olist.get('reservado')
+        #                 saldo = snk_qtd_disponivel + ol_qtd_reservado
+        #                 ajuste_estoque = {
+        #                     "id": int(estoque_snk.get('ad_mkp_idprod')),
+        #                     "deposito": int(estoque_olist.get('depositos')[0].get('id')),
+        #                     "tipo":"B",
+        #                     "quantidade":saldo
+        #                 }
+        #                 olEst.tipo = ajuste_estoque.get('tipo')
+        #                 olEst.quantidade = ajuste_estoque.get('quantidade')
+        #                 olEst.acao = 'post'
+        #                 if await olEst.enviar_saldo():
+        #                     await self.remove_syncestoque(produto=estoque_snk.get('codprod'))
+        #                     await self.atualiza_historico(produto=produto)
+        #                     logger.info(self.contexto+"Estoque do produto %s sincronizado com sucesso",estoque_olist.get('codigo'))
+        #                     values.append(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso.")
+        #                     print(f"Estoque do produto {estoque_olist.get('codigo')} sincronizado com sucesso")
+        #                 else:
+        #                     print(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
+        #                     logger.error(self.contexto+"Falha ao sincronizar estoque do produto %s. Verifique os logs.",estoque_olist.get('codigo'))
+        #                     await self.app.email.notificar()
+        #                     values.append(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
+        #                     print(f"Falha ao sincronizar estoque do produto {estoque_olist.get('codigo')}. Verifique os logs.")
+        #             else: 
+        #                 await self.atualiza_historico(produto=estoque_snk.get('codprod'))
+        #                 logger.info(self.contexto+"Estoque do produto %s já está atualizado.",estoque_snk.get('codprod'))
+        #                 values.append(f"Estoque do produto {estoque_snk.get('codprod')} já está atualizado.")
+        #                 print(f"Estoque do produto {estoque_snk.get('codprod')} já está atualizado.")
+        #         else:
+        #             logger.error(self.contexto+"Falha ao buscar dados de estoque do produto %s na base Olist. Verifique os logs.",produto)
+        #             await self.app.email.notificar()
+        #             values.append(f"Falha ao buscar dados de estoque do produto {produto} na base Olist. Verifique os logs.")
+        #             print(f"Falha ao buscar dados de estoque do produto {produto} na base Olist. Verifique os logs.")
+        #     else:                
+        #         snkEstoques = snkEstoque()                
+        #         estoques_snk = await snkEstoques.buscar_disponivel()
+        #         for e in estoques_snk:
+        #             time.sleep(self.app.req_sleep)                   
+        #             snk_qtd_disponivel = e.get('qtd')
+        #             olEst = olEstoque()
+        #             if await olEst.buscar(id=e.get('ad_mkp_idprod')):
+        #                 estoque_olist = await olEst.encodificar()
+        #                 ol_qtd_disponivel = estoque_olist.get('disponivel')                        
+        #                 if ol_qtd_disponivel != snk_qtd_disponivel:
+        #                     ol_qtd_reservado = estoque_olist.get('reservado')
+        #                     saldo = snk_qtd_disponivel + ol_qtd_reservado
+        #                     ajuste_estoque = {
+        #                         "id": int(e.get('ad_mkp_idprod')),
+        #                         "deposito": int(estoque_olist.get('depositos')[0].get('id')),
+        #                         "tipo":"B",
+        #                         "quantidade":saldo
+        #                     }
+        #                     olEst.tipo = ajuste_estoque.get('tipo')
+        #                     olEst.quantidade = ajuste_estoque.get('quantidade')
+        #                     olEst.acao = 'post'
+        #                     if await olEst.enviar_saldo():
+        #                         await self.remove_syncestoque(produto=e.get('codprod'))
+        #                         await self.atualiza_historico(produto=e.get('codprod'))
+        #                         logger.info(self.contexto+"Estoque do produto %s sincronizado com sucesso.",e.get('codprod'))
+        #                         values.append(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso.")                                
+        #                         print(f"Estoque do produto {e.get('codprod')} sincronizado com sucesso.")
+        #                     else:
+        #                         logger.error(self.contexto+"Erro: Falha ao sincronizar estoque do produto %s. Verifique os logs.",e.get('codprod'))
+        #                         await self.app.email.notificar()
+        #                         values.append(f"Erro: Falha ao sincronizar estoque do produto {e.get('codprod')}. Verifique os logs.")                
+        #                         print(f"Erro: Falha ao sincronizar estoque do produto {e.get('codprod')}. Verifique os logs.")
+        #                 else:
+        #                     await self.atualiza_historico(produto=e.get('codprod'))
+        #                     logger.info(self.contexto+"Estoque do produto %s já está atualizado.",e.get('codprod'))
+        #                     values.append(f"Estoque do produto {e.get('codprod')} já está atualizado.")
+        #                     print(f"Estoque do produto {e.get('codprod')} já está atualizado.")
+        #             else:
+        #                 logger.error(self.contexto+"Erro: Falha ao buscar dados do estoque do produto %s no Olist. Verifique os logs.",e.get('ad_mkp_idprod'))
+        #                 await self.app.email.notificar()
+        #                 values.append(f"Falha ao buscar dados do estoque do produto {e.get('ad_mkp_idprod')} no Olist. Verifique os logs.")
+        #                 print(f"Falha ao buscar dados do estoque do produto {e.get('ad_mkp_idprod')} no Olist. Verifique os logs.")
+        #     print(f"Sincronização concluída!")
+        #     return True, values
+            pass
