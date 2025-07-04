@@ -1,9 +1,9 @@
 import os
 import json
 import logging
-from params               import config, configSankhya
-from src.sankhya.dbConfig import dbConfig
-from src.sankhya.produto.produto  import Produto
+from params                      import config, configSankhya
+from src.sankhya.dbConfig        import dbConfig
+from src.sankhya.produto.produto import Produto
 
 logger = logging.getLogger(__name__)
 logging.basicConfig( filename = config.PATH_LOGS,
@@ -93,13 +93,14 @@ class Item:
                                                 params={"UF":kwargs['ufdestino']})
             
             icms = await self.db.select(query='''
-                                                SELECT IDALIQ, ALIQUOTA, CODTRIB, CODANTECIPST
-                                                FROM TGFICM 
-                                                WHERE 1=1
-                                                    AND UFORIG = 15
+                                                SELECT IDALIQ, ALIQUOTA, CODTRIB, CODANTECIPST FROM (
+                                                    SELECT * FROM TGFICM 
+                                                    WHERE UFORIG = 15
                                                     AND UFDEST = :UFDEST
-                                                    AND ( CODRESTRICAO = :NCM OR CODRESTRICAO2 = :NCM)
-                                                    AND ( CODRESTRICAO2 = 31 OR TIPRESTRICAO2 = 'S')
+                                                    AND ((TIPRESTRICAO = 'N' AND CODRESTRICAO2 = 31) OR
+                                                        (CODRESTRICAO = :NCM AND CODRESTRICAO2 = 31))
+                                                    ORDER BY CODRESTRICAO DESC
+                                                ) WHERE ROWNUM = 1
                                             ''',
                                             params={"UFDEST":uf_destino[0]['coduf'],"NCM":kwargs['ncm']})
             
@@ -108,7 +109,7 @@ class Item:
                     "cod_icms":icms[0]['idaliq'],
                     "aliq_icms":icms[0]['aliquota'],
                     "cod_trib":icms[0]['codtrib'],
-                    "cod_antst":icms[0]['codantecipst'],
+                    "cod_antst":icms[0]['codantecipst']
                 }
             else:
                 res = {
@@ -194,9 +195,8 @@ class Item:
                     query = f.read()                    
                 ack2, rows = await self.db.dml(query=query,params=data)
                 if ack2:
-                    logger.info("Item %s inserido no pedido %s com sucesso",payload["produto"]["sku"],nunota)
                     return ack2, rows
                 else:
-                    logger.info("Erro ao inserir item %s inserido no pedido %s",payload["produto"]["sku"],nunota)
+                    logger.info("Erro ao inserir item %s no pedido %s",payload["produto"]["sku"],nunota)
                     return ack2, None                
                 
