@@ -1,5 +1,3 @@
-import os
-import json
 import logging
 from src.utils.validaPath import validaPath
 from params               import config, configSankhya
@@ -165,7 +163,6 @@ class Parcela:
             query = await self.valida_path.validar(path=file_path,mode='r',method='full')
             ack2, rows = await self.db.dml(query=query,params=data)
             if ack2:
-                logger.info("Financeiro inserido no pedido %s com sucesso",nunota)
                 return ack2, rows
             else:
                 logger.error("Falha ao inserir financeiro no pedido %s",nunota)
