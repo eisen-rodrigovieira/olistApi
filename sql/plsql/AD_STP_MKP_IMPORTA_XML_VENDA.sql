@@ -16,9 +16,14 @@ BEGIN
 
     ********************************************************************************/
 
+    STP_CONFIRMANOTA2(P_NUNOTA,'N',1);
+    COMMIT;
+
     INSERT INTO TGFLNF ( DHRECEB, NULOTE ) VALUES ( TO_DATE(P_DHRECEB,'YYYY-MM-DD HH24:MI:SS'), P_NULOTE );
+    COMMIT;
 
     INSERT INTO TGFNFE ( CHAVENFE, NUNOTA, XML ) VALUES ( P_CHAVENFE, P_NUNOTA, P_XML );
+    COMMIT;
 
     UPDATE TGFCAB
     SET    CHAVENFE      = P_CHAVENFE,
@@ -28,6 +33,8 @@ BEGIN
            TPEMISNFE     = 1,
            NULOTENFE     = P_NULOTE,
            VLRLIQITEMNFE = 'N',
-           STATUSNFE     = 'A'
+           STATUSNFE     = 'E'
     WHERE  TGFCAB.NUNOTA = P_NUNOTA;
+    COMMIT;
+    
 END;
