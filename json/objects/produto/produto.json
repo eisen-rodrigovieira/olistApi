@@ -1,0 +1,213 @@
+{
+  "get": {
+      "id": null,
+      "sku": "",
+      "descricao": "",
+      "descricaoComplementar": "",
+      "tipo": "",
+      "situacao": "",
+      "produtoPai": {
+          "id":null,
+          "sku":"",
+          "descricao":""
+      },
+      "unidade": "",
+      "unidadePorCaixa": "",
+      "ncm": "",
+      "gtin": "",
+      "origem": "",
+      "garantia": "",
+      "observacoes": "",
+      "categoria": {
+          "id":null,
+          "nome":"",
+          "caminhoCompleto":""
+      },
+      "marca": {
+          "id": null,
+          "nome": ""
+      },
+      "dimensoes": {
+          "embalagem": {
+              "id": null,
+              "tipo": null,
+              "descricao": ""
+          },
+          "largura": null,
+          "altura": null,
+          "comprimento": null,
+          "diametro": null,
+          "pesoLiquido": null,
+          "pesoBruto": null,
+          "quantidadeVolumes": null
+      },
+      "precos": {
+          "preco": null,
+          "precoPromocional": null,
+          "precoCusto": null,
+          "precoCustoMedio": null
+      },
+      "estoque": {
+          "controlar": true,
+          "sobEncomenda": false,
+          "diasPreparacao": null,
+          "localizacao": "",
+          "minimo": null,
+          "maximo": null,
+          "quantidade": null
+      },
+      "fornecedores": [
+
+      ],
+      "seo": {
+          "titulo": "",
+          "descricao": "",
+          "keywords": [
+              "produto"
+          ],
+          "linkVideo": "",
+          "slug": ""
+      },
+      "tributacao": {
+          "gtinEmbalagem": "",
+          "valorIPIFixo": null,
+          "classeIPI": ""
+      },
+      "anexos": [
+
+      ],
+      "variacoes": [
+
+      ],
+      "kit": [
+        
+      ],
+      "producao": {
+        
+      }
+  },
+  "post": {
+      "sku": null,
+      "descricaoComplementar": null,
+      "unidade": null,
+      "unidadePorCaixa": null,
+      "ncm": null,
+      "gtin": null,
+      "origem": null,
+      "codigoEspecificadorSubstituicaoTributaria": null,
+      "garantia": null,
+      "observacoes": null,
+      "marca": {
+        "id": null
+      },
+      "categoria": {
+        "id": null
+      },
+      "precos": {
+        "preco": null,
+        "precoPromocional": null,
+        "precoCusto": null
+      },
+      "dimensoes": {
+        "embalagem": {
+          "id": null,
+          "tipo": null
+        },
+        "largura": null,
+        "altura": null,
+        "comprimento": null,
+        "diametro": null,
+        "pesoLiquido": null,
+        "pesoBruto": null
+      },
+      "tributacao": {
+        "gtinEmbalagem": null,
+        "valorIPIFixo": null,
+        "classeIPI": null
+      },
+      "seo": {
+        "titulo": null,
+        "descricao": null,
+        "keywords": [
+          null
+        ],
+        "linkVideo": null,
+        "slug": null
+      },
+      "fornecedores": [
+
+      ],
+      "descricao": null,
+      "tipo": null,
+      "estoque": {
+        "controlar": true,
+        "sobEncomenda": false,
+        "minimo": null,
+        "maximo": null,
+        "diasPreparacao": null,
+        "localizacao": null,
+        "inicial": null
+      }
+  },
+  "put" : {
+      "sku": null,
+      "descricaoComplementar": null,
+      "unidade": null,
+      "unidadePorCaixa": null,
+      "ncm": null,
+      "gtin": null,
+      "origem": null,
+      "codigoEspecificadorSubstituicaoTributaria": null,
+      "garantia": null,
+      "observacoes": null,
+      "marca": {
+        "id": 1
+      },
+      "categoria": {
+        "id": 1
+      },
+      "precos": {
+        "preco": null,
+        "precoPromocional": null,
+        "precoCusto": null
+      },
+      "dimensoes": {
+        "embalagem": {
+          "id": null,
+          "tipo": null
+        },
+        "largura": null,
+        "altura": null,
+        "comprimento": null,
+        "diametro": null,
+        "pesoLiquido": null,
+        "pesoBruto": null
+      },
+      "tributacao": {
+        "gtinEmbalagem": null,
+        "valorIPIFixo": null,
+        "classeIPI": null
+      },
+      "seo": {
+        "titulo": null,
+        "descricao": null,
+        "keywords": [
+          "produto"
+        ],
+        "linkVideo": null,
+        "slug": null
+      },
+      "fornecedores": [
+
+      ],
+      "descricao": null,
+      "estoque": {
+        "controlar": true,
+        "sobEncomenda": false,
+        "minimo": null,
+        "maximo": null,
+        "diasPreparacao": null,
+        "localizacao": null
+      }
+  }
+}          

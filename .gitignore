@@ -1,0 +1,16 @@
+__pycache__
+*.ipynb
+*.log
+keys/*
+*.teste.*
+*TEST*
+*.old.*
+*.csv
+*.png
+*.jpg
+*todo*
+venv
+sql/plsql/*
+params/*
+*historico.json*
+*token*

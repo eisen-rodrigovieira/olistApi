@@ -1,0 +1,9 @@
+cryptography==45.0.4
+nest_asyncio==1.6.0
+oracledb==3.1.0
+pandas==2.3.0
+Requests==2.32.4
+selenium==4.33.0
+streamlit==1.45.1
+lxml==5.2.1
+dotenv

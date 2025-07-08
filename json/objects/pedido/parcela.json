@@ -1,0 +1,18 @@
+{
+    "get": {
+        "dias": 0,
+        "data": "",
+        "valor": 0,
+        "observacoes": "",
+        "formaPagamento": {
+            "id": 0,
+            "nome": ""
+        },
+        "meioPagamento": {
+            "id": 0,
+            "nome": ""
+        }        
+    },
+    "put": {},
+    "post": {}
+}

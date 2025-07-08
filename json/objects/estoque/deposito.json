@@ -1,0 +1,11 @@
+{
+    "get": {
+        "id": 0,
+        "nome": "",
+        "desconsiderar": false,
+        "saldo": 0,
+        "reservado": 0,
+        "disponivel": 0
+    },
+    "post": { "id": 0 }
+}
