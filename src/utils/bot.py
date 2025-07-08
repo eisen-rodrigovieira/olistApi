@@ -90,8 +90,9 @@ class Bot:
             btn_salvar = driver.find_element(By.XPATH, "//button[@name='btn_salvar_popup']")
             btn_salvar.click()
 
-            # aguarda carregar o modal dos lotes e verifica se o produto está configurado para isso
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//form[@name='formLancarLotesEntrada']")))
+            if dados_produto.get('qtd') != 0:
+                # aguarda carregar o modal dos lotes e verifica se o produto está configurado para isso
+                WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, "//form[@name='formLancarLotesEntrada']")))
             time.sleep(self.time_sleep)       
 
             return True, driver
@@ -236,7 +237,7 @@ class Bot:
                 except Exception as e:
                     logger.error("Erro ao informar os lotes: %s",e)
                     return False, driver
-                
+            # verifica se no Olist tem mais lotes que no Sankhya    
             elif len(table_lotes_rows) > len(dados_lote):                    
                 for i, row in enumerate(table_lotes_rows):
                     # coleta os lotes
