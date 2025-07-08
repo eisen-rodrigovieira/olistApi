@@ -18,9 +18,6 @@ class Estoque:
     def __init__(self):
         self.db          = dbConfig()
         self.valida_path = validaPath() 
-        self.codprod     = None
-        self.idprod      = None
-        self.dhevento    = None
 
     async def decodificar(self,data:dict=None) -> bool:
         if data:
@@ -39,9 +36,9 @@ class Estoque:
     async def encodificar(self) -> dict:
         data = {}
         try:
-            data["codprod"]  = self.codprod
-            data["idprod"]   = self.idprod
-            data["dhevento"] = self.dhevento            
+            data["codprod"] = self.codprod
+            data["idprod"] = self.idprod
+            data["dhevento"] = self.dhevento
         except Exception as e:
             logger.error("Erro ao montar dados do estoque. Cód. %s. %s",self.codprod,e)
         finally:

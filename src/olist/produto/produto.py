@@ -256,7 +256,7 @@ class Produto:
                 data["estoque"]["minimo"]                         = self.estoque_minimo               
                 data["estoque"]["maximo"]                         = self.estoque_maximo               
                 data["estoque"]["quantidade"]                     = self.estoque_quantidade           
-                data["estoque"]["inicial"]                        = self.estoque_inicial           
+                #data["estoque"]["inicial"]                        = self.estoque_inicial           
                 data["seo"]["titulo"]                             = self.seo_titulo                   
                 data["seo"]["descricao"]                          = self.seo_descricao                
                 data["seo"]["keywords"]                           = self.seo_keywords                 
