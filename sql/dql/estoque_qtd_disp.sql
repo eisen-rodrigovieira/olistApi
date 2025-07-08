@@ -20,13 +20,15 @@ FROM
         BASE.AD_MKP_ESTPOL,
         BASE.AD_MKP_ESTREGBARTIP,
         BASE.CONTROLA_LOTE,
-        BASE.ESTOQUE,
+        CASE WHEN BASE.AD_MKP_ESTPOL = 'T' THEN ESTOQUE
+             WHEN BASE.AD_MKP_ESTPOL = 'V' THEN CASE WHEN TRUNC(BASE.DTVAL) - TRUNC(CURRENT_DATE) < 365 THEN ESTOQUE ELSE 0 END
+             ELSE ESTOQUE END ESTOQUE,
         BASE.PROPORCAO,
         CASE
             -- Política de estoque = TODO O ESTOQUE
             WHEN BASE.AD_MKP_ESTPOL = 'T' THEN ESTOQUE_TOTAL
             -- Política de estoque = APENAS VALIDADE CURTA
-            WHEN BASE.AD_MKP_ESTPOL = 'V' THEN ESTOQUE_TOTAL - (SELECT SUM(ESTOQUE)
+            WHEN BASE.AD_MKP_ESTPOL = 'V' THEN ESTOQUE_TOTAL - (SELECT NVL(SUM(ESTOQUE),0)
                                                                 FROM TGFEST EST
                                                                 WHERE EST.CODPROD = BASE.CODPROD
                                                                     AND EST.CODLOCAL = 101
