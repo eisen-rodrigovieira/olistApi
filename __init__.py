@@ -14,6 +14,18 @@ st.set_page_config(
     layout="wide"
 )
 
+st.markdown("""
+    <style>
+        .reportview-container {
+            margin-top: -2em;
+        }
+        #MainMenu {visibility: hidden;}
+        .stAppDeployButton {display:none;}
+        footer {visibility: hidden;}
+        #stDecoration {display:none;}
+    </style>
+""", unsafe_allow_html=True)
+
 font_css = """
 <style>
 button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
@@ -113,44 +125,17 @@ with st.container(border=True):
                             st.write(v)
                             
     with tab_estoque:
-        col1_es, col2_es = st.columns([0.3, 0.7],vertical_alignment="top")
-        with col1_es:
-            btn_send_est = st.button("🔄 Atualizar estoques",key='btn_send_est',use_container_width=True)
-            with st.empty():
-                if btn_send_est:    
-                    with st.spinner("Aguarde",show_time=True):
-                        status_send, values_send = asyncio.run(app_estoque.atualizar())
-                    if status_send:
-                        with st.expander(label="Atualizações enviadas com sucesso!",icon="✅"):
-                            for v in values_send:
-                                st.caption(v)    
-                    else:
-                        st.error("Falha na sincronização! Verifique os logs.")
-        with col2_es:            
-            # btn_update_bal = None        
-            # with st.container(border=True):
-            #     col_produto, col_botao = st.columns(2,vertical_alignment="bottom")
-            #     with col_produto:
-            #         number = st.text_input("Informe o código do produto")
-            #     with col_botao:
-            #         btn_update_bal = st.button("🔄 Executar balanço de estoque",key='btn_update_bal',use_container_width=True)
-            #     st.caption("⚠️:red[**Executar o balanço sem especificar o produto atualiza o estoque de TODOS OS PRODUTOS**]")
-            #     if btn_update_bal:
-            #         produto = None
-            #         with st.spinner("Aguarde",show_time=True):
-            #             try:
-            #                 try: produto = int(number)
-            #                 except: pass
-            #                 finally:                        
-            #                     status_bal, values_bal = asyncio.run(app_estoque.balanco(produto=produto))
-            #                     if status_bal:
-            #                         with st.expander(label="Balanço de estoque executado com sucesso!",icon="✅"):
-            #                             for v in values_bal: st.caption(v)    
-            #                     else:
-            #                         st.error("Falha na sincronização! Verifique os logs.")                           
-            #             except ValueError as e: st.error(f"Número inválido ou vazio. {e}")
-            #             finally: pass
-            pass
+        btn_send_est = st.button("🔄 Atualizar estoques",key='btn_send_est',use_container_width=True)
+        with st.empty():
+            if btn_send_est:    
+                with st.spinner("Aguarde",show_time=True):
+                    status_send, values_send = asyncio.run(app_estoque.atualizar())
+                if status_send:
+                    with st.expander(label="Atualizações enviadas com sucesso!",icon="✅"):
+                        for v in values_send:
+                            st.caption(v)    
+                else:
+                    st.error("Falha na sincronização! Verifique os logs.")
 
     with tab_logs:
         logs = asyncio.run(valida_path.validar(path=config.PATH_LOGS,mode='r',method='lines'))

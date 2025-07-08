@@ -10,3 +10,4 @@ keys/*
 *.png
 *.jpg
 *todo*
+venv
