@@ -59,6 +59,13 @@ regex_contexto = r'\w+'
 regex_texto    = r'#\w+#\s'
 regex_data     = r'^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}'
 
+def check_input(input):
+    try:        
+        return int(input) if input else None
+    except:
+        return -1
+
+
 st.write(font_css, unsafe_allow_html=True)
 st.title("Painel de Controle - Olist")
 with st.container(border=True):
@@ -128,17 +135,27 @@ with st.container(border=True):
                             st.write(v)
                             
     with tab_estoque:
-        btn_send_est = st.button("🔄 Atualizar estoques",key='btn_send_est',use_container_width=True)
+        col1_est, col2_est = st.columns(2)
+        with col1_est:
+            btn_send_est = st.button("🔄 Atualizar estoques",key='btn_send_est',use_container_width=True)
+        with col2_est:
+            input_codprod = st.text_input(label="Código do produto",label_visibility="collapsed",placeholder="Código do produto (opcional)")
         with st.empty():
-            if btn_send_est:    
-                with st.spinner("Aguarde",show_time=True):
-                    status_send, values_send = asyncio.run(app_estoque.atualizar())
-                if status_send:
-                    with st.expander(label="Atualizações enviadas com sucesso!",icon="✅"):
-                        for v in values_send:
-                            st.caption(v)    
-                else:
-                    st.error("Falha na sincronização! Verifique os logs.")
+            if btn_send_est:
+                vlr = check_input(input_codprod)
+                if vlr == -1:
+                    st.toast("Código do produto inválido")
+                else:    
+                    with st.spinner("Aguarde",show_time=True):
+                        st.write(vlr)
+                        status_send, values_send = asyncio.run(app_estoque.atualizar(vlr))
+                    if status_send:
+                        with st.expander(label="Atualizações enviadas com sucesso!",icon="✅"):
+                            for v in values_send:
+                                st.caption(v)    
+                    else:
+                        st.error("Falha na sincronização! Verifique os logs.")
+                input_codprod = vlr = None
 
     with tab_logs:
         logs = asyncio.run(valida_path.validar(path=config.PATH_LOGS,mode='r',method='lines'))
@@ -165,7 +182,7 @@ with st.container(border=True):
                     st.caption("Nenhum registro pra exibir")  
  
     with tab_config:
-        st.warning("👩🏻‍💻 Em desenvolvimento. Por hora, alterações nestes campos não interferem na execução do integrador")
+        #st.warning("👩🏻‍💻 Em desenvolvimento. Por hora, alterações nestes campos não interferem na execução do integrador")
         st.subheader("🏷️ Produtos")        
         with st.container(border=True):
             cols_tsk_produtos1 = st.columns([0.2,0.6,0.2],vertical_alignment='bottom')
