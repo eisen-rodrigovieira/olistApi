@@ -234,11 +234,12 @@ class Pedido:
                         self.pagamento_meioPagamento_nome     = payload["pagamento"]["meioPagamento"]["nome"]
                     else:
                         self.pagamento_meioPagamento_id = self.pagamento_meioPagamento_nome = None
-
-                for p in payload["pagamento"]["parcelas"]:
-                    pa = parcela.Parcela()
-                    pa.decodificar(p)
-                    self.pagamento_parcelas.append(pa)
+                
+                if payload["pagamento"].get('parcelas'):
+                    for p in payload["pagamento"]["parcelas"]:
+                        pa = parcela.Parcela()
+                        pa.decodificar(p)
+                        self.pagamento_parcelas.append(pa)
                 
                 for i in payload["itens"]:
                     it = item.Item()
@@ -406,6 +407,7 @@ class Pedido:
                 Valores aceitos:
                     - A: Aprovados (padrão)
                     - S: Em separação
+                    - P: Pronto para envio
                     - F: Faturado
             atual (bool): Se deve considerar somente os pedidos com data D-1 ou todos
 
@@ -422,6 +424,8 @@ class Pedido:
                 cod_situacao = 3
             case "S":
                 cod_situacao = 4
+            case "P":
+                cod_situacao = 7
             case "F":
                 cod_situacao = 1
             case _:  # Default case
