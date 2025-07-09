@@ -395,7 +395,6 @@ class Pedido:
                     ack_fins = True
                 if ack_cab and ack_itens and ack_fins:
                     if await self.atualiza_seqs(nunota_nextval=nunota,numnota_nextval=numnota):                        
-                        logger.info("Pedido %s importado com sucesso! Nº único %s",payload['numeroPedido'],nunota)
                         return True, nunota
                     else:
                         logger.error("Erro ao atualizar sequencial NUNOTA e/ou NUMNOTA. Pedido %s importado com sucesso! Nº único %s",payload['numeroPedido'],nunota)
