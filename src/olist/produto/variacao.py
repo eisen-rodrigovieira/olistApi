@@ -16,22 +16,7 @@ class Variacao:
     def __init__(self):
         self.valida_path            = validaPath() 
         self.id                     = None
-        self.descricao              = None
         self.sku                    = None
-        self.gtin                   = None
-        self.preco                  = None
-        self.precoPromocional       = None
-        self.precoCusto             = None
-        self.precoCustoMedio        = None
-        self.estoque_controlar      = None
-        self.estoque_sobEncomenda   = None
-        self.estoque_diasPreparacao = None
-        self.estoque_localizacao    = None
-        self.estoque_minimo         = None
-        self.estoque_maximo         = None
-        self.estoque_quantidade     = None
-        self.estoque_inicial        = None
-        self.grade                  = None
 
     def decodificar(self,payload:dict=None) -> bool:
         """
@@ -57,8 +42,10 @@ class Variacao:
                 self.estoque_minimo         = payload["estoque"]["minimo"]
                 self.estoque_maximo         = payload["estoque"]["maximo"]
                 self.estoque_quantidade     = payload["estoque"]["quantidade"]
-                self.estoque_inicial        = payload["estoque"]["inicial"]
-                self.grade                  = payload["grade"]
+                if payload.get('grade'):
+                    self.grade = payload["grade"]
+                else:
+                    self.grade = None
             except Exception as e:
                 logger.error("Erro ao extrair dados do payload. ID %s. %s",payload["id"],e)
                 return False
@@ -76,6 +63,7 @@ class Variacao:
         file_path = configOlist.PATH_OBJECT_PRODUTO_VARIACAO
         try:
             data = await self.valida_path.validar(path=file_path,mode='r',method='json')
+            data = data.get('get')
             data["id"]                         = self.id
             data["descricao"]                  = self.descricao
             data["sku"]                        = self.sku
@@ -91,7 +79,6 @@ class Variacao:
             data["estoque"]["minimo"]          = self.estoque_minimo
             data["estoque"]["maximo"]          = self.estoque_maximo
             data["estoque"]["quantidade"]      = self.estoque_quantidade
-            data["estoque"]["inicial"]         = self.estoque_inicial
             data["grade"]                      = self.grade
             return data
         except Exception as e:
