@@ -1,28 +1,26 @@
 {
-   "id": 0,
-   "descricao": "",
-   "sku": "",
-   "gtin": "",
-   "precos": {
-      "preco": 0,
-      "precoPromocional": 0,
-      "precoCusto": 0,
-      "precoCustoMedio": 0
+   "get": {
+      "id": 0,
+      "descricao": "string",
+      "sku": "string",
+      "gtin": "string",
+      "precos": {
+        "preco": 0,
+        "precoPromocional": 0,
+        "precoCusto": 0,
+        "precoCustoMedio": 0
+      },
+      "estoque": {
+        "controlar": true,
+        "sobEncomenda": true,
+        "diasPreparacao": 0,
+        "localizacao": "string",
+        "minimo": 0,
+        "maximo": 0,
+        "quantidade": 0
+      },
+      "grade": [ ]
    },
-   "estoque": {
-      "controlar": false,
-      "sobEncomenda": false,
-      "diasPreparacao": 0,
-      "localizacao": "",
-      "minimo": 0,
-      "maximo": 0,
-      "quantidade": 0,
-      "inicial": 0
-   },
-   "grade": [
-      {
-         "chave": "",
-         "valor": ""
-      }
-   ]
+   "put":{ },
+   "post":{ }
 }

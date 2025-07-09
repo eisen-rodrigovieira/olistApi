@@ -3,6 +3,6 @@ services:
     build: .
     container_name: olist
     ports:
-      - "8501:8501"
+      - "8501:8585"
     volumes:
       - .:/__init__.py
