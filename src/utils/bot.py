@@ -92,7 +92,7 @@ class Bot:
 
             if dados_produto.get('qtd') != 0:
                 # aguarda carregar o modal dos lotes e verifica se o produto está configurado para isso
-                WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, "//form[@name='formLancarLotesEntrada']")))
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//form[@name='formLancarLotesEntrada']")))
             time.sleep(self.time_sleep)       
 
             return True, driver
