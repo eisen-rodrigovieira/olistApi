@@ -71,49 +71,49 @@ st.title("Painel de Controle - Olist")
 with st.container(border=True):
     tab_produtos, tab_pedidos, tab_estoque, tab_logs, tab_config, tab_ajuda = st.tabs(["**🏷️ Produtos**","**🛒 Pedidos**","**📦 Estoque**","**📰 Logs**","**⚙️ Configurações**","**💬 Ajuda**"])
 
-    # with tab_produtos:
-    #     col1_pr, col2_pr, col3_pr = st.columns(3)
-    #     with col1_pr:
-    #         btn_send_pr = st.button("📤 Enviar atualizações para Olist",key='btn_send_pr',use_container_width=True)
-    #         with st.empty():
-    #             if btn_send_pr:
-    #                 with st.spinner("Aguarde",show_time=True):
-    #                     status_send, values_send = asyncio.run(app_produto.ol_atualizar_produtos())
-    #                 if status_send:
-    #                     with st.expander(label="Atualizações enviadas com sucesso!",icon="✅"):
-    #                         for v in values_send:
-    #                             st.write(v)    
-    #                 else:
-    #                     st.error("Falha na sincronização! Verifique os logs.")
-    #     with col2_pr:
-    #         btn_receive_pr = st.button("📥 Receber atualizações do Olist",key='btn_receive_pr',use_container_width=True)
-    #         with st.empty():
-    #             if btn_receive_pr:
-    #                 with st.spinner("Aguarde",show_time=True):
-    #                     status_receive, values_receive = asyncio.run(app_produto.snk_atualizar_produtos())
-    #                 if status_receive:
-    #                     with st.expander(label="Atualizações recebidas com sucesso!",icon="✅"):
-    #                         for v in values_receive:
-    #                             st.write(v)                        
-    #                 else:
-    #                     st.error("Falha na sincronização! Verifique os logs.")
-    #     with col3_pr:
-    #         btn_update_all_pr = st.button("🔄 Atualizar tudo",key='btn_update_all_pr',use_container_width=True)
-    #         with st.empty():
-    #             if btn_update_all_pr:
-    #                 status_sinc = []
-    #                 with st.spinner("Sincronizando",show_time=True):
-    #                     status_ol, values_send2 = asyncio.run(app_produto.ol_atualizar_produtos())
-    #                     status_sinc.append(status_ol)
-    #                     status_snk, values_receive2 = asyncio.run(app_produto.snk_atualizar_produtos())
-    #                     status_sinc.append(status_snk)
-    #                 if False in status_sinc:
-    #                     st.error("Falha na sincronização! Verifique os logs.")
-    #                 else:
-    #                     vl = values_send2+values_receive2
-    #                     with st.expander(label="Sincronização concluída com sucesso!",icon="✅"):
-    #                         for v in vl:
-    #                             st.write(v)
+    with tab_produtos:
+        col1_pr, col2_pr, col3_pr = st.columns(3)
+        with col1_pr:
+            btn_send_pr = st.button("📤 Enviar atualizações para Olist",key='btn_send_pr',use_container_width=True)
+            with st.empty():
+                if btn_send_pr:
+                    with st.spinner("Aguarde",show_time=True):
+                        status_send, values_send = asyncio.run(app_produto.ol_atualizar_produtos())
+                    if status_send:
+                        with st.expander(label="Atualizações enviadas com sucesso!",icon="✅"):
+                            for v in values_send:
+                                st.write(v)    
+                    else:
+                        st.error("Falha na sincronização! Verifique os logs.")
+        with col2_pr:
+            btn_receive_pr = st.button("📥 Receber atualizações do Olist",key='btn_receive_pr',use_container_width=True)
+            with st.empty():
+                if btn_receive_pr:
+                    with st.spinner("Aguarde",show_time=True):
+                        status_receive, values_receive = asyncio.run(app_produto.snk_atualizar_produtos())
+                    if status_receive:
+                        with st.expander(label="Atualizações recebidas com sucesso!",icon="✅"):
+                            for v in values_receive:
+                                st.write(v)                        
+                    else:
+                        st.error("Falha na sincronização! Verifique os logs.")
+        with col3_pr:
+            btn_update_all_pr = st.button("🔄 Atualizar tudo",key='btn_update_all_pr',use_container_width=True)
+            with st.empty():
+                if btn_update_all_pr:
+                    status_sinc = []
+                    with st.spinner("Sincronizando",show_time=True):
+                        status_ol, values_send2 = asyncio.run(app_produto.ol_atualizar_produtos())
+                        status_sinc.append(status_ol)
+                        status_snk, values_receive2 = asyncio.run(app_produto.snk_atualizar_produtos())
+                        status_sinc.append(status_snk)
+                    if False in status_sinc:
+                        st.error("Falha na sincronização! Verifique os logs.")
+                    else:
+                        vl = values_send2+values_receive2
+                        with st.expander(label="Sincronização concluída com sucesso!",icon="✅"):
+                            for v in vl:
+                                st.write(v)
     
     with tab_pedidos:
         st.warning("🚧 Conectado à base de Testes 🚧")

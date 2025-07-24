@@ -1,9 +1,0 @@
-venv
-__pycache__
-.gitignore
-Dockerfile
-README.md
-status.teste.md
-*.ipynb
-*todo*
-sql/plsql/*
