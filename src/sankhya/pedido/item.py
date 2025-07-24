@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import logging
 from params                      import config, configSankhya
@@ -138,17 +139,19 @@ class Item:
                 print(f"Erro: {e}") 
 
             produto = Produto()
-            if await produto.buscar(codprod=int(payload_olist["produto"]["sku"])):    
+            
+            codprod = re.search(r"^\d{8}", payload_olist["produto"]["sku"]).group()
+            if await produto.buscar(codprod=int(codprod)):    
 
                 parametros = await self.buscar_parametros( ufdestino = uf,
-                                                           ncm       = produto.ncm )
+                                                           ncm = produto.ncm )
 
                 if parametros:
                     valores_insert = {
                         "NUNOTA"        : nunota,
                         "SEQUENCIA"     : sequencia,
                         "CODEMP"        : ins_tgfite["CODEMP"],
-                        "CODPROD"       : int(payload_olist["produto"]["sku"]),
+                        "CODPROD"       : int(codprod),
                         "CODLOCALORIG"  : ins_tgfite["CODLOCALORIG"],
                         "USOPROD"       : ins_tgfite["USOPROD"],
                         "QTDNEG"        : payload_olist["quantidade"],

@@ -1,5 +1,5 @@
 import asyncio
-from src.app.app import App
+from src.app.appTest import App
 
 app_pedido = App().Pedido()
 

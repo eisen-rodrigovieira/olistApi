@@ -114,11 +114,11 @@ class App:
                                 # new_tipo                        = olProd.tipo                        if snkProd.tipo                                  != olProd.tipo                                  else None
                                 # new_situacao                    = olProd.situacao                    if snkProd.situacao                              != olProd.situacao                              else None
                                 new_produtoPai_id               = olProd.produtoPai_id               if int(snkProd.produtoPai_id or 0)               != int(olProd.produtoPai_id or 0)               else None
-                                new_unidade                     = olProd.unidade                     if snkProd.unidade                               != olProd.unidade                               else None
+                                #new_unidade                     = olProd.unidade                     if snkProd.unidade                               != olProd.unidade                               else None
                                 # new_unidadePorCaixa             = olProd.unidadePorCaixa             if int(snkProd.unidadePorCaixa or 0)             != int(olProd.unidadePorCaixa or 0)             else None
-                                new_ncm                         = olProd.ncm                         if snkProd.ncm                                   != olProd.ncm                                   else None
-                                new_gtin                        = olProd.gtin                        if snkProd.gtin                                  != olProd.gtin                                  else None
-                                new_origem                      = olProd.origem                      if int(snkProd.origem or 0)                      != int(olProd.origem or 0)                      else None
+                                #new_ncm                         = olProd.ncm                         if snkProd.ncm                                   != olProd.ncm                                   else None
+                                #new_gtin                        = olProd.gtin                        if snkProd.gtin                                  != olProd.gtin                                  else None
+                                #new_origem                      = olProd.origem                      if int(snkProd.origem or 0)                      != int(olProd.origem or 0)                      else None
                                 # new_cest                        = olProd.cest                        if snkProd.cest                                  != olProd.cest                                  else None
                                 # new_garantia                    = olProd.garantia                    if snkProd.garantia                              != olProd.garantia                              else None
                                 # new_observacoes                 = olProd.observacoes                 if snkProd.observacoes                           != olProd.observacoes                           else None
@@ -159,22 +159,22 @@ class App:
                                 params['DESCRICAO']                 = new_descricao
                                 params['DESCRICAO_COMPLEMENTAR']    = new_descricaoComplementar
                                 params['PRODUTO_PAI_ID']            = new_produtoPai_id
-                                params['UNIDADE']                   = new_unidade
+                                #params['UNIDADE']                   = new_unidade
                                 params['ID_MARCA']                  = new_marca_id
-                                params['NCM']                       = new_ncm
-                                params['GTIN']                      = new_gtin
-                                params['ORIGEM']                    = new_origem
-                                params['CEST']                      = snkProd.cest
+                                #params['NCM']                       = new_ncm
+                                #params['GTIN']                      = new_gtin
+                                #params['ORIGEM']                    = new_origem
+                                #params['CEST']                      = snkProd.cest
                                 params['ID_CATEGORIA']              = new_categoria_id
-                                params['LARGURA']                   = new_dimensoes_largura
-                                params['ALTURA']                    = new_dimensoes_altura
-                                params['ESPESSURA']                 = new_dimensoes_comprimento
-                                params['PESO_LIQUIDO']              = new_dimensoes_pesoLiquido
-                                params['PESO_BRUTO']                = new_dimensoes_pesoBruto
-                                params['QUANTIDADE_VOLUMES']        = new_dimensoes_quantidadeVolumes
-                                params['ESTOQUE_MINIMO']            = new_estoque_minimo
-                                params['ESTOQUE_MAXIMO']            = new_estoque_maximo                                
-                                params['FORNECEDOR_CODIGO_PRODUTO'] = new_fornecedor_codigo_produto     
+                                # params['LARGURA']                   = new_dimensoes_largura
+                                # params['ALTURA']                    = new_dimensoes_altura
+                                # params['ESPESSURA']                 = new_dimensoes_comprimento
+                                # params['PESO_LIQUIDO']              = new_dimensoes_pesoLiquido
+                                # params['PESO_BRUTO']                = new_dimensoes_pesoBruto
+                                # params['QUANTIDADE_VOLUMES']        = new_dimensoes_quantidadeVolumes
+                                # params['ESTOQUE_MINIMO']            = new_estoque_minimo
+                                # params['ESTOQUE_MAXIMO']            = new_estoque_maximo                                
+                                # params['FORNECEDOR_CODIGO_PRODUTO'] = new_fornecedor_codigo_produto     
 
                                 necessita_atualizar = 0
                                 for value in params.values():
@@ -521,7 +521,7 @@ class App:
         async def importa_aprovados(self) -> tuple[bool,list]:
             olPedidos = olPedido()
             res = []
-            ack, pedidos_aprovados = await olPedidos.buscar_lista(situacao='A',atual=False)
+            ack, pedidos_aprovados = await olPedidos.buscar_lista(situacao='A')#,atual=False)
             if ack and pedidos_aprovados:
                 file_path_exists = configSankhya.PATH_SCRIPT_SYNCPEDIDO
                 query_syncpedido = await self.app.valida_path.validar(path=file_path_exists,method='full',mode='r')
@@ -554,7 +554,7 @@ class App:
         async def importa_prep_envio(self) -> tuple[bool,list]:
             olPedidos = olPedido()
             res = []            
-            ack, pedidos_prep_envio = await olPedidos.buscar_lista(situacao='S',atual=False)
+            ack, pedidos_prep_envio = await olPedidos.buscar_lista(situacao='S')#,atual=False)
             if ack and pedidos_prep_envio:  
                 file_path_exists = configSankhya.PATH_SCRIPT_SYNCPEDIDO
                 query_syncpedido = await self.app.valida_path.validar(path=file_path_exists,method='full',mode='r')                            
@@ -599,7 +599,7 @@ class App:
         async def importa_pronto_envio(self) -> tuple[bool,list]:
             olPedidos = olPedido()
             res = []            
-            ack, pedidos_pronto_envio = await olPedidos.buscar_lista(situacao='P',atual=False)
+            ack, pedidos_pronto_envio = await olPedidos.buscar_lista(situacao='P')#,atual=False)
             if ack and pedidos_pronto_envio:  
                 file_path_exists = configSankhya.PATH_SCRIPT_SYNCPEDIDO
                 query_syncpedido = await self.app.valida_path.validar(path=file_path_exists,method='full',mode='r')                            
@@ -644,7 +644,7 @@ class App:
         async def importa_faturados(self) -> tuple[bool,list]:
             olPedidos = olPedido()
             res = []
-            ack, pedidos_faturados = await olPedidos.buscar_lista(situacao='F',atual=False)
+            ack, pedidos_faturados = await olPedidos.buscar_lista(situacao='F')#,atual=False)
             if ack and pedidos_faturados:  
                 file_path_exists = configSankhya.PATH_SCRIPT_SYNCPEDIDO
                 query_syncpedido = await self.app.valida_path.validar(path=file_path_exists,method='full',mode='r')                            
@@ -850,6 +850,7 @@ class App:
                         if await olEst.buscar(id=estoque_snk.get('ad_mkp_idprod')):
                             estoque_olist = await olEst.encodificar()
                             ol_qtd_est = estoque_olist.get('disponivel')
+                            #ol_qtd_est = estoque_olist.get('saldo')
                             if ol_qtd_est != snk_qtd_est:
                                 variacao = ol_qtd_est - snk_qtd_est
                                 ajuste_estoque = {
@@ -908,8 +909,11 @@ class App:
                     ack_login, driver = await self.bot.login(driver=driver)
                     if ack_login:
                         for mvto in mvto_com_lote:
-                            estoque_snk = await snkEst.buscar_disponivel(codprod=mvto.get('codprod'))                        
+                            estoque_snk = await snkEst.buscar_disponivel(codprod=mvto.get('codprod'))
                             if estoque_snk:
+                                if estoque_snk[0].get('estoque_total') - estoque_snk[0].get('reservado') >= 300:
+                                    ackSync = await self.remove_syncestoque(produto=mvto.get('codprod'),dhevento=mvto.get('dhevento'))
+                                    continue
                                 snk_qtd_est = estoque_snk[0].get('estoque_total')
                                 pular = True if snk_qtd_est < estoque_snk[0].get('reservado') else False
                                 olEst = olEstoque()

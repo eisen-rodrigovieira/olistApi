@@ -31,7 +31,7 @@ FROM
             WHEN BASE.AD_MKP_ESTPOL = 'V' THEN ESTOQUE_TOTAL - (SELECT NVL(SUM(ESTOQUE),0)
                                                                 FROM TGFEST EST
                                                                 WHERE EST.CODPROD = BASE.CODPROD
-                                                                    AND EST.CODLOCAL = 101
+                                                                    AND EST.CODLOCAL IN (101,911)
                                                                     AND EST.CODEMP IN (1,31)
                                                                     AND NVL(EST.CODPARC,0) = 0
                                                                     AND TRUNC(EST.DTVAL) - TRUNC(CURRENT_DATE) > 365)
@@ -69,7 +69,7 @@ FROM
         FROM TGFPRO PRO
             INNER JOIN TGFEST EST ON PRO.CODPROD = EST.CODPROD
         WHERE PRO.CODPROD            = NVL(:P_CODPROD,PRO.CODPROD)
-            AND EST.CODLOCAL         = 101
+            AND EST.CODLOCAL         IN (101,911)
             AND NVL(EST.CODPARC,0)   = 0
             AND EST.ESTOQUE          >= 0
             AND PRO.AD_MKP_INTEGRADO = 'S'

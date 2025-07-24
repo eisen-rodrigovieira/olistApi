@@ -355,33 +355,39 @@ class Nota(object):
             return {"status":"Ação não configurada"} 
 
     async def buscar(self, id:int=None, id_ecommerce:str=None) -> bool:        
-        token = await self.con.get_latest_valid_token_or_refresh()
-
+        try:
+            token = await self.con.get_latest_valid_token_or_refresh()
+        except Exception as e:
+            logger.error("Erro relacionado ao token de acesso. %s",e)
+        
         if id:
-            url = self.endpoint+f"/{id or self.id}"
+            url_ = self.endpoint+f"/{id or self.id}"
         elif id_ecommerce:
             url_ = self.endpoint+f"?numeroPedidoEcommerce={id_ecommerce}"
-            try:                
-                if url_ and token:                
-                    get_nota = requests.get(
-                        url = url_,
-                        headers = {
-                            "Authorization":f"Bearer {token}",
-                            "Content-Type":"application/json",
-                            "Accept":"application/json"
-                        }
-                    )
-                    if get_nota.status_code == 200:
-                        nota = get_nota.json()
-                        url = self.endpoint+f"/{nota.get('itens')[0].get('id')}"
-                    else:                      
-                        logger.error("Erro %s: %s cod %s", get_nota.status_code, get_nota.json().get("mensagem","Erro desconhecido"), self.id)
+
+        try:                
+            if url_ and token:                
+                get_nota = requests.get(
+                    url = url_,
+                    headers = {
+                        "Authorization":f"Bearer {token}",
+                        "Content-Type":"application/json",
+                        "Accept":"application/json"
+                    }
+                )
+                if get_nota.status_code == 200:
+                    nota = get_nota.json()
+                    url = self.endpoint+f"/{nota.get('itens')[0].get('id')}"
                 else:
-                    logger.warning("Endpoint da API ou token de acesso faltantes")
-            except Exception as e:
-                logger.error("Erro relacionado ao token de acesso. %s",e)
+                    url= None
+                    logger.error("Erro %s: %s cod %s", get_nota.status_code, get_nota.json().get("mensagem","Erro desconhecido"), self.id)
+            else:
+                logger.warning("Endpoint da API ou token de acesso faltantes")
+        except Exception as e:
+            logger.error("Erro ao buscar dados da nota do pedido %s. %s",id_ecommerce,e)
+            return False
                 
-        if url and token:
+        if url:
             get_nota = requests.get(
                 url = url,
                 headers = {
@@ -411,5 +417,5 @@ class Nota(object):
             else:                      
                 logger.error("Erro %s: %s cod %s", get_nota.status_code, get_nota.json().get("mensagem","Erro desconhecido"), self.id)
         else:
-            logger.warning("Endpoint da API ou token de acesso faltantes")
+            logger.warning("A nota do pedido não foi faturada")
             return False

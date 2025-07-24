@@ -92,12 +92,14 @@ class Bot:
 
             if dados_produto.get('qtd') != 0:
                 # aguarda carregar o modal dos lotes e verifica se o produto está configurado para isso
-                WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//form[@name='formLancarLotesEntrada']")))
+                #WebDriverWait(driver, configUtils.TIMEOUT_LANCA_LOTES).until(EC.presence_of_element_located((By.XPATH, "//form[@name='formLancarLotesEntrada']")))
+                WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, "//form[@name='formLancarLotesEntrada']")))
             time.sleep(self.time_sleep)       
 
             return True, driver
         except Exception as e:
-            logger.error(e)
+            #logger.error(e)
+            logger.error("Falha ao lançar estoque pelo bot")
             return False, driver
 
     async def valida_configuracao_lote(self,driver,codigo):
